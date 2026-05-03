@@ -74,22 +74,22 @@ def _epoc_factor(workouts: list) -> float:
     return 0.05 if max_zone <= 2 else 0.10 if max_zone == 3 else 0.15
 
 
-def calc_tdee(profile: dict, workouts: list = None, day_type: str = 'rest') -> int:
+def calc_tdee(profile: dict, workouts: list = None, day_type: str = 'rest') -> dict:
     """
     Total Daily Energy Expenditure.
+    Returns a dict with formula components for UI transparency.
     NEAT = BMR × 1.30 (covers all non-exercise movement + thermic effect of food).
     EEE  = MET-based exercise calories.
     EPOC = 5-15% of EEE depending on intensity.
     """
-    bmr   = _bmr(profile)
-    neat  = bmr * 1.30          # non-exercise activity thermogenesis
+    bmr    = _bmr(profile)
+    neat   = bmr * 1.30
     weight = float(profile.get('weight_kg') or 70)
 
     if workouts:
         exercise = _eee(workouts, weight)
         epoc     = exercise * _epoc_factor(workouts)
     else:
-        # Fallback estimate when no workout data available
         _fallback = {
             'rest': 0, 'easy': bmr * 0.25, 'tempo': bmr * 0.45,
             'interval': bmr * 0.60, 'long': bmr * 0.80, 'brick': bmr * 0.90,
@@ -99,7 +99,13 @@ def calc_tdee(profile: dict, workouts: list = None, day_type: str = 'rest') -> i
         exercise = _fallback.get(day_type, bmr * 0.30)
         epoc     = exercise * 0.07
 
-    return int(neat + exercise + epoc)
+    return {
+        'bmr':      int(bmr),
+        'neat':     int(neat),
+        'eee':      int(exercise),
+        'epoc':     int(epoc),
+        'total':    int(neat + exercise + epoc),
+    }
 
 
 def calc_targets(profile: dict, workouts: list = None,
@@ -107,7 +113,8 @@ def calc_targets(profile: dict, workouts: list = None,
     weight = float(profile.get('weight_kg') or 70)
     gender = (profile.get('gender') or 'male').lower()
 
-    calories = calc_tdee(profile, workouts, day_type)
+    tdee_breakdown = calc_tdee(profile, workouts, day_type)
+    calories = tdee_breakdown['total']
 
     wos          = workouts or []
     total_min    = sum(float(w.get('duration_min') or 0) for w in wos)
@@ -214,6 +221,19 @@ def calc_targets(profile: dict, workouts: list = None,
         'zinc_mg':          13.0,        # immune + testosterone; athletes need more than RDA
         # Omega-3 (anti-inflammatory, joint/tendon health — critical for high training load)
         'omega3_g':         round(min(4.0, 2.0 + (total_min / 60) * 0.3), 1),  # 2–4 g/day
+        # Formula breakdown for UI transparency
+        'formula': {
+            'bmr_kcal':         tdee_breakdown['bmr'],
+            'neat_kcal':        tdee_breakdown['neat'],
+            'eee_kcal':         tdee_breakdown['eee'],
+            'epoc_kcal':        tdee_breakdown['epoc'],
+            'weight_kg':        weight,
+            'protein_g_per_kg': round(protein_g / weight, 1),
+            'carb_g_per_kg':    round(carbs_g / weight, 1),
+            'fat_g_per_kg':     round(fat_g / weight, 1),
+            'workouts_min':     int(total_min),
+            'max_zone':         max_zone,
+        },
     }
 
 

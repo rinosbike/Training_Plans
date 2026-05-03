@@ -142,6 +142,7 @@ def get_nutrition_targets():
     )
     sleep_hours = targets.pop('sleep_target_hours', 8.0)
     omega3_g    = targets.pop('omega3_g', 2.0)
+    formula     = targets.pop('formula', {})
 
     execute_write(
         '''INSERT INTO training.nutrition_targets
@@ -166,5 +167,5 @@ def get_nutrition_targets():
 
     targets['sleep_target_hours'] = sleep_hours
     targets['omega3_g'] = omega3_g
-    targets['workouts_min'] = sum(w.get('duration_min', 0) or 0 for w in workouts)
+    targets['formula'] = formula
     return jsonify(targets)
