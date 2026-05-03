@@ -323,31 +323,61 @@ def _triathlon_week(goal_type, block_type, week_num, week_start, total_hours, is
 
 
 def _swim_session(duration_min, block_type, slot):
-    """Generate a named swim workout with structure description."""
+    """Generate a named swim workout with structure that adds up exactly to _dist_swim()."""
     dist = _dist_swim(duration_min)
+
     if block_type == 'base':
+        wu = 400
+        cd_min = 200
+        main_pool = dist - wu - cd_min          # metres available for main set
+        n200 = max(2, main_pool // 200)          # how many 200 m reps fit
+        main_m = n200 * 200
+        cd = dist - wu - main_m                  # remainder goes to cool-down
         title = 'Swim — Aerobic Base'
-        desc = (f'~{dist} m total. '
-                'WU: 400 m easy catch-up drill. '
-                'Main: 6 × 200 m at steady Z2 pace with 20 s rest. '
-                'CD: 200 m easy backstroke or freestyle. '
+        desc = (f'{dist} m total. '
+                f'WU: {wu} m easy catch-up drill. '
+                f'Main: {n200} × 200 m at steady Z2 pace with 20 s rest. '
+                f'CD: {cd} m easy backstroke or freestyle. '
                 'Focus: high elbow catch, bilateral breathing every 3 strokes.')
+
     elif block_type == 'build':
+        wu = 600                                 # 400 m easy + 4 × 50 m build
+        cd = 200
+        main_pool = dist - wu - cd
+        n400 = max(2, main_pool // 500)          # 400 m threshold reps
+        main_m = n400 * 400
+        n50 = max(4, (main_pool - main_m) // 50)
+        cd = dist - wu - main_m - n50 * 50       # recompute cd to balance
+        if cd < 100:
+            n50 = max(2, n50 - 2)
+            cd = dist - wu - main_m - n50 * 50
         title = 'Swim — Threshold Set'
-        desc = (f'~{dist} m total. '
-                'WU: 400 m easy + 4 × 50 m build. '
-                'Main: 4 × 400 m at Z3 (strong but controlled) with 30 s rest. '
-                '+ 6 × 50 m fast with 20 s rest. '
-                'CD: 200 m easy. '
+        desc = (f'{dist} m total. '
+                f'WU: 400 m easy + 4 × 50 m build. '
+                f'Main: {n400} × 400 m at Z3 (strong but controlled) with 30 s rest '
+                f'+ {n50} × 50 m fast with 20 s rest. '
+                f'CD: {cd} m easy. '
                 'Focus: maintain form when fatigued.')
+
     else:  # peak
+        wu = 600
+        cd = 300
+        main_pool = dist - wu - cd
+        n800 = max(1, main_pool // 900)          # 800 m race-pace reps
+        main_m = n800 * 800
+        n100 = max(2, (main_pool - main_m) // 100)
+        cd = dist - wu - main_m - n100 * 100
+        if cd < 100:
+            n100 = max(2, n100 - 2)
+            cd = dist - wu - main_m - n100 * 100
         title = 'Swim — Race Pace'
-        desc = (f'~{dist} m total. '
-                'WU: 600 m easy including drills. '
-                'Main: 2 × 800 m at race pace (Z3-Z4) with 1 min rest. '
-                '+ 4 × 100 m at sprint effort Z4 with 30 s rest. '
-                'CD: 300 m easy. '
+        desc = (f'{dist} m total. '
+                f'WU: {wu} m easy including drills. '
+                f'Main: {n800} × 800 m at race pace (Z3-Z4) with 1 min rest '
+                f'+ {n100} × 100 m at sprint effort Z4 with 30 s rest. '
+                f'CD: {cd} m easy. '
                 'Simulate open-water race start: first 100 m hard, settle in.')
+
     return title, desc
 
 
@@ -607,9 +637,8 @@ def _calc_tss(duration_min, zone):
 
 def _estimate_distance(sport, duration_min, zone):
     if sport == 'swim':
-        # pace in min/100m → convert to km
-        pace_per_100m = {1: 3.0, 2: 2.6, 3: 2.2, 4: 2.0, 5: 1.8}.get(zone, 2.6)
-        return round(duration_min / pace_per_100m * 100 / 1000, 2)
+        # Use same formula as _dist_swim so distance_km always matches description
+        return round(_dist_swim(duration_min) / 1000, 2)
     pace = {
         'run':   {1: 7.0, 2: 6.5, 3: 5.5, 4: 4.5, 5: 4.0},
         'cycle': {1: 2.5, 2: 2.2, 3: 1.9, 4: 1.7, 5: 1.5},
