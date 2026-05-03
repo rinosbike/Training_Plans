@@ -1,4 +1,7 @@
+import datetime
+import decimal
 from flask import Flask, g, jsonify
+from flask.json.provider import DefaultJSONProvider
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, verify_jwt_in_request, get_jwt_identity
 from flask_limiter import Limiter
@@ -6,12 +9,25 @@ from flask_limiter.util import get_remote_address
 from config import config
 from app.db import close_db, set_user_context
 
+
+class ISODateJSONProvider(DefaultJSONProvider):
+    def default(self, o):
+        if isinstance(o, datetime.datetime):
+            return o.isoformat()
+        if isinstance(o, datetime.date):
+            return o.isoformat()
+        if isinstance(o, decimal.Decimal):
+            return float(o)
+        return super().default(o)
+
 jwt = JWTManager()
 limiter = Limiter(key_func=get_remote_address, default_limits=['200 per minute'])
 
 
 def create_app(config_name='default'):
     app = Flask(__name__)
+    app.json_provider_class = ISODateJSONProvider
+    app.json = ISODateJSONProvider(app)
     app.config.from_object(config[config_name])
 
     CORS(app, origins=app.config['CORS_ORIGINS'], supports_credentials=True)
