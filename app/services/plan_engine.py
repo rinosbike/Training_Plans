@@ -155,8 +155,24 @@ def _triathlon_week(goal_type, block_type, week_num, week_start, total_hours, is
 
     days = []
 
-    # --- Monday: Rest ---
-    days.append(_rest_day(week_start, 0))
+    # --- Monday: Core & Mobility (full rest on recovery weeks) ---
+    if is_recovery:
+        days.append(_rest_day(week_start, 0))
+    elif block_type == 'taper':
+        days.append(_rest_day(week_start, 0))
+    else:
+        core_dur = 25 if block_type == 'base' else 30
+        core_desc = (
+            f'{core_dur} min triathlon-specific core and mobility. '
+            'Dead bugs 3×10 each side. '
+            'Front plank 3×45 s. Side plank 3×30 s each. '
+            'Single-leg glute bridge 3×12 each. '
+            'Bird dog 3×10 each side. '
+            'Finish with 5 min foam rolling: IT band, quads, calves, hip flexors. '
+            'Purpose: swim body position, aero bike hold, run form at km 35.'
+        )
+        days.append(_single(week_start, 0, 'core', 'core', core_dur, 1,
+                            'Core & Mobility', core_desc))
 
     # --- Tuesday ---
     if is_recovery:
