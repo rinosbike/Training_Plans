@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { -webkit-tap-highlight-color: transparent; }
+  body { @apply font-sans text-gray-900 antialiased; }
+}
+
+@layer utilities {
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .pb-nav { padding-bottom: calc(4rem + env(safe-area-inset-bottom)); }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+}
+
+/* Sport colours used via inline style or class */
+.sport-run      { @apply bg-orange-500; }
+.sport-cycle    { @apply bg-blue-500; }
+.sport-swim     { @apply bg-cyan-500; }
+.sport-strength { @apply bg-purple-500; }
+.sport-core     { @apply bg-pink-500; }
+.sport-brick    { @apply bg-amber-500; }
+.sport-rest     { @apply bg-gray-300; }

@@ -1,0 +1,15 @@
+[Unit]
+Description=Training Plans Flask App
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/home/app/training-plans
+Environment="FLASK_ENV=production"
+EnvironmentFile=/home/app/training-plans/.env
+ExecStart=/home/app/training-plans/venv/bin/gunicorn -c gunicorn.conf.py "app:create_app('production')"
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
