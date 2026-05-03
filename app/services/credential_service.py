@@ -15,7 +15,7 @@ def get_credential(platform: str, key_name: str) -> str | None:
                 (platform, key_name),
             )
             row = cur.fetchone()
-            return row[0] if row else None
+            return row['key_value'] if row else None
     finally:
         conn.close()
 
