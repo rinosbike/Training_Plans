@@ -3,6 +3,7 @@ Sync API — Strava + Suunto OAuth, manual sync, and webhook endpoints.
 """
 import json
 import logging
+import secrets
 from datetime import datetime, timezone, timedelta
 from flask import Blueprint, request, jsonify, redirect, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -139,14 +140,20 @@ def sync_status():
 # ---------------------------------------------------------------------------
 
 @sync_bp.route('/api/sync/strava/connect')
+@jwt_required()
 def strava_connect():
+    user_id   = get_jwt_identity()
     client_id = get_credential('strava', 'client_id') or current_app.config.get('STRAVA_CLIENT_ID', '')
     if not client_id:
         return jsonify({'error': 'Strava not configured. Add client_id on the Credentials page'}), 503
-    state = request.args.get('state', '')
+    nonce = secrets.token_urlsafe(32)
+    execute_write(
+        "INSERT INTO training.oauth_nonces (nonce, user_id, provider) VALUES (%s, %s, 'strava')",
+        (nonce, user_id)
+    )
     redirect_uri = f"{current_app.config.get('FRONTEND_URL','')}/api/sync/strava/callback"
-    url = strava_svc.get_auth_url(client_id, redirect_uri, state=state)
-    return redirect(url)
+    url = strava_svc.get_auth_url(client_id, redirect_uri, state=nonce)
+    return jsonify({'url': url})
 
 
 @sync_bp.route('/api/sync/strava/callback')
@@ -154,7 +161,13 @@ def strava_callback():
     code  = request.args.get('code')
     error = request.args.get('error')
     if error or not code:
-        return redirect('/#/sync?error=strava_denied')
+        return redirect('/sync?error=strava_denied')
+
+    nonce = request.args.get('state', '')
+    user_id = _user_id_from_nonce(nonce)
+    if not user_id:
+        log.error('Strava callback: nonce not found or expired: %r', nonce)
+        return redirect('/sync?error=no_state')
 
     client_id     = get_credential('strava', 'client_id') or current_app.config.get('STRAVA_CLIENT_ID', '')
     client_secret = get_credential('strava', 'client_secret') or current_app.config.get('STRAVA_CLIENT_SECRET', '')
@@ -162,13 +175,7 @@ def strava_callback():
         data = strava_svc.exchange_code(client_id, client_secret, code)
     except Exception as e:
         log.error('Strava token exchange failed: %s', e)
-        return redirect('/#/sync?error=strava_token')
-
-    # state param carries JWT — decode user_id
-    state = request.args.get('state', '')
-    user_id = _user_id_from_state(state)
-    if not user_id:
-        return redirect('/#/sync?error=no_state')
+        return redirect('/sync?error=strava_token')
 
     provider_user_id = data.get('athlete', {}).get('id')
     _upsert_token(user_id, 'strava', data, provider_user_id)
@@ -273,14 +280,20 @@ def strava_webhook_push():
 # ---------------------------------------------------------------------------
 
 @sync_bp.route('/api/sync/suunto/connect')
+@jwt_required()
 def suunto_connect():
+    user_id   = get_jwt_identity()
     client_id = get_credential('suunto', 'client_id') or current_app.config.get('SUUNTO_CLIENT_ID', '')
     if not client_id:
         return jsonify({'error': 'Suunto not configured. Add credentials on the Credentials page'}), 503
-    state = request.args.get('state', '')
+    nonce = secrets.token_urlsafe(32)
+    execute_write(
+        "INSERT INTO training.oauth_nonces (nonce, user_id, provider) VALUES (%s, %s, 'suunto')",
+        (nonce, user_id)
+    )
     redirect_uri = f"{current_app.config.get('FRONTEND_URL','')}/api/sync/suunto/callback"
-    url = suunto_svc.get_auth_url(client_id, redirect_uri, state=state)
-    return redirect(url)
+    url = suunto_svc.get_auth_url(client_id, redirect_uri, state=nonce)
+    return jsonify({'url': url})
 
 
 @sync_bp.route('/api/sync/suunto/callback')
@@ -290,13 +303,13 @@ def suunto_callback():
     if error or not code:
         return redirect('/sync?error=suunto_denied')
 
+    nonce = request.args.get('state', '')
+    user_id = _user_id_from_nonce(nonce)
+    if not user_id:
+        return redirect('/sync?error=no_state')
     client_id     = get_credential('suunto', 'client_id') or current_app.config.get('SUUNTO_CLIENT_ID', '')
     client_secret = get_credential('suunto', 'client_secret') or current_app.config.get('SUUNTO_CLIENT_SECRET', '')
     redirect_uri  = f"{current_app.config.get('FRONTEND_URL','')}/api/sync/suunto/callback"
-    state = request.args.get('state', '')
-    user_id = _user_id_from_state(state)
-    if not user_id:
-        return redirect('/sync?error=no_state')
     try:
         data = suunto_svc.exchange_code(client_id, client_secret, code, redirect_uri)
     except Exception as e:
@@ -411,19 +424,17 @@ def disconnect():
 
 
 # ---------------------------------------------------------------------------
-# Helper: extract user_id from JWT state param
+# Helper: look up short-lived nonce → user_id
 # ---------------------------------------------------------------------------
 
-def _user_id_from_state(state: str) -> str | None:
-    """
-    The OAuth connect link must include ?state=<jwt> so we can identify the user
-    in the callback (which has no JWT cookie). We pass the access_token as state.
-    """
-    if not state:
+def _user_id_from_nonce(nonce: str) -> str | None:
+    if not nonce:
         return None
-    try:
-        from flask_jwt_extended import decode_token
-        decoded = decode_token(state)
-        return decoded.get('sub')
-    except Exception:
-        return None
+    row = execute_query(
+        "SELECT user_id FROM training.oauth_nonces WHERE nonce=%s AND expires_at > NOW()",
+        (nonce,), fetch_one=True
+    )
+    if row:
+        execute_write("DELETE FROM training.oauth_nonces WHERE nonce=%s", (nonce,))
+        return str(row['user_id'])
+    return None

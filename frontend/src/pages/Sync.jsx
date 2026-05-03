@@ -54,10 +54,13 @@ export default function Sync() {
     }
   }
 
-  // Build connect URL with JWT state so callback can identify user
-  function connectUrl(provider) {
-    const token = localStorage.getItem('access_token') || ''
-    return `/api/sync/${provider}/connect?state=${encodeURIComponent(token)}`
+  async function connectProvider(provider) {
+    try {
+      const { data } = await api.get(`/api/sync/${provider}/connect`)
+      window.location.href = data.url
+    } catch (e) {
+      toast.error(e.response?.data?.error || `Cannot connect ${provider}`)
+    }
   }
 
   const providers = [
@@ -167,12 +170,12 @@ export default function Sync() {
                     </button>
                   </>
                 ) : (
-                  <a
-                    href={connectUrl(p.id)}
-                    className="flex-1 block py-2.5 rounded-xl bg-primary-600 text-white text-sm font-medium text-center active:bg-primary-700"
+                  <button
+                    onClick={() => connectProvider(p.id)}
+                    className="flex-1 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-medium active:bg-primary-700"
                   >
                     Connect {p.label}
-                  </a>
+                  </button>
                 )}
               </div>
             </div>
