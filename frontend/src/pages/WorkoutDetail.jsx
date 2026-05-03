@@ -13,6 +13,44 @@ const zoneInfo = {
   5: { label: 'Zone 5 — VO2max',   desc: 'Very hard, cannot speak', color: 'bg-red-100 text-red-700' },
 }
 
+const HR_ZONES = [
+  { z: 1, name: 'Recovery',  pct: [0.50, 0.60], bar: 'bg-green-200',   text: 'text-green-900',   border: 'border-green-200' },
+  { z: 2, name: 'Aerobic',   pct: [0.60, 0.70], bar: 'bg-teal-300',    text: 'text-teal-900',    border: 'border-teal-200' },
+  { z: 3, name: 'Tempo',     pct: [0.70, 0.80], bar: 'bg-yellow-300',  text: 'text-yellow-900',  border: 'border-yellow-300' },
+  { z: 4, name: 'Threshold', pct: [0.80, 0.90], bar: 'bg-orange-400',  text: 'text-white',       border: 'border-orange-300' },
+  { z: 5, name: 'VO2max',    pct: [0.90, 1.00], bar: 'bg-red-500',     text: 'text-white',       border: 'border-red-400' },
+]
+
+function HRZones({ maxHr, activeZone }) {
+  if (!maxHr) return (
+    <p className="text-xs text-amber-700 bg-amber-50 rounded-xl px-3 py-2.5 mt-3">
+      Set your max HR in Settings to see heart rate zone targets.
+    </p>
+  )
+  return (
+    <div className="mt-3 space-y-1.5">
+      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Heart Rate Zones (max {maxHr} bpm)</p>
+      {HR_ZONES.map(z => {
+        const lo = Math.round(z.pct[0] * maxHr)
+        const hi = z.z === 5 ? maxHr : Math.round(z.pct[1] * maxHr)
+        const active = z.z === activeZone
+        return (
+          <div key={z.z} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border ${z.bar} ${z.border} transition-all ${active ? 'ring-2 ring-primary-500 ring-offset-1' : 'opacity-75'}`}>
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${active ? 'bg-white/90 text-gray-800 shadow-sm' : 'bg-white/50 text-gray-700'}`}>
+              {z.z}
+            </div>
+            <span className={`flex-1 text-sm font-semibold ${z.text}`}>Z{z.z} — {z.name}</span>
+            <span className={`text-sm font-mono font-bold tabular-nums ${z.text}`}>{lo}–{hi} bpm</span>
+            {active && (
+              <span className={`text-xs px-2 py-0.5 rounded-full bg-white/30 font-medium ${z.text}`}>Target</span>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function WorkoutDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -23,6 +61,11 @@ export default function WorkoutDetail() {
   const { data: workout, isLoading } = useQuery({
     queryKey: ['workout', id],
     queryFn: () => api.get(`/api/workouts/${id}`).then(r => r.data),
+  })
+
+  const { data: profile = {} } = useQuery({
+    queryKey: ['profile'],
+    queryFn: () => api.get('/api/profile').then(r => r.data),
   })
 
   const logMutation = useMutation({
@@ -70,6 +113,9 @@ export default function WorkoutDetail() {
             {zone.label} — {zone.desc}
           </div>
           {workout.description && <p className="mt-3 text-sm text-gray-600">{workout.description}</p>}
+
+          {/* HR Zones */}
+          <HRZones maxHr={profile?.max_hr} activeZone={workout.intensity_zone} />
         </div>
 
         {/* Actual log */}

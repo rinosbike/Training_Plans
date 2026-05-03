@@ -1,12 +1,76 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import { Navigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../services/api'
+import { useAuth } from '../contexts/AuthContext'
 import BottomNav from '../components/BottomNav'
 import toast from 'react-hot-toast'
 
-const PLATFORM_ICONS = { strava: '🚀', suunto: '⌚' }
+const PLATFORM_EMOJI = { strava: '🚀', suunto: '⌚' }
 
-function KeyField({ keyDef, platformId, savedValue, onSave }) {
+function PlatformIcon({ platformId, iconData, isAdmin }) {
+  const qc = useQueryClient()
+  const inputRef = useRef(null)
+  const [uploading, setUploading] = useState(false)
+
+  async function handleFile(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    if (file.size > 153600) { toast.error('Icon must be under 150 KB'); return }
+    setUploading(true)
+    const fd = new FormData()
+    fd.append('icon', file)
+    try {
+      await api.post(`/api/admin/platform-icon/${platformId}`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      qc.invalidateQueries(['platform-icons'])
+      toast.success('Icon updated')
+    } catch {
+      toast.error('Upload failed')
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
+  }
+
+  async function removeIcon() {
+    try {
+      await api.delete(`/api/admin/platform-icon/${platformId}`)
+      qc.invalidateQueries(['platform-icons'])
+      toast.success('Icon removed')
+    } catch {
+      toast.error('Remove failed')
+    }
+  }
+
+  return (
+    <div className="relative flex flex-col items-center gap-1">
+      {iconData ? (
+        <img src={iconData} alt={platformId} className="w-12 h-12 rounded-xl object-contain bg-white p-1 border border-gray-200 shadow-sm" />
+      ) : (
+        <span className="text-4xl">{PLATFORM_EMOJI[platformId] || '🔑'}</span>
+      )}
+      {isAdmin && (
+        <div className="flex gap-1 mt-1">
+          <button
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            className="text-xs px-2 py-1 rounded-lg bg-primary-600 text-white font-medium disabled:opacity-50"
+          >
+            {uploading ? '...' : iconData ? 'Change' : 'Upload'}
+          </button>
+          {iconData && (
+            <button onClick={removeIcon} className="text-xs px-2 py-1 rounded-lg border border-red-300 text-red-500 font-medium">✕</button>
+          )}
+        </div>
+      )}
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+    </div>
+  )
+}
+
+function KeyField({ keyDef, platformId, onSave }) {
   const [editing, setEditing] = useState(false)
   const [val, setVal] = useState('')
 
@@ -54,7 +118,7 @@ function KeyField({ keyDef, platformId, savedValue, onSave }) {
   )
 }
 
-function PlatformCard({ platform }) {
+function PlatformCard({ platform, iconData, isAdmin }) {
   const qc = useQueryClient()
   const [testResult, setTestResult] = useState(null)
   const [testing, setTesting] = useState(false)
@@ -84,8 +148,8 @@ function PlatformCard({ platform }) {
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-      <div className="px-4 pt-4 pb-3 flex items-center gap-3">
-        <span className="text-3xl">{PLATFORM_ICONS[platform.platform] || '🔑'}</span>
+      <div className="px-4 pt-4 pb-3 flex items-start gap-3">
+        <PlatformIcon platformId={platform.platform} iconData={iconData} isAdmin={isAdmin} />
         <div className="flex-1">
           <h3 className="font-semibold text-gray-900">{platform.label}</h3>
           <a href={platform.docs} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-600 underline">
@@ -129,23 +193,35 @@ function PlatformCard({ platform }) {
 }
 
 export default function Credentials() {
+  const { user } = useAuth()
+
   const { data: platforms, isLoading } = useQuery({
     queryKey: ['credentials'],
     queryFn: () => api.get('/api/credentials/platforms').then(r => r.data),
   })
 
+  const { data: icons = {} } = useQuery({
+    queryKey: ['platform-icons'],
+    queryFn: () => api.get('/api/admin/platform-icons').then(r => r.data),
+  })
+
+  // Non-admin users have no business here
+  if (user && !user.is_admin) return <Navigate to="/settings" replace />
+
   return (
     <div className="min-h-screen bg-gray-50 pb-nav">
       <div className="bg-primary-600 text-white px-4 pt-12 pb-4">
         <h1 className="text-xl font-bold">API Credentials</h1>
-        <p className="text-primary-200 text-sm">Manage third-party integration keys</p>
+        <p className="text-primary-200 text-sm">Manage third-party integration keys · Admin only</p>
       </div>
 
       <div className="px-4 mt-4 space-y-4">
         {isLoading && (
           <div className="text-center py-12 text-gray-400 text-sm">Loading...</div>
         )}
-        {platforms?.map(p => <PlatformCard key={p.platform} platform={p} />)}
+        {platforms?.map(p => (
+          <PlatformCard key={p.platform} platform={p} iconData={icons[p.platform]} isAdmin={!!user?.is_admin} />
+        ))}
 
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">
           <p className="font-semibold mb-1">Security note</p>

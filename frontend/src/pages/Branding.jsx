@@ -1,3 +1,5 @@
+import { useQuery } from '@tanstack/react-query'
+import api from '../services/api'
 import BottomNav from '../components/BottomNav'
 
 const INTEGRATIONS = [
@@ -52,7 +54,14 @@ const OAUTH_FLOW = [
   { step: '6', label: 'Sync Now / Webhook', detail: 'Fetch activities → map → match plan → upsert workout_logs' },
 ]
 
+const PLATFORM_EMOJI = { strava: '🚀', suunto: '⌚' }
+
 export default function Branding() {
+  const { data: icons = {} } = useQuery({
+    queryKey: ['platform-icons'],
+    queryFn: () => api.get('/api/admin/platform-icons').then(r => r.data),
+  })
+
   return (
     <div className="min-h-screen bg-gray-50 pb-nav">
       <div className="bg-primary-600 text-white px-4 pt-12 pb-4">
@@ -110,7 +119,11 @@ export default function Branding() {
         {INTEGRATIONS.map(intg => (
           <div key={intg.id} className={`bg-white rounded-2xl border ${intg.border} overflow-hidden`}>
             <div className={`px-4 pt-4 pb-3 ${intg.bg} flex items-center gap-3`}>
-              <span className="text-3xl">{intg.icon}</span>
+              {icons[intg.id] ? (
+                <img src={icons[intg.id]} alt={intg.name} className="w-10 h-10 rounded-xl object-contain bg-white p-1 shadow-sm" />
+              ) : (
+                <span className="text-3xl">{PLATFORM_EMOJI[intg.id] || intg.icon}</span>
+              )}
               <div className="flex-1">
                 <h3 className={`font-bold ${intg.color}`}>{intg.name}</h3>
                 <p className="text-xs text-gray-500">{intg.description}</p>

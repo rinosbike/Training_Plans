@@ -84,9 +84,11 @@ export default function Settings() {
             Device Sync <span className="text-gray-400">›</span>
           </button>
           <div className="border-t border-gray-100 pt-2 mt-1" />
-          <button onClick={() => navigate('/credentials')} className="w-full text-left py-2 text-sm text-gray-700 font-medium flex items-center justify-between">
-            API Credentials <span className="text-gray-400">›</span>
-          </button>
+          {user?.is_admin && (
+            <button onClick={() => navigate('/credentials')} className="w-full text-left py-2 text-sm text-gray-700 font-medium flex items-center justify-between">
+              API Credentials <span className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-600 font-medium">Admin</span>
+            </button>
+          )}
           <button onClick={() => navigate('/branding')} className="w-full text-left py-2 text-sm text-gray-700 font-medium flex items-center justify-between">
             Branding &amp; App Info <span className="text-gray-400">›</span>
           </button>

@@ -1,10 +1,12 @@
 """
 Credentials API — manage training.api_credentials (Strava, Suunto, etc.)
-Admin-level: any authenticated user can manage their own app credentials.
+Admin-level: admin users can manage app credentials and upload platform icons.
 """
+import base64
 import logging
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from app.db import execute_query
 from app.services.credential_service import get_credential, set_credential, list_credentials, delete_credential
 
 credentials_bp = Blueprint('credentials', __name__)
@@ -99,6 +101,55 @@ def delete_platform_cred(platform, key_name):
         return jsonify({'error': 'Unknown platform'}), 404
     deleted = delete_credential(platform, key_name)
     return jsonify({'deleted': deleted})
+
+
+def _is_admin(user_id: str) -> bool:
+    row = execute_query(
+        'SELECT is_admin FROM training.users WHERE id = %s', (user_id,), fetch_one=True
+    )
+    return bool(row and row.get('is_admin'))
+
+
+@credentials_bp.route('/api/admin/platform-icons', methods=['GET'])
+@jwt_required()
+def get_platform_icons():
+    """Return uploaded icon data URLs for all platforms (accessible to all users for display)."""
+    icons = {}
+    for platform in PLATFORMS:
+        icons[platform] = get_credential(platform, 'icon_data')
+    return jsonify(icons)
+
+
+@credentials_bp.route('/api/admin/platform-icon/<platform>', methods=['POST'])
+@jwt_required()
+def upload_platform_icon(platform):
+    """Admin: upload a PNG/SVG icon for a platform."""
+    if not _is_admin(get_jwt_identity()):
+        return jsonify({'error': 'Admin only'}), 403
+    if platform not in PLATFORMS:
+        return jsonify({'error': 'Unknown platform'}), 404
+    f = request.files.get('icon')
+    if not f:
+        return jsonify({'error': 'No file uploaded'}), 400
+    raw = f.read()
+    if len(raw) > 153600:  # 150 KB limit
+        return jsonify({'error': 'Icon must be under 150 KB'}), 400
+    mime = f.mimetype or 'image/png'
+    data_url = f"data:{mime};base64,{base64.b64encode(raw).decode()}"
+    set_credential(platform, 'icon_data', data_url, is_secret=False)
+    log.info('Admin uploaded icon for %s (%d bytes)', platform, len(raw))
+    return jsonify({'ok': True})
+
+
+@credentials_bp.route('/api/admin/platform-icon/<platform>', methods=['DELETE'])
+@jwt_required()
+def delete_platform_icon(platform):
+    if not _is_admin(get_jwt_identity()):
+        return jsonify({'error': 'Admin only'}), 403
+    if platform not in PLATFORMS:
+        return jsonify({'error': 'Unknown platform'}), 404
+    delete_credential(platform, 'icon_data')
+    return jsonify({'ok': True})
 
 
 @credentials_bp.route('/api/credentials/test/<platform>', methods=['POST'])
