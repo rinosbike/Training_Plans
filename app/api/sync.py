@@ -7,7 +7,8 @@ import secrets
 from datetime import datetime, timezone, timedelta
 from flask import Blueprint, request, jsonify, redirect, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.db import execute_query, execute_write
+from flask import g
+from app.db import execute_query, execute_write, set_user_context
 from app.services.sync import strava as strava_svc
 from app.services.sync import suunto as suunto_svc
 from app.services.credential_service import get_credential
@@ -169,6 +170,10 @@ def strava_callback():
         log.error('Strava callback: nonce not found or expired: %r', nonce)
         return redirect('/sync?error=no_state')
 
+    # Set DB user context so RLS-protected tables (sync_tokens) allow writes
+    g.user_id = user_id
+    set_user_context(user_id)
+
     client_id     = get_credential('strava', 'client_id') or current_app.config.get('STRAVA_CLIENT_ID', '')
     client_secret = get_credential('strava', 'client_secret') or current_app.config.get('STRAVA_CLIENT_SECRET', '')
     try:
@@ -307,6 +312,8 @@ def suunto_callback():
     user_id = _user_id_from_nonce(nonce)
     if not user_id:
         return redirect('/sync?error=no_state')
+    g.user_id = user_id
+    set_user_context(user_id)
     client_id     = get_credential('suunto', 'client_id') or current_app.config.get('SUUNTO_CLIENT_ID', '')
     client_secret = get_credential('suunto', 'client_secret') or current_app.config.get('SUUNTO_CLIENT_SECRET', '')
     redirect_uri  = f"{current_app.config.get('FRONTEND_URL','')}/api/sync/suunto/callback"
