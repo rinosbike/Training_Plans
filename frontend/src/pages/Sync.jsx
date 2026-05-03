@@ -4,6 +4,8 @@ import api from '../services/api'
 import BottomNav from '../components/BottomNav'
 import toast from 'react-hot-toast'
 
+const PROVIDER_EMOJI = { strava: '🚀', suunto: '⌚' }
+
 function SportBadge({ sport }) {
   const map = {
     run: { label: 'Run', bg: 'bg-green-100 text-green-700' },
@@ -31,6 +33,11 @@ export default function Sync() {
     queryKey: ['sync-status'],
     queryFn: () => api.get('/api/sync/status').then(r => r.data),
     refetchInterval: 10000,
+  })
+
+  const { data: icons = {} } = useQuery({
+    queryKey: ['platform-icons'],
+    queryFn: () => api.get('/api/admin/platform-icons').then(r => r.data),
   })
 
   const disconnect = useMutation({
@@ -113,7 +120,10 @@ export default function Sync() {
             <div key={p.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
               {/* Header */}
               <div className="px-4 pt-4 pb-3 flex items-start gap-3">
-                <span className="text-3xl mt-0.5">{p.icon}</span>
+                {icons[p.id]
+                  ? <img src={icons[p.id]} alt={p.label} className="w-10 h-10 rounded-xl object-contain bg-white p-1 shadow-sm border border-gray-100" />
+                  : <span className="text-3xl mt-0.5">{PROVIDER_EMOJI[p.id] || p.icon}</span>
+                }
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-0.5">
                     <h3 className={`font-semibold text-gray-900`}>{p.label}</h3>

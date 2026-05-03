@@ -38,7 +38,9 @@ PLATFORMS = {
 @credentials_bp.route('/api/credentials/platforms')
 @jwt_required()
 def get_platforms():
-    """Return platform definitions + current saved key names (values masked)."""
+    """Return platform definitions + current saved key names.
+    Non-secret values (e.g. client_id) are returned in plain text.
+    Secret values are masked."""
     result = []
     for platform_id, meta in PLATFORMS.items():
         saved = list_credentials(platform_id)
@@ -46,11 +48,15 @@ def get_platforms():
         keys = []
         for k in meta['keys']:
             row = saved_map.get(k['name'])
-            keys.append({
+            entry = {
                 **k,
                 'saved': row is not None,
                 'updated_at': row['updated_at'] if row else None,
-            })
+                'value': None,
+            }
+            if row and not k['is_secret']:
+                entry['value'] = get_credential(platform_id, k['name'])
+            keys.append(entry)
         result.append({
             'platform': platform_id,
             'label': meta['label'],

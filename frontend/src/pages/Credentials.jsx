@@ -81,38 +81,45 @@ function KeyField({ keyDef, platformId, onSave }) {
     setEditing(false)
   }
 
+  const displayValue = keyDef.is_secret
+    ? (keyDef.saved ? '••••••••' : 'not set')
+    : (keyDef.value || (keyDef.saved ? '(saved)' : 'not set'))
+
   return (
-    <div className="flex items-center gap-3 py-2 border-b border-gray-100 last:border-0">
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-800">{keyDef.label}</p>
-        <p className="text-xs text-gray-400 font-mono">
-          {keyDef.saved ? (keyDef.is_secret ? '••••••••' : '(saved)') : 'not set'}
-        </p>
-        {keyDef.updated_at && (
-          <p className="text-xs text-gray-300">Updated {new Date(keyDef.updated_at).toLocaleDateString()}</p>
+    <div className="py-2.5 border-b border-gray-100 last:border-0">
+      <div className="flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-700">{keyDef.label}</p>
+          <p className={`text-xs font-mono mt-0.5 break-all ${keyDef.saved ? 'text-gray-600' : 'text-gray-300'}`}>
+            {displayValue}
+          </p>
+          {keyDef.updated_at && (
+            <p className="text-xs text-gray-300 mt-0.5">Updated {new Date(keyDef.updated_at).toLocaleDateString()}</p>
+          )}
+        </div>
+        {!editing && (
+          <button
+            onClick={() => setEditing(true)}
+            className="shrink-0 text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 mt-0.5"
+          >
+            {keyDef.saved ? 'Update' : 'Set'}
+          </button>
         )}
       </div>
-      {editing ? (
-        <div className="flex gap-2 flex-1">
+      {editing && (
+        <div className="flex gap-2 mt-2">
           <input
             autoFocus
             type={keyDef.is_secret ? 'password' : 'text'}
             value={val}
             onChange={e => setVal(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && submit()}
-            placeholder={keyDef.label}
+            placeholder={`Enter ${keyDef.label}`}
             className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary-500"
           />
-          <button onClick={submit} className="px-3 py-1.5 bg-primary-600 text-white text-sm rounded-lg">Save</button>
+          <button onClick={submit} className="px-3 py-1.5 bg-primary-600 text-white text-sm rounded-lg font-medium">Save</button>
           <button onClick={() => { setEditing(false); setVal('') }} className="px-3 py-1.5 border border-gray-300 text-gray-600 text-sm rounded-lg">✕</button>
         </div>
-      ) : (
-        <button
-          onClick={() => setEditing(true)}
-          className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
-        >
-          {keyDef.saved ? 'Update' : 'Set'}
-        </button>
       )}
     </div>
   )
@@ -163,6 +170,7 @@ function PlatformCard({ platform, iconData, isAdmin }) {
         </span>
       </div>
 
+      {/* Credential fields */}
       <div className="px-4 pb-2">
         {platform.keys.map(k => (
           <KeyField
@@ -174,17 +182,22 @@ function PlatformCard({ platform, iconData, isAdmin }) {
         ))}
       </div>
 
-      <div className="px-4 pb-4 pt-2">
+      {/* Test authentication */}
+      <div className="px-4 pb-4 pt-1">
         <button
           onClick={testConnection}
           disabled={testing}
-          className="w-full py-2.5 rounded-xl border border-primary-300 text-primary-600 text-sm font-medium active:bg-primary-50 disabled:opacity-50"
+          className="w-full py-3 rounded-xl bg-primary-600 text-white text-sm font-semibold active:bg-primary-700 disabled:opacity-50 flex items-center justify-center gap-2"
         >
-          {testing ? 'Testing...' : 'Test Configuration'}
+          {testing
+            ? <><span className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full" /> Testing…</>
+            : '⚡ Test Authentication'
+          }
         </button>
         {testResult && (
-          <div className={`mt-2 rounded-xl px-3 py-2 text-sm ${testResult.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
-            {testResult.ok ? '✓ ' : '✗ '}{testResult.message}
+          <div className={`mt-2 rounded-xl px-4 py-3 text-sm font-medium flex items-start gap-2 ${testResult.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+            <span className="text-base shrink-0">{testResult.ok ? '✓' : '✗'}</span>
+            <span>{testResult.message}</span>
           </div>
         )}
       </div>
