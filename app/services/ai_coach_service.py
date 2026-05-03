@@ -8,7 +8,7 @@ import requests
 
 
 COPILOT_API_URL = 'https://api.githubcopilot.com/chat/completions'
-DEFAULT_MODEL = 'gpt-4o'
+DEFAULT_MODEL = 'claude-sonnet-4.6'
 
 
 class CopilotAPIError(Exception):
