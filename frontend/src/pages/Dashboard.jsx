@@ -16,16 +16,19 @@ const DAY_TYPE_BADGE = {
   strength: { label: 'Strength', bg: 'bg-purple-100 text-purple-700' },
   brick:    { label: 'Brick',    bg: 'bg-amber-100 text-amber-700' },
   core:     { label: 'Core',     bg: 'bg-pink-100 text-pink-700' },
+  swim:     { label: 'Swim',     bg: 'bg-cyan-100 text-cyan-700' },
+  cycle:    { label: 'Ride',     bg: 'bg-indigo-100 text-indigo-700' },
+}
+
+function localDateStr(d) {
+  return [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-')
 }
 
 function getWeekRange(weekStart) {
   const d = new Date(weekStart)
   const end = new Date(d)
   end.setDate(end.getDate() + 6)
-  return {
-    start: d.toISOString().split('T')[0],
-    end: end.toISOString().split('T')[0],
-  }
+  return { start: localDateStr(d), end: localDateStr(end) }
 }
 
 function startOfWeek(d) {
@@ -33,13 +36,13 @@ function startOfWeek(d) {
   const day = dt.getDay()
   const diff = day === 0 ? -6 : 1 - day
   dt.setDate(dt.getDate() + diff)
-  dt.setHours(0,0,0,0)
+  dt.setHours(12,0,0,0)
   return dt
 }
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateStr(new Date())
   const [selectedDate, setSelectedDate] = useState(today)
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()))
 

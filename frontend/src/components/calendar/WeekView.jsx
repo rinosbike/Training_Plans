@@ -1,12 +1,16 @@
 import { useState, useRef } from 'react'
 import DayCard from './DayCard'
 
+function localDateStr(d) {
+  return [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-')
+}
+
 function startOfWeek(d) {
   const dt = new Date(d)
   const day = dt.getDay()
   const diff = day === 0 ? -6 : 1 - day  // Monday start
   dt.setDate(dt.getDate() + diff)
-  dt.setHours(0,0,0,0)
+  dt.setHours(12,0,0,0)  // noon avoids UTC-offset date shift
   return dt
 }
 
@@ -24,7 +28,7 @@ export default function WeekView({ days, selectedDate, onSelectDate, onWeekChang
   const weekDates = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart)
     d.setDate(d.getDate() + i)
-    return d.toISOString().split('T')[0]
+    return localDateStr(d)
   })
 
   const dayMap = {}
@@ -66,7 +70,7 @@ export default function WeekView({ days, selectedDate, onSelectDate, onWeekChang
       <div className="flex gap-1 p-2 overflow-x-auto scrollbar-hide">
         {weekDates.map((dateStr) => {
           const day = dayMap[dateStr] || { date: dateStr, day_type: 'rest', workouts: [] }
-          const isToday = dateStr === new Date().toISOString().split('T')[0]
+          const isToday = dateStr === localDateStr(new Date())
           return (
             <DayCard
               key={dateStr}

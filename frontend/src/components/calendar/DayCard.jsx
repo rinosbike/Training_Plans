@@ -11,6 +11,8 @@ const DAY_TYPE_COLORS = {
   strength: 'bg-purple-100 text-purple-700',
   brick:    'bg-amber-100 text-amber-700',
   core:     'bg-pink-100 text-pink-700',
+  swim:     'bg-cyan-100 text-cyan-700',
+  cycle:    'bg-indigo-100 text-indigo-700',
 }
 
 export default function DayCard({ day, isToday, isSelected, onClick }) {
