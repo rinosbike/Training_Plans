@@ -1,79 +1,85 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import api from '../services/api'
 import BottomNav from '../components/BottomNav'
 import WeekView from '../components/calendar/WeekView'
+import MonthView from '../components/calendar/MonthView'
 import WorkoutCard from '../components/workout/WorkoutCard'
 
 const DAY_TYPE_BADGE = {
-  rest:     { label: 'Rest',     bg: 'bg-gray-100 text-gray-500' },
-  easy:     { label: 'Easy',     bg: 'bg-green-100 text-green-700' },
-  tempo:    { label: 'Tempo',    bg: 'bg-yellow-100 text-yellow-700' },
-  interval: { label: 'Intervals',bg: 'bg-orange-100 text-orange-700' },
-  long:     { label: 'Long',     bg: 'bg-blue-100 text-blue-700' },
-  race:     { label: 'Race',     bg: 'bg-red-100 text-red-700' },
-  strength: { label: 'Strength', bg: 'bg-purple-100 text-purple-700' },
-  brick:    { label: 'Brick',    bg: 'bg-amber-100 text-amber-700' },
-  core:     { label: 'Core',     bg: 'bg-pink-100 text-pink-700' },
-  swim:     { label: 'Swim',     bg: 'bg-cyan-100 text-cyan-700' },
-  cycle:    { label: 'Ride',     bg: 'bg-indigo-100 text-indigo-700' },
+  rest:     { label: 'Rest',      bg: 'bg-gray-100 text-gray-500' },
+  easy:     { label: 'Easy',      bg: 'bg-green-100 text-green-700' },
+  tempo:    { label: 'Tempo',     bg: 'bg-yellow-100 text-yellow-700' },
+  interval: { label: 'Intervals', bg: 'bg-orange-100 text-orange-700' },
+  long:     { label: 'Long',      bg: 'bg-blue-100 text-blue-700' },
+  race:     { label: 'Race',      bg: 'bg-red-100 text-red-700' },
+  strength: { label: 'Strength',  bg: 'bg-purple-100 text-purple-700' },
+  brick:    { label: 'Brick',     bg: 'bg-amber-100 text-amber-700' },
+  core:     { label: 'Core',      bg: 'bg-pink-100 text-pink-700' },
+  swim:     { label: 'Swim',      bg: 'bg-cyan-100 text-cyan-700' },
+  cycle:    { label: 'Ride',      bg: 'bg-indigo-100 text-indigo-700' },
 }
 
 function localDateStr(d) {
   return [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-')
 }
 
-function getWeekRange(weekStart) {
-  const d = new Date(weekStart)
-  const end = new Date(d)
-  end.setDate(end.getDate() + 6)
-  return { start: localDateStr(d), end: localDateStr(end) }
-}
-
 function startOfWeek(d) {
   const dt = new Date(d)
   const day = dt.getDay()
-  const diff = day === 0 ? -6 : 1 - day
-  dt.setDate(dt.getDate() + diff)
-  dt.setHours(12,0,0,0)
+  dt.setDate(dt.getDate() - (day === 0 ? 6 : day - 1))
+  dt.setHours(12, 0, 0, 0)
   return dt
+}
+
+function getWeekRange(ws) {
+  const d = new Date(ws)
+  const end = new Date(d)
+  end.setDate(d.getDate() + 6)
+  return { start: localDateStr(d), end: localDateStr(end) }
+}
+
+function getMonthRange(m) {
+  const start = new Date(m.getFullYear(), m.getMonth(), 1)
+  const end = new Date(m.getFullYear(), m.getMonth() + 1, 0)
+  return { start: localDateStr(start), end: localDateStr(end) }
 }
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const today = localDateStr(new Date())
+  const [view, setView] = useState('week')
   const [selectedDate, setSelectedDate] = useState(today)
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()))
+  const [month, setMonth] = useState(() => {
+    const d = new Date()
+    return new Date(d.getFullYear(), d.getMonth(), 1)
+  })
 
-  const { start, end } = getWeekRange(weekStart)
+  const { start, end } = view === 'week' ? getWeekRange(weekStart) : getMonthRange(month)
 
-  // Fetch goals to check if onboarding needed
-  const { data: goals = [] } = useQuery({
+  const { data: goals = [], isLoading: goalsLoading } = useQuery({
     queryKey: ['goals'],
     queryFn: () => api.get('/api/goals').then(r => r.data),
   })
 
-  // Fetch plan days for current week
-  const { data: days = [], isLoading } = useQuery({
+  const { data: days = [] } = useQuery({
     queryKey: ['plan-days', start, end],
     queryFn: () => api.get('/api/plans/days', { params: { start, end } }).then(r => r.data),
     enabled: goals.length > 0,
   })
 
-  // Fetch nutrition targets for selected date
   const { data: nutrition } = useQuery({
     queryKey: ['nutrition-targets', selectedDate],
     queryFn: () => api.get('/api/nutrition/targets', { params: { date: selectedDate } }).then(r => r.data),
     enabled: goals.length > 0,
   })
 
-  const selectedDay = days.find(d => d.date === selectedDate) || {
-    date: selectedDate, day_type: 'rest', workouts: []
-  }
+  const selectedDay = days.find(d => d.date === selectedDate) || { date: selectedDate, day_type: 'rest', workouts: [] }
   const badge = DAY_TYPE_BADGE[selectedDay.day_type] || DAY_TYPE_BADGE.rest
 
-  if (goals.length === 0 && !isLoading) {
+  if (goals.length === 0 && !goalsLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
         <div className="text-6xl mb-4">🏁</div>
@@ -93,20 +99,47 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50 pb-nav">
       {/* Header */}
       <div className="bg-primary-600 text-white px-4 pt-12 pb-4">
-        <h1 className="text-xl font-bold">Training Plan</h1>
-        {selectedDay.block_type && (
-          <p className="text-primary-200 text-sm capitalize">{selectedDay.block_type} block</p>
-        )}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold">Training Plan</h1>
+            {selectedDay.block_type && (
+              <p className="text-primary-200 text-sm capitalize">{selectedDay.block_type} block</p>
+            )}
+          </div>
+          {/* Week / Month toggle */}
+          <div className="flex bg-primary-700 rounded-lg p-0.5">
+            {['week', 'month'].map(v => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all capitalize
+                  ${view === v ? 'bg-white text-primary-600 shadow-sm' : 'text-primary-200 active:text-white'}`}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="px-4 -mt-2 space-y-4">
-        {/* Week calendar */}
-        <WeekView
-          days={days}
-          selectedDate={selectedDate}
-          onSelectDate={setSelectedDate}
-          onWeekChange={setWeekStart}
-        />
+        {/* Calendar */}
+        {view === 'week' ? (
+          <WeekView
+            days={days}
+            selectedDate={selectedDate}
+            onSelectDate={setSelectedDate}
+            onWeekChange={setWeekStart}
+          />
+        ) : (
+          <MonthView
+            days={days}
+            selectedDate={selectedDate}
+            onSelectDate={setSelectedDate}
+            month={month}
+            onMonthChange={setMonth}
+          />
+        )}
 
         {/* Selected day detail */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
@@ -150,10 +183,7 @@ export default function Dashboard() {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-gray-900">Nutrition Target</h3>
-              <button
-                onClick={() => navigate('/nutrition')}
-                className="text-xs text-primary-600 font-medium"
-              >
+              <button onClick={() => navigate('/nutrition')} className="text-xs text-primary-600 font-medium">
                 Log food →
               </button>
             </div>
@@ -163,12 +193,14 @@ export default function Dashboard() {
             </div>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { label: 'Protein', value: nutrition.protein_g, unit: 'g', color: 'text-orange-600' },
-                { label: 'Carbs',   value: nutrition.carbs_g,   unit: 'g', color: 'text-blue-600' },
-                { label: 'Fat',     value: nutrition.fat_g,     unit: 'g', color: 'text-yellow-600' },
+                { label: 'Protein', value: nutrition.protein_g, color: 'text-orange-600' },
+                { label: 'Carbs',   value: nutrition.carbs_g,   color: 'text-blue-600' },
+                { label: 'Fat',     value: nutrition.fat_g,      color: 'text-yellow-600' },
               ].map(m => (
                 <div key={m.label} className="text-center">
-                  <p className={`text-lg font-bold ${m.color}`}>{Math.round(m.value)}<span className="text-xs font-normal text-gray-400">{m.unit}</span></p>
+                  <p className={`text-lg font-bold ${m.color}`}>
+                    {Math.round(m.value)}<span className="text-xs font-normal text-gray-400">g</span>
+                  </p>
                   <p className="text-xs text-gray-500">{m.label}</p>
                 </div>
               ))}
