@@ -7,6 +7,32 @@ import WeekView from '../components/calendar/WeekView'
 import MonthView from '../components/calendar/MonthView'
 import WorkoutCard from '../components/workout/WorkoutCard'
 
+const HR_ZONES = [
+  { z: 1, name: 'Recovery',  pct: [0.50, 0.60], bg: 'bg-green-200',   text: 'text-green-900'  },
+  { z: 2, name: 'Aerobic',   pct: [0.60, 0.70], bg: 'bg-teal-300',    text: 'text-teal-900'   },
+  { z: 3, name: 'Tempo',     pct: [0.70, 0.80], bg: 'bg-yellow-300',  text: 'text-yellow-900' },
+  { z: 4, name: 'Threshold', pct: [0.80, 0.90], bg: 'bg-orange-400',  text: 'text-white'      },
+  { z: 5, name: 'VO2max',    pct: [0.90, 1.00], bg: 'bg-red-500',     text: 'text-white'      },
+]
+
+function HRZoneStrip({ maxHr }) {
+  if (!maxHr) return null
+  return (
+    <div className="flex rounded-xl overflow-hidden shadow-sm">
+      {HR_ZONES.map(z => {
+        const lo = Math.round(z.pct[0] * maxHr)
+        const hi = z.z === 5 ? maxHr : Math.round(z.pct[1] * maxHr)
+        return (
+          <div key={z.z} className={`flex-1 ${z.bg} py-1.5 flex flex-col items-center`}>
+            <span className={`text-xs font-bold leading-none ${z.text}`}>Z{z.z}</span>
+            <span className={`text-[10px] leading-tight tabular-nums ${z.text} opacity-80`}>{lo}–{hi}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 const DAY_TYPE_BADGE = {
   rest:     { label: 'Rest',      bg: 'bg-gray-100 text-gray-500' },
   easy:     { label: 'Easy',      bg: 'bg-green-100 text-green-700' },
@@ -76,6 +102,11 @@ export default function Dashboard() {
     enabled: goals.length > 0,
   })
 
+  const { data: profile = {} } = useQuery({
+    queryKey: ['profile'],
+    queryFn: () => api.get('/api/profile').then(r => r.data),
+  })
+
   const selectedDay = days.find(d => d.date === selectedDate) || { date: selectedDate, day_type: 'rest', workouts: [] }
   const badge = DAY_TYPE_BADGE[selectedDay.day_type] || DAY_TYPE_BADGE.rest
 
@@ -140,6 +171,9 @@ export default function Dashboard() {
             onMonthChange={setMonth}
           />
         )}
+
+        {/* HR Zone strip */}
+        <HRZoneStrip maxHr={profile?.max_hr} />
 
         {/* Selected day detail */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
