@@ -81,7 +81,14 @@ export default function Settings() {
             Set New Goal <span className="text-gray-400">›</span>
           </button>
           <button onClick={() => navigate('/sync')} className="w-full text-left py-2 text-sm text-gray-700 font-medium flex items-center justify-between">
-            Sync Devices <span className="text-gray-400">›</span>
+            Device Sync <span className="text-gray-400">›</span>
+          </button>
+          <div className="border-t border-gray-100 pt-2 mt-1" />
+          <button onClick={() => navigate('/credentials')} className="w-full text-left py-2 text-sm text-gray-700 font-medium flex items-center justify-between">
+            API Credentials <span className="text-gray-400">›</span>
+          </button>
+          <button onClick={() => navigate('/branding')} className="w-full text-left py-2 text-sm text-gray-700 font-medium flex items-center justify-between">
+            Branding &amp; App Info <span className="text-gray-400">›</span>
           </button>
         </div>
 

@@ -9,6 +9,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.db import execute_query, execute_write
 from app.services.sync import strava as strava_svc
 from app.services.sync import suunto as suunto_svc
+from app.services.credential_service import get_credential
 
 sync_bp = Blueprint('sync', __name__)
 log = logging.getLogger(__name__)
@@ -140,9 +141,9 @@ def sync_status():
 @sync_bp.route('/api/sync/strava/connect')
 @jwt_required()
 def strava_connect():
-    client_id = current_app.config.get('STRAVA_CLIENT_ID', '')
+    client_id = get_credential('strava', 'client_id') or current_app.config.get('STRAVA_CLIENT_ID', '')
     if not client_id:
-        return jsonify({'error': 'Strava not configured. Add STRAVA_CLIENT_ID to .env'}), 503
+        return jsonify({'error': 'Strava not configured. Add client_id on the Credentials page'}), 503
     redirect_uri = f"{current_app.config.get('FRONTEND_URL','')}/api/sync/strava/callback"
     url = strava_svc.get_auth_url(client_id, redirect_uri)
     return redirect(url)
@@ -155,8 +156,8 @@ def strava_callback():
     if error or not code:
         return redirect('/#/sync?error=strava_denied')
 
-    client_id     = current_app.config.get('STRAVA_CLIENT_ID', '')
-    client_secret = current_app.config.get('STRAVA_CLIENT_SECRET', '')
+    client_id     = get_credential('strava', 'client_id') or current_app.config.get('STRAVA_CLIENT_ID', '')
+    client_secret = get_credential('strava', 'client_secret') or current_app.config.get('STRAVA_CLIENT_SECRET', '')
     try:
         data = strava_svc.exchange_code(client_id, client_secret, code)
     except Exception as e:
@@ -182,8 +183,8 @@ def strava_callback():
 @jwt_required()
 def strava_run():
     user_id       = get_jwt_identity()
-    client_id     = current_app.config.get('STRAVA_CLIENT_ID', '')
-    client_secret = current_app.config.get('STRAVA_CLIENT_SECRET', '')
+    client_id     = get_credential('strava', 'client_id') or current_app.config.get('STRAVA_CLIENT_ID', '')
+    client_secret = get_credential('strava', 'client_secret') or current_app.config.get('STRAVA_CLIENT_SECRET', '')
 
     token_row = execute_query(
         'SELECT * FROM training.sync_tokens WHERE user_id = %s AND provider = %s',
@@ -227,7 +228,7 @@ def strava_run():
 @sync_bp.route('/api/sync/strava/webhook', methods=['GET'])
 def strava_webhook_verify():
     """Strava webhook verification challenge."""
-    verify_token = current_app.config.get('STRAVA_WEBHOOK_VERIFY_TOKEN', 'training_webhook')
+    verify_token = get_credential('strava', 'webhook_verify_token') or current_app.config.get('STRAVA_WEBHOOK_VERIFY_TOKEN', 'training_strava_hook_2026')
     if request.args.get('hub.verify_token') == verify_token:
         return jsonify({'hub.challenge': request.args.get('hub.challenge')})
     return jsonify({'error': 'forbidden'}), 403
@@ -252,8 +253,8 @@ def strava_webhook_push():
         return jsonify({'status': 'user_not_found'}), 200
 
     user_id       = str(token_row['user_id'])
-    client_id     = current_app.config.get('STRAVA_CLIENT_ID', '')
-    client_secret = current_app.config.get('STRAVA_CLIENT_SECRET', '')
+    client_id     = get_credential('strava', 'client_id') or current_app.config.get('STRAVA_CLIENT_ID', '')
+    client_secret = get_credential('strava', 'client_secret') or current_app.config.get('STRAVA_CLIENT_SECRET', '')
     try:
         access_token, refreshed = strava_svc.get_valid_token(dict(token_row), client_id, client_secret)
         if refreshed:
@@ -274,9 +275,9 @@ def strava_webhook_push():
 @sync_bp.route('/api/sync/suunto/connect')
 @jwt_required()
 def suunto_connect():
-    client_id = current_app.config.get('SUUNTO_CLIENT_ID', '')
+    client_id = get_credential('suunto', 'client_id') or current_app.config.get('SUUNTO_CLIENT_ID', '')
     if not client_id:
-        return jsonify({'error': 'Suunto not configured. Register at apizone.suunto.com'}), 503
+        return jsonify({'error': 'Suunto not configured. Add credentials on the Credentials page'}), 503
     redirect_uri = f"{current_app.config.get('FRONTEND_URL','')}/api/sync/suunto/callback"
     url = suunto_svc.get_auth_url(client_id, redirect_uri)
     return redirect(url)
@@ -289,8 +290,8 @@ def suunto_callback():
     if error or not code:
         return redirect('/sync?error=suunto_denied')
 
-    client_id     = current_app.config.get('SUUNTO_CLIENT_ID', '')
-    client_secret = current_app.config.get('SUUNTO_CLIENT_SECRET', '')
+    client_id     = get_credential('suunto', 'client_id') or current_app.config.get('SUUNTO_CLIENT_ID', '')
+    client_secret = get_credential('suunto', 'client_secret') or current_app.config.get('SUUNTO_CLIENT_SECRET', '')
     redirect_uri  = f"{current_app.config.get('FRONTEND_URL','')}/api/sync/suunto/callback"
     state = request.args.get('state', '')
     user_id = _user_id_from_state(state)
@@ -313,9 +314,9 @@ def suunto_callback():
 @jwt_required()
 def suunto_run():
     user_id       = get_jwt_identity()
-    client_id     = current_app.config.get('SUUNTO_CLIENT_ID', '')
-    client_secret = current_app.config.get('SUUNTO_CLIENT_SECRET', '')
-    sub_key       = current_app.config.get('SUUNTO_SUBSCRIPTION_KEY', '')
+    client_id     = get_credential('suunto', 'client_id') or current_app.config.get('SUUNTO_CLIENT_ID', '')
+    client_secret = get_credential('suunto', 'client_secret') or current_app.config.get('SUUNTO_CLIENT_SECRET', '')
+    sub_key       = get_credential('suunto', 'subscription_key') or current_app.config.get('SUUNTO_SUBSCRIPTION_KEY', '')
 
     token_row = execute_query(
         'SELECT * FROM training.sync_tokens WHERE user_id = %s AND provider = %s',
@@ -358,7 +359,7 @@ def suunto_run():
 @sync_bp.route('/api/sync/suunto/webhook', methods=['POST'])
 def suunto_webhook_push():
     """Handle Suunto real-time workout notification."""
-    secret = current_app.config.get('SUUNTO_WEBHOOK_SECRET', '')
+    secret = get_credential('suunto', 'webhook_secret') or current_app.config.get('SUUNTO_WEBHOOK_SECRET', '')
     sig    = request.headers.get('X-HMAC-SHA256-Signature', '')
     if secret and not suunto_svc.verify_webhook_signature(request.data, sig, secret):
         return jsonify({'error': 'invalid signature'}), 401
@@ -375,9 +376,9 @@ def suunto_webhook_push():
         return jsonify({'status': 'ignored'}), 200
 
     user_id       = str(token_row['user_id'])
-    client_id     = current_app.config.get('SUUNTO_CLIENT_ID', '')
-    client_secret = current_app.config.get('SUUNTO_CLIENT_SECRET', '')
-    sub_key       = current_app.config.get('SUUNTO_SUBSCRIPTION_KEY', '')
+    client_id     = get_credential('suunto', 'client_id') or current_app.config.get('SUUNTO_CLIENT_ID', '')
+    client_secret = get_credential('suunto', 'client_secret') or current_app.config.get('SUUNTO_CLIENT_SECRET', '')
+    sub_key       = get_credential('suunto', 'subscription_key') or current_app.config.get('SUUNTO_SUBSCRIPTION_KEY', '')
     try:
         access_token, refreshed = suunto_svc.get_valid_token(dict(token_row), client_id, client_secret)
         if refreshed:

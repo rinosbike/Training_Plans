@@ -9,6 +9,8 @@ import Progress from './pages/Progress'
 import AICoach from './pages/AICoach'
 import Sync from './pages/Sync'
 import Settings from './pages/Settings'
+import Credentials from './pages/Credentials'
+import Branding from './pages/Branding'
 import AuthCallback from './pages/AuthCallback'
 
 function Protected({ children }) {
@@ -31,6 +33,8 @@ function AppRoutes() {
       <Route path="/ai-coach" element={<Protected><AICoach /></Protected>} />
       <Route path="/sync" element={<Protected><Sync /></Protected>} />
       <Route path="/settings" element={<Protected><Settings /></Protected>} />
+      <Route path="/credentials" element={<Protected><Credentials /></Protected>} />
+      <Route path="/branding" element={<Protected><Branding /></Protected>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

@@ -68,6 +68,7 @@ def _register_blueprints(app):
     from app.api.ai_coach import ai_coach_bp
     from app.api.sync import sync_bp
     from app.api.progress import progress_bp
+    from app.api.credentials import credentials_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(goals_bp)
@@ -78,6 +79,7 @@ def _register_blueprints(app):
     app.register_blueprint(ai_coach_bp)
     app.register_blueprint(sync_bp)
     app.register_blueprint(progress_bp)
+    app.register_blueprint(credentials_bp)
 
 
 def _register_jwt_callbacks(app):
