@@ -146,7 +146,18 @@ def get_plan_days():
                    'intensity_zone', w.intensity_zone,
                    'tss', w.tss,
                    'description', w.description,
-                   'log', wl.id
+                   'log', CASE WHEN wl.id IS NOT NULL THEN json_build_object(
+                     'id', wl.id,
+                     'source', wl.source,
+                     'actual_duration_min', wl.actual_duration_min,
+                     'actual_distance_km', wl.actual_distance_km,
+                     'avg_hr', wl.avg_hr,
+                     'max_hr', wl.max_hr,
+                     'avg_power_watts', wl.avg_power_watts,
+                     'calories_burned', wl.calories_burned,
+                     'perceived_effort', wl.perceived_effort,
+                     'notes', wl.notes
+                   ) ELSE NULL END
                  ) ORDER BY w.sort_order
                ) FILTER (WHERE w.id IS NOT NULL) as workouts
         FROM training.plan_days pd
