@@ -107,15 +107,6 @@ def get_nutrition_targets():
     user_id = get_jwt_identity()
     target_date = request.args.get('date', str(date.today()))
 
-    # Check if targets already computed for this date
-    existing = execute_query(
-        'SELECT * FROM training.nutrition_targets WHERE user_id = %s AND date = %s::date',
-        (user_id, target_date), fetch_one=True
-    )
-    if existing:
-        return jsonify(dict(existing))
-
-    # Compute from plan day + profile
     profile = execute_query(
         'SELECT * FROM training.profiles WHERE user_id = %s', (user_id,), fetch_one=True
     )
@@ -130,13 +121,29 @@ def get_nutrition_targets():
         (user_id, target_date), fetch_one=True
     )
 
-    day_type = plan_day['day_type'] if plan_day else 'rest'
+    # Fetch actual workouts for the day to use MET-based calorie calculation
+    workout_rows = execute_query(
+        '''SELECT sport, duration_min, intensity_zone
+           FROM training.workouts w
+           JOIN training.plan_days pd ON pd.id = w.plan_day_id
+           WHERE pd.user_id = %s AND pd.date = %s::date''',
+        (user_id, target_date)
+    )
+    workouts = [dict(r) for r in workout_rows] if workout_rows else []
+
+    day_type  = plan_day['day_type']  if plan_day else 'rest'
     block_type = plan_day['block_type'] if plan_day else 'base'
 
-    targets = calc_targets(dict(profile) if profile else {}, day_type, block_type)
-    targets['sleep_target_hours'] = targets.pop('sleep_target_hours', 8.0)
+    targets = calc_targets(
+        dict(profile) if profile else {},
+        workouts=workouts,
+        day_type=day_type,
+        block_type=block_type,
+    )
+    sleep_hours = targets.pop('sleep_target_hours', 8.0)
+    omega3_g    = targets.pop('omega3_g', 2.0)
 
-    row = execute_write(
+    execute_write(
         '''INSERT INTO training.nutrition_targets
              (user_id, date, calories_kcal, protein_g, carbs_g, fat_g, fiber_g, water_ml,
               iron_mg, calcium_mg, vitamin_d_mcg, vitamin_b12_mcg, vitamin_c_mg,
@@ -144,15 +151,20 @@ def get_nutrition_targets():
            VALUES (%s, %s::date, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
            ON CONFLICT (user_id, date) DO UPDATE
              SET calories_kcal=EXCLUDED.calories_kcal, protein_g=EXCLUDED.protein_g,
-                 carbs_g=EXCLUDED.carbs_g, fat_g=EXCLUDED.fat_g
-           RETURNING *''',
+                 carbs_g=EXCLUDED.carbs_g, fat_g=EXCLUDED.fat_g, fiber_g=EXCLUDED.fiber_g,
+                 water_ml=EXCLUDED.water_ml, iron_mg=EXCLUDED.iron_mg,
+                 calcium_mg=EXCLUDED.calcium_mg, vitamin_d_mcg=EXCLUDED.vitamin_d_mcg,
+                 vitamin_b12_mcg=EXCLUDED.vitamin_b12_mcg, vitamin_c_mg=EXCLUDED.vitamin_c_mg,
+                 magnesium_mg=EXCLUDED.magnesium_mg, potassium_mg=EXCLUDED.potassium_mg,
+                 zinc_mg=EXCLUDED.zinc_mg, sodium_mg=EXCLUDED.sodium_mg''',
         (user_id, target_date, targets['calories_kcal'], targets['protein_g'],
          targets['carbs_g'], targets['fat_g'], targets['fiber_g'], targets['water_ml'],
          targets['iron_mg'], targets['calcium_mg'], targets['vitamin_d_mcg'],
          targets['vitamin_b12_mcg'], targets['vitamin_c_mg'], targets['magnesium_mg'],
-         targets['potassium_mg'], targets['zinc_mg'], targets['sodium_mg']),
-        returning=True
+         targets['potassium_mg'], targets['zinc_mg'], targets['sodium_mg'])
     )
-    result = dict(row)
-    result['sleep_target_hours'] = targets['sleep_target_hours']
-    return jsonify(result)
+
+    targets['sleep_target_hours'] = sleep_hours
+    targets['omega3_g'] = omega3_g
+    targets['workouts_min'] = sum(w.get('duration_min', 0) or 0 for w in workouts)
+    return jsonify(targets)
