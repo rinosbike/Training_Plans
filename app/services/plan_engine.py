@@ -590,10 +590,13 @@ def _calc_tss(duration_min, zone):
 
 
 def _estimate_distance(sport, duration_min, zone):
+    if sport == 'swim':
+        # pace in min/100m → convert to km
+        pace_per_100m = {1: 3.0, 2: 2.6, 3: 2.2, 4: 2.0, 5: 1.8}.get(zone, 2.6)
+        return round(duration_min / pace_per_100m * 100 / 1000, 2)
     pace = {
         'run':   {1: 7.0, 2: 6.5, 3: 5.5, 4: 4.5, 5: 4.0},
         'cycle': {1: 2.5, 2: 2.2, 3: 1.9, 4: 1.7, 5: 1.5},
-        'swim':  {1: 3.0, 2: 2.6, 3: 2.2, 4: 2.0, 5: 1.8},
     }
     p = pace.get(sport, {}).get(zone)
     return round(duration_min / p, 1) if p else None
