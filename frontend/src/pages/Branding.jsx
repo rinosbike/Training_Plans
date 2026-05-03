@@ -1,12 +1,15 @@
-import { useQuery } from '@tanstack/react-query'
+import { useRef, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../services/api'
+import { useAuth } from '../contexts/AuthContext'
 import BottomNav from '../components/BottomNav'
+import toast from 'react-hot-toast'
 
 const INTEGRATIONS = [
   {
     id: 'strava',
     name: 'Strava',
-    icon: '🚀',
+    emoji: '🚀',
     color: 'text-orange-500',
     bg: 'bg-orange-50',
     border: 'border-orange-100',
@@ -20,7 +23,7 @@ const INTEGRATIONS = [
   {
     id: 'suunto',
     name: 'Suunto Direct',
-    icon: '⌚',
+    emoji: '⌚',
     color: 'text-blue-600',
     bg: 'bg-blue-50',
     border: 'border-blue-100',
@@ -39,24 +42,97 @@ const TECH_STACK = [
   { label: 'Frontend', value: 'React 18 · Vite · Tailwind CSS · Mobile-first' },
   { label: 'Database', value: 'PostgreSQL (NeonDB) · training schema · RLS per user' },
   { label: 'Auth', value: 'Google OAuth2 + Apple ID · JWT (8h access / 30d refresh)' },
-  { label: 'AI Coach', value: 'GitHub Copilot API · SSE streaming · GPT-4o' },
+  { label: 'AI Coach', value: 'GitHub Copilot API · SSE streaming · claude-sonnet-4.6' },
   { label: 'Server', value: 'Hetzner 46.224.200.180 · SSH port 8022' },
   { label: 'Domain', value: 'training.rinosbike.com · Nginx · Let\'s Encrypt SSL' },
   { label: 'Deploy', value: 'git pull → systemctl restart training → npm run build' },
 ]
 
 const OAUTH_FLOW = [
-  { step: '1', label: 'User clicks Connect', detail: 'GET /api/sync/{provider}/connect — JWT passed as state param' },
+  { step: '1', label: 'User clicks Connect', detail: 'GET /api/sync/{provider}/connect — nonce stored in DB, URL returned as JSON' },
   { step: '2', label: 'Redirect to provider', detail: 'User authorizes on Strava / Suunto OAuth page' },
-  { step: '3', label: 'Callback received', detail: '/api/sync/{provider}/callback?code=...&state=<jwt>' },
+  { step: '3', label: 'Callback received', detail: '/api/sync/{provider}/callback?code=...&state=<nonce>' },
   { step: '4', label: 'Token exchange', detail: 'POST to provider token endpoint → access + refresh tokens' },
   { step: '5', label: 'Tokens stored', detail: 'training.sync_tokens — auto-refresh when < 5 min to expiry' },
   { step: '6', label: 'Sync Now / Webhook', detail: 'Fetch activities → map → match plan → upsert workout_logs' },
 ]
 
-const PLATFORM_EMOJI = { strava: '🚀', suunto: '⌚' }
+function IconSection({ intg, icon, isAdmin }) {
+  const qc = useQueryClient()
+  const inputRef = useRef(null)
+  const [uploading, setUploading] = useState(false)
+
+  async function handleFile(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    if (file.size > 153600) { toast.error('Icon must be under 150 KB'); return }
+    setUploading(true)
+    const fd = new FormData()
+    fd.append('icon', file)
+    try {
+      await api.post(`/api/admin/platform-icon/${intg.id}`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      qc.invalidateQueries(['platform-icons'])
+      toast.success(`${intg.name} icon updated`)
+    } catch {
+      toast.error('Upload failed')
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
+  }
+
+  async function removeIcon() {
+    try {
+      await api.delete(`/api/admin/platform-icon/${intg.id}`)
+      qc.invalidateQueries(['platform-icons'])
+      toast.success('Icon removed')
+    } catch {
+      toast.error('Remove failed')
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-3">
+      {/* Icon display */}
+      <div className="relative">
+        {icon ? (
+          <img src={icon} alt={intg.name} className="w-12 h-12 rounded-xl object-contain bg-white p-1 shadow-sm border border-white/50" />
+        ) : (
+          <span className="text-4xl leading-none">{intg.emoji}</span>
+        )}
+      </div>
+
+      {/* Admin upload controls */}
+      {isAdmin && (
+        <div className="flex flex-col gap-1">
+          <button
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            className="text-xs px-3 py-1.5 rounded-lg bg-white/80 border border-white text-gray-700 font-medium hover:bg-white disabled:opacity-50 shadow-sm"
+          >
+            {uploading ? 'Uploading…' : icon ? 'Change Icon' : 'Upload Icon'}
+          </button>
+          {icon && (
+            <button
+              onClick={removeIcon}
+              className="text-xs px-3 py-1.5 rounded-lg bg-white/60 border border-red-200 text-red-500 font-medium hover:bg-white"
+            >
+              Remove
+            </button>
+          )}
+          <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" className="hidden" onChange={handleFile} />
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function Branding() {
+  const { user } = useAuth()
+  const isAdmin = !!user?.is_admin
+
   const { data: icons = {} } = useQuery({
     queryKey: ['platform-icons'],
     queryFn: () => api.get('/api/admin/platform-icons').then(r => r.data),
@@ -118,19 +194,18 @@ export default function Branding() {
         {/* Integration cards */}
         {INTEGRATIONS.map(intg => (
           <div key={intg.id} className={`bg-white rounded-2xl border ${intg.border} overflow-hidden`}>
-            <div className={`px-4 pt-4 pb-3 ${intg.bg} flex items-center gap-3`}>
-              {icons[intg.id] ? (
-                <img src={icons[intg.id]} alt={intg.name} className="w-10 h-10 rounded-xl object-contain bg-white p-1 shadow-sm" />
-              ) : (
-                <span className="text-3xl">{PLATFORM_EMOJI[intg.id] || intg.icon}</span>
-              )}
-              <div className="flex-1">
-                <h3 className={`font-bold ${intg.color}`}>{intg.name}</h3>
-                <p className="text-xs text-gray-500">{intg.description}</p>
+            {/* Card header — icon + name + upload (admin) + status */}
+            <div className={`px-4 pt-4 pb-3 ${intg.bg}`}>
+              <div className="flex items-start gap-3">
+                <IconSection intg={intg} icon={icons[intg.id]} isAdmin={isAdmin} />
+                <div className="flex-1 min-w-0">
+                  <h3 className={`font-bold ${intg.color}`}>{intg.name}</h3>
+                  <p className="text-xs text-gray-500">{intg.description}</p>
+                  <span className="inline-block mt-1.5 text-xs px-2 py-0.5 rounded-full bg-white border border-gray-200 text-gray-500">
+                    {intg.status}
+                  </span>
+                </div>
               </div>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-white border border-gray-200 text-gray-500">
-                {intg.status}
-              </span>
             </div>
 
             <div className="px-4 py-3 space-y-3">
