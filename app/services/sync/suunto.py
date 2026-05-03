@@ -52,13 +52,15 @@ _DEFAULT_SPORT = 'run'
 # OAuth helpers
 # ---------------------------------------------------------------------------
 
-def get_auth_url(client_id: str, redirect_uri: str) -> str:
+def get_auth_url(client_id: str, redirect_uri: str, state: str = '') -> str:
     params = {
         'client_id': client_id,
         'redirect_uri': redirect_uri,
         'response_type': 'code',
         'scope': 'workout',
     }
+    if state:
+        params['state'] = state
     return f"{SUUNTO_AUTH_URL}?{urlencode(params)}"
 
 

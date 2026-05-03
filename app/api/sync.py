@@ -139,13 +139,13 @@ def sync_status():
 # ---------------------------------------------------------------------------
 
 @sync_bp.route('/api/sync/strava/connect')
-@jwt_required()
 def strava_connect():
     client_id = get_credential('strava', 'client_id') or current_app.config.get('STRAVA_CLIENT_ID', '')
     if not client_id:
         return jsonify({'error': 'Strava not configured. Add client_id on the Credentials page'}), 503
+    state = request.args.get('state', '')
     redirect_uri = f"{current_app.config.get('FRONTEND_URL','')}/api/sync/strava/callback"
-    url = strava_svc.get_auth_url(client_id, redirect_uri)
+    url = strava_svc.get_auth_url(client_id, redirect_uri, state=state)
     return redirect(url)
 
 
@@ -273,13 +273,13 @@ def strava_webhook_push():
 # ---------------------------------------------------------------------------
 
 @sync_bp.route('/api/sync/suunto/connect')
-@jwt_required()
 def suunto_connect():
     client_id = get_credential('suunto', 'client_id') or current_app.config.get('SUUNTO_CLIENT_ID', '')
     if not client_id:
         return jsonify({'error': 'Suunto not configured. Add credentials on the Credentials page'}), 503
+    state = request.args.get('state', '')
     redirect_uri = f"{current_app.config.get('FRONTEND_URL','')}/api/sync/suunto/callback"
-    url = suunto_svc.get_auth_url(client_id, redirect_uri)
+    url = suunto_svc.get_auth_url(client_id, redirect_uri, state=state)
     return redirect(url)
 
 

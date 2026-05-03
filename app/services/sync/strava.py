@@ -50,7 +50,7 @@ SPORT_MAP = {
 # OAuth helpers
 # ---------------------------------------------------------------------------
 
-def get_auth_url(client_id: str, redirect_uri: str) -> str:
+def get_auth_url(client_id: str, redirect_uri: str, state: str = '') -> str:
     params = {
         'client_id': client_id,
         'redirect_uri': redirect_uri,
@@ -58,6 +58,8 @@ def get_auth_url(client_id: str, redirect_uri: str) -> str:
         'scope': 'activity:read_all',
         'approval_prompt': 'auto',
     }
+    if state:
+        params['state'] = state
     return f"{STRAVA_AUTH_URL}?{urlencode(params)}"
 
 
