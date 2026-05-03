@@ -70,7 +70,8 @@ export default function Settings() {
             <Field label="Weight (kg)"   value={f.weight_kg}             onChange={v => set('weight_kg', v)} />
             <Field label="Height (cm)"   value={f.height_cm}             onChange={v => set('height_cm', v)} />
             <Field label="Resting HR"    value={f.resting_hr}            onChange={v => set('resting_hr', v)} unit="bpm" />
-            <Field label="Max HR"        value={f.max_hr}                onChange={v => set('max_hr', v)}     unit="bpm" />
+            <Field label="Max HR"        value={f.max_hr}                onChange={v => set('max_hr', v)}     unit="bpm"
+              hint="Estimate: 220 − age  ·  Accurate: 208 − (0.7 × age)" />
             <Field label="FTP"           value={f.ftp_watts}             onChange={v => set('ftp_watts', v)}  unit="W" />
             <Field label="Weekly hours"  value={f.current_weekly_hours}  onChange={v => set('current_weekly_hours', v)} />
           </div>
@@ -107,7 +108,7 @@ export default function Settings() {
   )
 }
 
-function Field({ label, value, onChange, unit }) {
+function Field({ label, value, onChange, unit, hint }) {
   return (
     <div>
       <label className="block text-xs text-gray-500 mb-0.5">
@@ -119,6 +120,7 @@ function Field({ label, value, onChange, unit }) {
         onChange={e => onChange(e.target.value)}
         className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white"
       />
+      {hint && <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">{hint}</p>}
     </div>
   )
 }

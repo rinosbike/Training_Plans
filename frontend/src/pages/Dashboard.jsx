@@ -16,7 +16,21 @@ const HR_ZONES = [
 ]
 
 function HRZoneStrip({ maxHr }) {
-  if (!maxHr) return null
+  if (!maxHr) return (
+    <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 flex items-center gap-3">
+      <span className="text-lg shrink-0">❤️</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-semibold text-amber-800">Set your Max HR to see heart rate zones</p>
+        <p className="text-xs text-amber-700 mt-0.5">
+          Simple estimate: <span className="font-bold">220 − your age</span>
+          <span className="text-amber-600"> · More accurate: </span>
+          <span className="font-bold">208 − (0.7 × age)</span>
+          <span className="text-amber-600"> — set it in </span>
+          <span className="font-semibold underline">Settings → Max HR</span>
+        </p>
+      </div>
+    </div>
+  )
   return (
     <div className="flex rounded-xl overflow-hidden shadow-sm">
       {HR_ZONES.map(z => {
