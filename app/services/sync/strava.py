@@ -132,12 +132,25 @@ def fetch_activities(access_token: str, after_epoch: int = None, per_page: int =
     return activities
 
 
-def fetch_activity_detail(access_token: str, activity_id: int) -> dict:
+def fetch_activity_detail(access_token: str, activity_id) -> dict:
     resp = requests.get(
         f"{STRAVA_API_BASE}/activities/{activity_id}",
         headers={'Authorization': f'Bearer {access_token}'},
         timeout=15,
     )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def fetch_activity_zones(access_token: str, activity_id) -> list:
+    """Fetch HR + power zone distribution for a single activity."""
+    resp = requests.get(
+        f"{STRAVA_API_BASE}/activities/{activity_id}/zones",
+        headers={'Authorization': f'Bearer {access_token}'},
+        timeout=15,
+    )
+    if resp.status_code == 404:
+        return []
     resp.raise_for_status()
     return resp.json()
 
