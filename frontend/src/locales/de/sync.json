@@ -1,29 +1,29 @@
 {
-  "title": "__MISSING__",
-  "subtitle": "__MISSING__",
-  "syncNow": "__MISSING__",
-  "syncing": "__MISSING__",
-  "syncSuccess": "__MISSING__",
-  "syncFailed": "__MISSING__",
-  "disconnected": "__MISSING__",
-  "lastSync": "__MISSING__",
-  "setupSteps": "__MISSING__",
-  "connectBtn": "__MISSING__",
-  "recentlyImported": "__MISSING__",
+  "title": "Gerätesync",
+  "subtitle": "Verbinde deine Trainingsgeräte",
+  "syncNow": "Jetzt synchronisieren",
+  "syncing": "Wird synchronisiert…",
+  "syncSuccess": "Synchronisation erfolgreich",
+  "syncFailed": "Synchronisation fehlgeschlagen",
+  "disconnected": "Getrennt",
+  "lastSync": "Letzte Synchronisation",
+  "setupSteps": "Einrichtungsschritte",
+  "connectBtn": "Verbinden",
+  "recentlyImported": "Zuletzt importiert",
   "autoMatch": {
-    "title": "__MISSING__",
-    "desc1": "__MISSING__",
-    "desc2": "__MISSING__",
-    "desc3": "__MISSING__"
+    "title": "Automatisches Matching",
+    "desc1": "Importierte Aktivitäten werden automatisch mit deinem Plan abgeglichen",
+    "desc2": "Übereinstimmung nach Datum, Sportart und Dauer (±20%)",
+    "desc3": "Manuell protokollierte Einheiten werden nicht überschrieben"
   },
   "providers": {
     "strava": {
-      "desc": "__MISSING__",
-      "note": "__MISSING__"
+      "desc": "Importiere Läufe, Radausfahrten und mehr von Strava",
+      "note": "Erfordert ein Strava-Konto und App-Registrierung"
     },
     "suunto": {
-      "desc": "__MISSING__",
-      "note": "__MISSING__"
+      "desc": "Synchronisiere Workouts von deiner Suunto-Uhr",
+      "note": "Erfordert ein Suunto-Konto und Developer-Registrierung"
     }
   }
 }

@@ -1,0 +1,64 @@
+{
+  "planned": "Planificado",
+  "completed": "Completado ✓",
+  "completedLabel": "Completado",
+  "logWorkout": "Registrar entreno",
+  "editLog": "Editar registro",
+  "saveLog": "Guardar registro",
+  "fields": {
+    "duration": "Duración",
+    "distance": "Distancia",
+    "tss": "TSS",
+    "avgHr": "FC media",
+    "maxHr": "FC máx",
+    "rpe": "Esfuerzo",
+    "calories": "Calorías",
+    "power": "Potencia",
+    "notes": "Notas",
+    "durationMin": "Duración (min)",
+    "distanceKm": "Distancia (km)",
+    "avgHrBpm": "FC media (bpm)",
+    "maxHrBpm": "FC máx (bpm)",
+    "perceivedEffort": "Esfuerzo percibido (1–10)",
+    "notesPlaceholder": "¿Cómo te has sentido?"
+  },
+  "vsplan": "vs. plan",
+  "zones": {
+    "1": {
+      "name": "Recuperación",
+      "desc": "Muy suave, ritmo de recuperación"
+    },
+    "2": {
+      "name": "Base",
+      "desc": "Ritmo aeróbico fácil, ritmo de conversación"
+    },
+    "3": {
+      "name": "Tempo",
+      "desc": "Ritmo moderado, cómodo pero exigente"
+    },
+    "4": {
+      "name": "Umbral",
+      "desc": "Umbral láctico, ritmo de competición"
+    },
+    "5": {
+      "name": "VO2máx",
+      "desc": "Muy alta intensidad, intervalos cortos"
+    },
+    "title": "Zonas de frecuencia cardiaca",
+    "noHr": "FC no disponible",
+    "target": "Zona objetivo"
+  },
+  "source": {
+    "strava": "Strava",
+    "suunto": "Suunto",
+    "manual": "Manual"
+  },
+  "sports": {
+    "run": "Carrera",
+    "cycle": "Ciclismo",
+    "swim": "Natación",
+    "strength": "Fuerza",
+    "core": "Core",
+    "brick": "Brick"
+  }
+}

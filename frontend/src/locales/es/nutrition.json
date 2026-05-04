@@ -1,0 +1,52 @@
+{
+  "title": "Nutrición",
+  "trainingDay": "Día de entrenamiento",
+  "restDay": "Día de descanso",
+  "caloriesMacros": "Calorías y macros",
+  "caloriesRemaining": "kcal restantes",
+  "targetReached": "¡Objetivo diario alcanzado!",
+  "electrolytes": "Electrolitos",
+  "electrolytesDesc": "Importantes para atletas de resistencia",
+  "vitamins": "Vitaminas y minerales",
+  "hydration": "Hidratación",
+  "waterTarget": "Objetivo de agua",
+  "waterHint": "Bebe regularmente, especialmente antes del entrenamiento",
+  "sleepTarget": "Objetivo de sueño",
+  "sleepHint": "El sueño es fundamental para la recuperación",
+  "formula": "Fórmula",
+  "calorieFormula": "Cálculo de calorías",
+  "macroFormula": "Cálculo de macros",
+  "metValues": "Valores MET",
+  "metDesc": "Equivalente metabólico de la tarea",
+  "addFood": "Añadir alimento",
+  "searchPlaceholder": "Buscar alimentos…",
+  "add": "Añadir",
+  "todayLog": "Registro de hoy",
+  "foodLogged": "Comida registrada",
+  "meals": {
+    "breakfast": "Desayuno",
+    "lunch": "Almuerzo",
+    "dinner": "Cena",
+    "snack": "Snack",
+    "pre_workout": "Pre-entreno",
+    "post_workout": "Post-entreno"
+  },
+  "macros": {
+    "protein": "Proteína",
+    "carbs": "Carbohidratos",
+    "fat": "Grasa",
+    "fiber": "Fibra",
+    "omega3": "Omega-3"
+  },
+  "micros": {
+    "sodium": "Sodio",
+    "potassium": "Potasio",
+    "magnesium": "Magnesio",
+    "calcium": "Calcio",
+    "vitaminD": "Vitamina D",
+    "vitaminC": "Vitamina C",
+    "vitaminB12": "Vitamina B12",
+    "iron": "Hierro",
+    "zinc": "Zinc"
+  }
+}

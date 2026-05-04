@@ -1,0 +1,16 @@
+{
+  "title": "Carga de entrenamiento",
+  "subtitle": "Forma, fatiga y fitness a lo largo del tiempo",
+  "fitness": "Fitness (CTL)",
+  "fatigue": "Fatiga (ATL)",
+  "form": "Forma (TSB)",
+  "fitnessDesc": "Carga crónica de entrenamiento — tendencia de fitness a largo plazo",
+  "fatigueDesc": "Carga aguda de entrenamiento — fatiga a corto plazo",
+  "formDesc": "Forma deportiva (fitness − fatiga)",
+  "last60": "Últimos 60 días",
+  "formFresh": "Fresco — listo para competir",
+  "formNormal": "Normal — buen ritmo de entrenamiento",
+  "formFatigued": "Fatigado — se recomienda recuperación",
+  "noData": "Sin datos de entrenamiento aún",
+  "noDataDesc": "Registra entrenos para ver tus estadísticas de carga"
+}

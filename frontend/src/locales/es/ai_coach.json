@@ -1,0 +1,9 @@
+{
+  "title": "Coach IA",
+  "subtitle": "Tu asesor personal de entrenamiento",
+  "placeholder": "Pregunta a tu coach…",
+  "empty": "¡Hola! Soy tu coach de entrenamiento con IA.",
+  "emptyDesc": "Pregúntame sobre tu entrenamiento, nutrición o recuperación.",
+  "connectionError": "Error de conexión. Por favor, inténtalo de nuevo.",
+  "dayPrompt": "Explícame el entrenamiento de hoy y cómo puedo adaptarlo."
+}

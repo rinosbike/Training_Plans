@@ -1,0 +1,30 @@
+{
+  "title": "Ajustes",
+  "fitnessLevel": "Nivel de forma",
+  "fitnessLevels": {
+    "beginner": "Principiante",
+    "intermediate": "Intermedio",
+    "advanced": "Avanzado",
+    "elite": "Élite"
+  },
+  "profile": "Perfil",
+  "fields": {
+    "weight": "Peso (kg)",
+    "height": "Altura (cm)",
+    "restingHr": "FC reposo (bpm)",
+    "maxHr": "FC máx (bpm)",
+    "maxHrHint": "Dejar vacío para cálculo automático",
+    "ftp": "FTP (vatios)",
+    "weeklyHours": "Horas semanales"
+  },
+  "saveProfile": "Guardar perfil",
+  "saved": "Guardado",
+  "nav": {
+    "newGoal": "Nuevo objetivo",
+    "deviceSync": "Sincronización de dispositivos",
+    "branding": "Sobre la app",
+    "credentials": "Credenciales API",
+    "translations": "Traducciones",
+    "language": "Idioma"
+  }
+}

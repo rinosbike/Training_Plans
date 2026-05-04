@@ -113,8 +113,13 @@ export default function Translations() {
         lang: selectedLang,
         namespaces: byNs,
       })
-      setAutoResults(data)
-      toast.success(`Translated ${Object.values(data).reduce((n, ns) => n + Object.keys(ns).length, 0)} keys`)
+      const translated = data.translated || data
+      setAutoResults(translated)
+      const count = Object.values(translated).reduce((n, ns) => n + Object.keys(ns).length, 0)
+      toast.success(`Translated ${count} keys`)
+      if (data.errors) {
+        Object.entries(data.errors).forEach(([ns, err]) => toast.error(`${ns}: ${err}`))
+      }
     } catch (e) {
       toast.error('Auto-translate failed')
     } finally {

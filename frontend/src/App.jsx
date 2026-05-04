@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import LanguageSwitcher from './components/LanguageSwitcher'
 import Login from './pages/Login'
 import Onboarding from './pages/Onboarding'
 import Dashboard from './pages/Dashboard'
@@ -46,6 +47,10 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        {/* Global language switcher — visible on every page including login */}
+        <div className="fixed top-3 right-3 z-[60]">
+          <LanguageSwitcher variant="floating" />
+        </div>
         <AppRoutes />
       </AuthProvider>
     </BrowserRouter>

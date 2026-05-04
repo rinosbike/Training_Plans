@@ -1,0 +1,16 @@
+{
+  "title": "Sobre la app",
+  "appTitle": "Plan de Entrenamiento",
+  "appTagline": "Alcanza tu mejor rendimiento",
+  "techStack": "Tecnología",
+  "version": "Versión",
+  "uploadIcon": "Subir icono",
+  "changeIcon": "Cambiar icono",
+  "removeIcon": "Quitar icono",
+  "uploadHint": "PNG o SVG, máx. 1 MB",
+  "oauthFlow": "Flujo OAuth",
+  "capabilities": "Capacidades",
+  "dataFlow": "Flujo de datos",
+  "setupUrl": "URL de configuración",
+  "callbackUrl": "URL de callback"
+}

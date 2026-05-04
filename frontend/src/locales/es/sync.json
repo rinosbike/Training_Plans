@@ -1,0 +1,29 @@
+{
+  "title": "Sincronización",
+  "subtitle": "Conecta tus dispositivos de entrenamiento",
+  "syncNow": "Sincronizar ahora",
+  "syncing": "Sincronizando…",
+  "syncSuccess": "Sincronización exitosa",
+  "syncFailed": "Error en la sincronización",
+  "disconnected": "Desconectado",
+  "lastSync": "Última sincronización",
+  "setupSteps": "Pasos de configuración",
+  "connectBtn": "Conectar",
+  "recentlyImported": "Importado recientemente",
+  "autoMatch": {
+    "title": "Coincidencia automática",
+    "desc1": "Las actividades importadas se emparejan automáticamente con tu plan",
+    "desc2": "Coincidencia por fecha, deporte y duración (±20%)",
+    "desc3": "Los entrenos registrados manualmente no se sobreescriben"
+  },
+  "providers": {
+    "strava": {
+      "desc": "Importa carreras, rutas en bici y más desde Strava",
+      "note": "Requiere cuenta Strava y registro de la aplicación"
+    },
+    "suunto": {
+      "desc": "Sincroniza entrenos desde tu reloj Suunto",
+      "note": "Requiere cuenta Suunto y registro de desarrollador"
+    }
+  }
+}

@@ -124,7 +124,7 @@ def chat_stream(messages: list):
             yield line.decode('utf-8')
 
 
-def chat_complete(messages: list) -> tuple[str, int]:
+def chat_complete(messages: list, max_tokens: int = 1024) -> tuple[str, int]:
     """Blocking call. Model is fixed — not a parameter."""
     token = os.getenv('GITHUB_COPILOT_TOKEN', '')
     if not token:
@@ -139,9 +139,11 @@ def chat_complete(messages: list) -> tuple[str, int]:
         'model': MODEL,
         'messages': messages,
         'stream': False,
-        'max_tokens': 1024,
+        'max_tokens': max_tokens,
     }
-    resp = requests.post(COPILOT_API_URL, headers=headers, json=payload, timeout=30)
+    resp = requests.post(COPILOT_API_URL, headers=headers, json=payload, timeout=60)
+    if resp.status_code != 200:
+        raise CopilotAPIError(resp.status_code, f'Copilot API error {resp.status_code}: {resp.text[:200]}')
     data = resp.json()
     content = data['choices'][0]['message']['content']
     tokens = data.get('usage', {}).get('total_tokens', 0)

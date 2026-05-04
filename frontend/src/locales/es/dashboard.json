@@ -1,0 +1,38 @@
+{
+  "title": "Plan de Entrenamiento",
+  "blockLabel": "Bloque",
+  "week": "Semana",
+  "month": "Mes",
+  "restDay": "Día de descanso — Recupera y recarga energías",
+  "aiAdjust": "Ajuste IA",
+  "dayTypes": {
+    "rest": "Descanso",
+    "easy": "Suave",
+    "tempo": "Tempo",
+    "interval": "Intervalo",
+    "long": "Larga",
+    "race": "Competición",
+    "strength": "Fuerza",
+    "brick": "Brick",
+    "core": "Core",
+    "swim": "Natación",
+    "cycle": "Ciclismo"
+  },
+  "hrZone": {
+    "noHr": "Frecuencia cardiaca no establecida",
+    "hint": "Configura FC reposo y FC máx en ajustes",
+    "maxBpm": "FC máx"
+  },
+  "noGoal": {
+    "title": "Ningún objetivo establecido",
+    "subtitle": "Crea un objetivo para iniciar tu plan personalizado",
+    "cta": "Empezar ahora"
+  },
+  "nutrition": {
+    "title": "Nutrición de hoy",
+    "logFood": "Registrar comida",
+    "protein": "Proteína",
+    "carbs": "Carbohidratos",
+    "fat": "Grasa"
+  }
+}

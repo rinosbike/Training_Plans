@@ -1,79 +1,79 @@
 {
   "steps": {
-    "1": "__MISSING__",
-    "2": "__MISSING__",
-    "3": "__MISSING__"
+    "1": "Dein Profil",
+    "2": "Dein Ziel",
+    "3": "Fitnesscheck"
   },
-  "stepOf": "__MISSING__",
+  "stepOf": "Schritt {{current}} von {{total}}",
   "fields": {
-    "weight": "__MISSING__",
-    "height": "__MISSING__",
-    "gender": "__MISSING__",
-    "fitnessLevel": "__MISSING__",
-    "weeklyHours": "__MISSING__"
+    "weight": "Gewicht (kg)",
+    "height": "Größe (cm)",
+    "gender": "Geschlecht",
+    "fitnessLevel": "Fitnesslevel",
+    "weeklyHours": "Wöchentliche Trainingsstunden"
   },
   "genders": {
-    "male": "__MISSING__",
-    "female": "__MISSING__",
-    "other": "__MISSING__"
+    "male": "Männlich",
+    "female": "Weiblich",
+    "other": "Divers"
   },
   "fitnessLevels": {
-    "beginner": "__MISSING__",
-    "intermediate": "__MISSING__",
-    "advanced": "__MISSING__",
-    "elite": "__MISSING__"
+    "beginner": "Anfänger",
+    "intermediate": "Fortgeschritten",
+    "advanced": "Erfahren",
+    "elite": "Elite"
   },
-  "goalName": "__MISSING__",
-  "goalNamePlaceholder": "__MISSING__",
-  "targetDate": "__MISSING__",
-  "eventName": "__MISSING__",
-  "eventNamePlaceholder": "__MISSING__",
-  "back": "__MISSING__",
-  "next": "__MISSING__",
-  "generate": "__MISSING__",
-  "generating": "__MISSING__",
-  "success": "__MISSING__",
-  "error": "__MISSING__",
+  "goalName": "Zielname",
+  "goalNamePlaceholder": "z.B. Berlin Marathon 2026",
+  "targetDate": "Zieldatum",
+  "eventName": "Eventname",
+  "eventNamePlaceholder": "z.B. Berlin Marathon",
+  "back": "Zurück",
+  "next": "Weiter",
+  "generate": "Meinen Plan erstellen",
+  "generating": "Plan wird erstellt…",
+  "success": "Dein Trainingsplan ist bereit!",
+  "error": "Plan konnte nicht erstellt werden. Bitte versuche es erneut.",
   "goals": {
     "marathon": {
-      "label": "__MISSING__",
-      "desc": "__MISSING__"
+      "label": "Marathon",
+      "desc": "42,2 km • 16–20 Wochen"
     },
     "half_marathon": {
-      "label": "__MISSING__",
-      "desc": "__MISSING__"
+      "label": "Halbmarathon",
+      "desc": "21,1 km • 10–14 Wochen"
     },
     "10k": {
-      "label": "__MISSING__",
-      "desc": "__MISSING__"
+      "label": "10 km",
+      "desc": "10 km • 6–10 Wochen"
     },
     "5k": {
-      "label": "__MISSING__",
-      "desc": "__MISSING__"
+      "label": "5 km",
+      "desc": "5 km • 4–8 Wochen"
     },
     "ironman": {
-      "label": "__MISSING__",
-      "desc": "__MISSING__"
+      "label": "Ironman",
+      "desc": "3,8/180/42,2 km • 20–24 Wochen"
     },
     "half_ironman": {
-      "label": "__MISSING__",
-      "desc": "__MISSING__"
+      "label": "Halbironman",
+      "desc": "1,9/90/21,1 km • 14–18 Wochen"
     },
     "sprint_triathlon": {
-      "label": "__MISSING__",
-      "desc": "__MISSING__"
+      "label": "Sprint-Triathlon",
+      "desc": "0,75/20/5 km • 8–12 Wochen"
     },
     "cycling_event": {
-      "label": "__MISSING__",
-      "desc": "__MISSING__"
+      "label": "Radrennen",
+      "desc": "Radsportevent • 8–16 Wochen"
     },
     "strength": {
-      "label": "__MISSING__",
-      "desc": "__MISSING__"
+      "label": "Krafttraining",
+      "desc": "Muskelaufbau und Kondition"
     },
     "general_fitness": {
-      "label": "__MISSING__",
-      "desc": "__MISSING__"
+      "label": "Allgemeine Fitness",
+      "desc": "Gesundheit und Wohlbefinden"
     }
   }
 }

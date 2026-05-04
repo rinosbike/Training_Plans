@@ -3,6 +3,7 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'de', label: 'Deutsch', flag: '🇩🇪', flagCode: 'de' },
   { code: 'pl', label: 'Polski',  flag: '🇵🇱', flagCode: 'pl' },
   { code: 'zh', label: '中文',    flag: '🇨🇳', flagCode: 'cn' },
+  { code: 'es', label: 'Español', flag: '🇪🇸', flagCode: 'es' },
 ]
 
 export const DEFAULT_LANGUAGE = 'en'

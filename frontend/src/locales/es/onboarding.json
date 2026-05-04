@@ -1,0 +1,79 @@
+{
+  "steps": {
+    "1": "Tu perfil",
+    "2": "Tu objetivo",
+    "3": "Evaluación de forma"
+  },
+  "stepOf": "Paso {{current}} de {{total}}",
+  "fields": {
+    "weight": "Peso (kg)",
+    "height": "Altura (cm)",
+    "gender": "Género",
+    "fitnessLevel": "Nivel de forma",
+    "weeklyHours": "Horas de entreno semanales"
+  },
+  "genders": {
+    "male": "Masculino",
+    "female": "Femenino",
+    "other": "Otro"
+  },
+  "fitnessLevels": {
+    "beginner": "Principiante",
+    "intermediate": "Intermedio",
+    "advanced": "Avanzado",
+    "elite": "Élite"
+  },
+  "goalName": "Nombre del objetivo",
+  "goalNamePlaceholder": "p.ej. Maratón de Madrid 2026",
+  "targetDate": "Fecha objetivo",
+  "eventName": "Nombre del evento",
+  "eventNamePlaceholder": "p.ej. Maratón de Madrid",
+  "back": "Volver",
+  "next": "Siguiente",
+  "generate": "Crear mi plan",
+  "generating": "Creando plan…",
+  "success": "¡Tu plan de entrenamiento está listo!",
+  "error": "No se pudo crear el plan. Por favor, inténtalo de nuevo.",
+  "goals": {
+    "marathon": {
+      "label": "Maratón",
+      "desc": "42,2 km • 16–20 semanas"
+    },
+    "half_marathon": {
+      "label": "Medio maratón",
+      "desc": "21,1 km • 10–14 semanas"
+    },
+    "10k": {
+      "label": "10 km",
+      "desc": "10 km • 6–10 semanas"
+    },
+    "5k": {
+      "label": "5 km",
+      "desc": "5 km • 4–8 semanas"
+    },
+    "ironman": {
+      "label": "Ironman",
+      "desc": "3,8/180/42,2 km • 20–24 semanas"
+    },
+    "half_ironman": {
+      "label": "Half Ironman",
+      "desc": "1,9/90/21,1 km • 14–18 semanas"
+    },
+    "sprint_triathlon": {
+      "label": "Triatlón sprint",
+      "desc": "0,75/20/5 km • 8–12 semanas"
+    },
+    "cycling_event": {
+      "label": "Evento ciclista",
+      "desc": "Evento de ciclismo • 8–16 semanas"
+    },
+    "strength": {
+      "label": "Fuerza",
+      "desc": "Músculo y acondicionamiento"
+    },
+    "general_fitness": {
+      "label": "Fitness general",
+      "desc": "Salud y bienestar"
+    }
+  }
+}

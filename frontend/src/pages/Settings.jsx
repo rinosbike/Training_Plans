@@ -5,7 +5,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import BottomNav from '../components/BottomNav'
-import LanguageSwitcher from '../components/LanguageSwitcher'
 import toast from 'react-hot-toast'
 
 export default function Settings() {
@@ -48,9 +47,6 @@ export default function Settings() {
           {user?.is_admin && (
             <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-amber-400 text-amber-900 font-semibold shrink-0">Admin</span>
           )}
-        </div>
-        <div className="flex justify-end mt-2">
-          <LanguageSwitcher />
         </div>
       </div>
 
@@ -100,14 +96,6 @@ export default function Settings() {
             <NavRow label={t('nav.translations')} icon="🌐" onClick={() => navigate('/translations')} badge="Admin" />
           </>}
         </div>
-
-        {/* Language selector (non-admin) */}
-        {!user?.is_admin && (
-          <div className="bg-white rounded-2xl border border-gray-100 px-4 py-3 flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-700">{t('nav.language')}</span>
-            <LanguageSwitcher variant="light" />
-          </div>
-        )}
 
         {/* Sign out */}
         <button
