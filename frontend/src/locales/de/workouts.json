@@ -60,5 +60,35 @@
     "strength": "Krafttraining",
     "core": "Core",
     "brick": "Brick"
+  },
+  "strava": {
+    "analysis": "Strava-Analyse",
+    "loading": "Strava-Analyse wird geladen…",
+    "viewActivity": "Ansehen ↗",
+    "viaStrava": "via Strava",
+    "hrZones": "Herzfrequenzzonen",
+    "powerZones": "Leistungszonen",
+    "splits": "Kilometer-Splits",
+    "laps": "Runden ({{count}})",
+    "gapNote": "GAP = Gefälleangepasstes Tempo · HF in bpm · Höhe in Metern",
+    "cols": {
+      "km": "km",
+      "pace": "Tempo",
+      "speed": "Geschw.",
+      "gap": "GAP",
+      "hr": "HF",
+      "elev": "Höhe"
+    },
+    "extras": {
+      "elevation": "Höhenmeter",
+      "cadence": "Kadenz",
+      "normPower": "Norm-Leistung",
+      "maxPower": "Max. Leistung",
+      "energy": "Energie",
+      "relEffort": "Relative Belastung",
+      "avgTemp": "Ø Temperatur",
+      "segmentPrs": "Segment-Bestleistungen",
+      "kudos": "Kudos"
+    }
   }
 }

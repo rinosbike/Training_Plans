@@ -60,5 +60,35 @@
     "strength": "Fuerza",
     "core": "Core",
     "brick": "Brick"
+  },
+  "strava": {
+    "analysis": "Análisis de Strava",
+    "loading": "Cargando análisis de Strava…",
+    "viewActivity": "Ver ↗",
+    "viaStrava": "vía Strava",
+    "hrZones": "Zonas de frecuencia cardíaca",
+    "powerZones": "Zonas de potencia",
+    "splits": "Parciales por km",
+    "laps": "Vueltas ({{count}})",
+    "gapNote": "GAP = Ritmo ajustado por pendiente · FC en ppm · Desnivel en metros",
+    "cols": {
+      "km": "km",
+      "pace": "Ritmo",
+      "speed": "Velocidad",
+      "gap": "GAP",
+      "hr": "FC",
+      "elev": "Desn."
+    },
+    "extras": {
+      "elevation": "Desnivel",
+      "cadence": "Cadencia",
+      "normPower": "Potencia norm.",
+      "maxPower": "Potencia máx.",
+      "energy": "Energía",
+      "relEffort": "Esfuerzo relativo",
+      "avgTemp": "Temp. media",
+      "segmentPrs": "Récords de segmento",
+      "kudos": "Kudos"
+    }
   }
 }

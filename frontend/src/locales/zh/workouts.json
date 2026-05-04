@@ -60,5 +60,35 @@
     "strength": "力量训练",
     "core": "核心训练",
     "brick": "砖块训练"
+  },
+  "strava": {
+    "analysis": "Strava分析",
+    "loading": "正在加载Strava分析…",
+    "viewActivity": "查看 ↗",
+    "viaStrava": "来自Strava",
+    "hrZones": "心率区间",
+    "powerZones": "功率区间",
+    "splits": "每公里分段",
+    "laps": "圈次（{{count}}）",
+    "gapNote": "GAP = 坡度调整配速 · 心率单位bpm · 高度单位米",
+    "cols": {
+      "km": "公里",
+      "pace": "配速",
+      "speed": "速度",
+      "gap": "GAP",
+      "hr": "心率",
+      "elev": "高度"
+    },
+    "extras": {
+      "elevation": "爬升高度",
+      "cadence": "步频/踏频",
+      "normPower": "标准化功率",
+      "maxPower": "最大功率",
+      "energy": "能量",
+      "relEffort": "相对努力值",
+      "avgTemp": "平均温度",
+      "segmentPrs": "路段PR",
+      "kudos": "点赞"
+    }
   }
 }

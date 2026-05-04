@@ -60,5 +60,35 @@
     "strength": "Siłownia",
     "core": "Core",
     "brick": "Brick"
+  },
+  "strava": {
+    "analysis": "Analiza Strava",
+    "loading": "Ładowanie analizy Strava…",
+    "viewActivity": "Zobacz ↗",
+    "viaStrava": "przez Strava",
+    "hrZones": "Strefy tętna",
+    "powerZones": "Strefy mocy",
+    "splits": "Kilometry",
+    "laps": "Okrążenia ({{count}})",
+    "gapNote": "GAP = Tempo wyrównane do nachylenia · Tętno w bpm · Wzniesienie w metrach",
+    "cols": {
+      "km": "km",
+      "pace": "Tempo",
+      "speed": "Prędkość",
+      "gap": "GAP",
+      "hr": "Tętno",
+      "elev": "Wznies."
+    },
+    "extras": {
+      "elevation": "Przewyższenie",
+      "cadence": "Kadencja",
+      "normPower": "Moc norm.",
+      "maxPower": "Moc maks.",
+      "energy": "Energia",
+      "relEffort": "Względny wysiłek",
+      "avgTemp": "Śr. temp.",
+      "segmentPrs": "Rekordy segmentów",
+      "kudos": "Kudos"
+    }
   }
 }

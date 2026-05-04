@@ -45,5 +45,35 @@
     "strength": "Strength",
     "core": "Core",
     "brick": "Brick"
+  },
+  "strava": {
+    "analysis": "Strava Analysis",
+    "loading": "Loading Strava analysis…",
+    "viewActivity": "View ↗",
+    "viaStrava": "via Strava",
+    "hrZones": "Heart Rate Zones",
+    "powerZones": "Power Zones",
+    "splits": "Per-km splits",
+    "laps": "Laps ({{count}})",
+    "gapNote": "GAP = Grade Adjusted Pace · HR in bpm · Elev in metres",
+    "cols": {
+      "km": "km",
+      "pace": "Pace",
+      "speed": "Speed",
+      "gap": "GAP",
+      "hr": "HR",
+      "elev": "Elev"
+    },
+    "extras": {
+      "elevation": "Elevation",
+      "cadence": "Cadence",
+      "normPower": "Norm Power",
+      "maxPower": "Max Power",
+      "energy": "Energy",
+      "relEffort": "Relative Effort",
+      "avgTemp": "Avg Temp",
+      "segmentPrs": "Segment PRs",
+      "kudos": "Kudos"
+    }
   }
 }
