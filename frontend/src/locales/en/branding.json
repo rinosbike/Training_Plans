@@ -1,0 +1,16 @@
+{
+  "title": "Branding & App Info",
+  "appTitle": "Training Plans",
+  "appTagline": "Reach your peak performance",
+  "techStack": "Tech Stack",
+  "version": "Version",
+  "uploadIcon": "Upload Icon",
+  "changeIcon": "Change Icon",
+  "removeIcon": "Remove",
+  "uploadHint": "PNG or SVG, max 150 KB",
+  "oauthFlow": "OAuth Flow",
+  "capabilities": "Capabilities",
+  "dataFlow": "Data Flow",
+  "setupUrl": "Setup URL",
+  "callbackUrl": "Callback URL"
+}

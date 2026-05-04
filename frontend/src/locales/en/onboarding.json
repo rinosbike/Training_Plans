@@ -1,0 +1,49 @@
+{
+  "steps": {
+    "1": "Your Profile",
+    "2": "Choose Your Goal",
+    "3": "Goal Details"
+  },
+  "stepOf": "Step {{step}} of {{total}}",
+  "fields": {
+    "weight": "Weight (kg)",
+    "height": "Height (cm)",
+    "gender": "Gender",
+    "fitnessLevel": "Fitness Level",
+    "weeklyHours": "Current weekly training hours"
+  },
+  "genders": {
+    "male": "Male",
+    "female": "Female",
+    "other": "Other"
+  },
+  "fitnessLevels": {
+    "beginner": "Beginner",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced",
+    "elite": "Elite"
+  },
+  "goalName": "Goal Name",
+  "goalNamePlaceholder": "e.g. Berlin Marathon 2026",
+  "targetDate": "Target / Race Date",
+  "eventName": "Event Name (optional)",
+  "eventNamePlaceholder": "e.g. Berlin Marathon",
+  "back": "Back",
+  "next": "Next",
+  "generate": "Generate My Plan",
+  "generating": "Generating plan...",
+  "success": "Your training plan is ready!",
+  "error": "Something went wrong. Please try again.",
+  "goals": {
+    "marathon": { "label": "Marathon", "desc": "42.2 km run" },
+    "half_marathon": { "label": "Half Marathon", "desc": "21.1 km run" },
+    "10k": { "label": "10K", "desc": "10 km run" },
+    "5k": { "label": "5K", "desc": "5 km run" },
+    "ironman": { "label": "Ironman", "desc": "3.8+180+42.2 km" },
+    "half_ironman": { "label": "Half Ironman", "desc": "1.9+90+21.1 km" },
+    "sprint_triathlon": { "label": "Sprint Tri", "desc": "0.75+20+5 km" },
+    "cycling_event": { "label": "Cycling Event", "desc": "Road or gravel" },
+    "strength": { "label": "Strength", "desc": "Weight training" },
+    "general_fitness": { "label": "General Fitness", "desc": "Stay active" }
+  }
+}

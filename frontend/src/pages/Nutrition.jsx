@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../services/api'
 import BottomNav from '../components/BottomNav'
@@ -146,6 +147,7 @@ function FormulaCard({ formula, calories }) {
 const MEALS = ['breakfast','lunch','dinner','snack','pre_workout','post_workout']
 
 export default function Nutrition() {
+  const { t } = useTranslation('nutrition')
   const [date, setDate] = useState(localDateStr(new Date()))
   const [search, setSearch] = useState('')
   const [searchResults, setSearchResults] = useState([])
@@ -168,7 +170,7 @@ export default function Nutrition() {
     onSuccess: () => {
       qc.invalidateQueries(['food-log', date])
       setSelected(null); setSearch(''); setSearchResults([]); setAmount('100')
-      toast.success('Food logged!')
+      toast.success(t('foodLogged'))
     },
   })
   const deleteFood = useMutation({
@@ -185,17 +187,17 @@ export default function Nutrition() {
 
   const entries = logData?.entries || []
   const totals  = logData?.totals  || {}
-  const t = targets || {}
-  const f = t.formula || {}
+  const tgt = targets || {}
+  const f = tgt.formula || {}
 
   return (
     <div className="min-h-screen bg-gray-50 pb-nav">
       <div className="bg-primary-600 text-white px-4 pt-12 pb-4">
-        <h1 className="text-xl font-bold">Nutrition</h1>
+        <h1 className="text-xl font-bold">{t('title')}</h1>
         <p className="text-primary-200 text-sm mb-2">
-          {t.formula?.workouts_min > 0
-            ? `${t.formula.workouts_min} min training today · ${t.calories_kcal?.toLocaleString()} kcal target`
-            : 'Rest day targets'}
+          {targets?.formula?.workouts_min > 0
+            ? t('trainingDay', { min: targets.formula.workouts_min, kcal: targets.calories_kcal?.toLocaleString() })
+            : t('restDay')}
         </p>
         <input type="date" value={date} onChange={e => setDate(e.target.value)}
           className="bg-primary-700 text-white rounded-lg px-3 py-1 text-sm border border-primary-500 w-full" />
@@ -204,90 +206,90 @@ export default function Nutrition() {
       <div className="px-4 mt-4 space-y-4">
 
         {/* Calories + macros */}
-        {t.calories_kcal && (
+        {tgt.calories_kcal && (
           <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
-            <h2 className="font-semibold text-gray-900">Calories & Macros</h2>
+            <h2 className="font-semibold text-gray-900">{t('caloriesMacros')}</h2>
 
             {/* Calorie big number */}
             <div className="flex items-end gap-2 mb-1">
               <span className="text-3xl font-bold text-gray-900">{Math.round(totals.calories || 0).toLocaleString()}</span>
-              <span className="text-gray-400 text-sm mb-1">/ {t.calories_kcal?.toLocaleString()} kcal</span>
+              <span className="text-gray-400 text-sm mb-1">/ {tgt.calories_kcal?.toLocaleString()} kcal</span>
               <span className="ml-auto text-xs text-gray-400">
-                {t.calories_kcal - Math.round(totals.calories || 0) > 0
-                  ? `${(t.calories_kcal - Math.round(totals.calories || 0)).toLocaleString()} kcal remaining`
-                  : 'Target reached'}
+                {tgt.calories_kcal - Math.round(totals.calories || 0) > 0
+                  ? t('caloriesRemaining', { n: (tgt.calories_kcal - Math.round(totals.calories || 0)).toLocaleString() })
+                  : t('targetReached')}
               </span>
             </div>
-            <Bar actual={totals.calories || 0} target={t.calories_kcal} color="bg-gray-700" />
+            <Bar actual={totals.calories || 0} target={tgt.calories_kcal} color="bg-gray-700" />
 
             <div className="space-y-2.5 pt-1">
-              <MacroRow label="Protein" actual={totals.protein_g||0} target={t.protein_g} unit="g" color="text-orange-600" barColor="bg-orange-400" />
-              <MacroRow label="Carbs"   actual={totals.carbs_g||0}   target={t.carbs_g}   unit="g" color="text-blue-600"   barColor="bg-blue-400" />
-              <MacroRow label="Fat"     actual={totals.fat_g||0}     target={t.fat_g}     unit="g" color="text-yellow-600" barColor="bg-yellow-400" />
-              <MacroRow label="Fiber"   actual={totals.fiber_g||0}   target={t.fiber_g}   unit="g" color="text-green-600"  barColor="bg-green-400" />
-              <MacroRow label="Omega-3" actual={0}                   target={t.omega3_g}  unit="g" color="text-cyan-600"   barColor="bg-cyan-400" />
+              <MacroRow label={t('macros.protein')} actual={totals.protein_g||0} target={targets.protein_g} unit="g" color="text-orange-600" barColor="bg-orange-400" />
+              <MacroRow label={t('macros.carbs')}   actual={totals.carbs_g||0}   target={targets.carbs_g}   unit="g" color="text-blue-600"   barColor="bg-blue-400" />
+              <MacroRow label={t('macros.fat')}     actual={totals.fat_g||0}     target={targets.fat_g}     unit="g" color="text-yellow-600" barColor="bg-yellow-400" />
+              <MacroRow label={t('macros.fiber')}   actual={totals.fiber_g||0}   target={targets.fiber_g}   unit="g" color="text-green-600"  barColor="bg-green-400" />
+              <MacroRow label={t('macros.omega3')}  actual={0}                   target={targets.omega3_g}  unit="g" color="text-cyan-600"   barColor="bg-cyan-400" />
             </div>
           </div>
         )}
 
         {/* Electrolytes */}
-        {t.sodium_mg && (
+        {tgt.sodium_mg && (
           <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-2.5">
-            <h2 className="font-semibold text-gray-900">Electrolytes</h2>
-            <p className="text-xs text-gray-400 -mt-1">Scaled to sweat loss — critical on heavy training days</p>
-            <MicroRow label="Sodium"    actual={totals.sodium_mg||0}    target={t.sodium_mg}    unit="mg" color="bg-amber-400" />
-            <MicroRow label="Potassium" actual={totals.potassium_mg||0} target={t.potassium_mg} unit="mg" color="bg-lime-400" />
-            <MicroRow label="Magnesium" actual={totals.magnesium_mg||0} target={t.magnesium_mg} unit="mg" color="bg-emerald-400" />
-            <MicroRow label="Calcium"   actual={totals.calcium_mg||0}   target={t.calcium_mg}   unit="mg" color="bg-sky-400" />
+            <h2 className="font-semibold text-gray-900">{t('electrolytes')}</h2>
+            <p className="text-xs text-gray-400 -mt-1">{t('electrolytesDesc')}</p>
+            <MicroRow label={t('micros.sodium')}    actual={totals.sodium_mg||0}    target={targets.sodium_mg}    unit="mg" color="bg-amber-400" />
+            <MicroRow label={t('micros.potassium')} actual={totals.potassium_mg||0} target={targets.potassium_mg} unit="mg" color="bg-lime-400" />
+            <MicroRow label={t('micros.magnesium')} actual={totals.magnesium_mg||0} target={targets.magnesium_mg} unit="mg" color="bg-emerald-400" />
+            <MicroRow label={t('micros.calcium')}   actual={totals.calcium_mg||0}   target={targets.calcium_mg}   unit="mg" color="bg-sky-400" />
           </div>
         )}
 
         {/* Vitamins & minerals */}
-        {t.vitamin_d_mcg && (
+        {tgt.vitamin_d_mcg && (
           <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-2.5">
-            <h2 className="font-semibold text-gray-900">Vitamins & Minerals</h2>
-            <MicroRow label="Vitamin D"   actual={totals.vitamin_d_mcg||0}   target={t.vitamin_d_mcg}   unit="mcg" color="bg-yellow-400" />
-            <MicroRow label="Vitamin C"   actual={totals.vitamin_c_mg||0}    target={t.vitamin_c_mg}    unit="mg"  color="bg-orange-400" />
-            <MicroRow label="Vitamin B12" actual={totals.vitamin_b12_mcg||0} target={t.vitamin_b12_mcg} unit="mcg" color="bg-pink-400" />
-            <MicroRow label="Iron"        actual={totals.iron_mg||0}         target={t.iron_mg}         unit="mg"  color="bg-red-400" />
-            <MicroRow label="Zinc"        actual={totals.zinc_mg||0}         target={t.zinc_mg}         unit="mg"  color="bg-indigo-400" />
+            <h2 className="font-semibold text-gray-900">{t('vitamins')}</h2>
+            <MicroRow label={t('micros.vitaminD')}   actual={totals.vitamin_d_mcg||0}   target={targets.vitamin_d_mcg}   unit="mcg" color="bg-yellow-400" />
+            <MicroRow label={t('micros.vitaminC')}   actual={totals.vitamin_c_mg||0}    target={targets.vitamin_c_mg}    unit="mg"  color="bg-orange-400" />
+            <MicroRow label={t('micros.vitaminB12')} actual={totals.vitamin_b12_mcg||0} target={targets.vitamin_b12_mcg} unit="mcg" color="bg-pink-400" />
+            <MicroRow label={t('micros.iron')}       actual={totals.iron_mg||0}         target={targets.iron_mg}         unit="mg"  color="bg-red-400" />
+            <MicroRow label={t('micros.zinc')}       actual={totals.zinc_mg||0}         target={targets.zinc_mg}         unit="mg"  color="bg-indigo-400" />
           </div>
         )}
 
         {/* Water & sleep */}
-        {t.water_ml && (
+        {tgt.water_ml && (
           <div className="bg-white rounded-2xl border border-gray-100 p-4">
-            <h2 className="font-semibold text-gray-900 mb-3">Hydration & Recovery</h2>
+            <h2 className="font-semibold text-gray-900 mb-3">{t('hydration')}</h2>
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center">
-                <p className="text-2xl font-bold text-blue-600">{(t.water_ml / 1000).toFixed(1)}<span className="text-sm font-normal text-gray-400">L</span></p>
-                <p className="text-xs text-gray-500">Water target</p>
-                <p className="text-xs text-gray-400 mt-0.5">35 ml/kg + ~500 ml/hr exercise</p>
+                <p className="text-2xl font-bold text-blue-600">{(tgt.water_ml / 1000).toFixed(1)}<span className="text-sm font-normal text-gray-400">L</span></p>
+                <p className="text-xs text-gray-500">{t('waterTarget')}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{t('waterHint')}</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-purple-600">{t.sleep_target_hours}<span className="text-sm font-normal text-gray-400">h</span></p>
-                <p className="text-xs text-gray-500">Sleep target</p>
-                <p className="text-xs text-gray-400 mt-0.5">Base 8h → Peak 9h</p>
+                <p className="text-2xl font-bold text-purple-600">{tgt.sleep_target_hours}<span className="text-sm font-normal text-gray-400">h</span></p>
+                <p className="text-xs text-gray-500">{t('sleepTarget')}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{t('sleepHint')}</p>
               </div>
             </div>
           </div>
         )}
 
         {/* Formula breakdown */}
-        <FormulaCard formula={f} calories={t.calories_kcal} />
+        <FormulaCard formula={f} calories={tgt.calories_kcal} />
 
         {/* Add food */}
         <div className="bg-white rounded-2xl border border-gray-100 p-4">
-          <h2 className="font-semibold text-gray-900 mb-3">Add Food</h2>
+          <h2 className="font-semibold text-gray-900 mb-3">{t('addFood')}</h2>
           <div className="flex gap-1.5 flex-wrap mb-3">
             {MEALS.map(m => (
               <button key={m} onClick={() => setMeal(m)}
                 className={`px-2 py-1 rounded-lg text-xs font-medium ${meal===m ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
-                {m.replace('_',' ')}
+                {t(`meals.${m}`)}
               </button>
             ))}
           </div>
-          <input value={search} onChange={e => doSearch(e.target.value)} placeholder="Search food (e.g. chicken, rice...)"
+          <input value={search} onChange={e => doSearch(e.target.value)} placeholder={t('searchPlaceholder')}
             className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 mb-2" />
           {searchResults.length > 0 && (
             <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 mb-3">
@@ -309,7 +311,7 @@ export default function Nutrition() {
                 onClick={() => addFood.mutate({ food_id: selected.id, amount_g: parseFloat(amount), log_date: date, meal_type: meal })}
                 disabled={addFood.isPending}
                 className="flex-1 bg-primary-600 text-white rounded-xl py-2 text-sm font-medium active:bg-primary-700 disabled:opacity-50">
-                Add
+                {t('add')}
               </button>
             </div>
           )}
@@ -318,7 +320,7 @@ export default function Nutrition() {
         {/* Food log */}
         {entries.length > 0 && (
           <div className="bg-white rounded-2xl border border-gray-100 p-4">
-            <h2 className="font-semibold text-gray-900 mb-3">Today's Log</h2>
+            <h2 className="font-semibold text-gray-900 mb-3">{t('todayLog')}</h2>
             <div className="space-y-2">
               {entries.map(e => (
                 <div key={e.id} className="flex items-center gap-2">

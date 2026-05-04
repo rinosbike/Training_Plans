@@ -1,0 +1,79 @@
+{
+  "steps": {
+    "1": "__MISSING__",
+    "2": "__MISSING__",
+    "3": "__MISSING__"
+  },
+  "stepOf": "__MISSING__",
+  "fields": {
+    "weight": "__MISSING__",
+    "height": "__MISSING__",
+    "gender": "__MISSING__",
+    "fitnessLevel": "__MISSING__",
+    "weeklyHours": "__MISSING__"
+  },
+  "genders": {
+    "male": "__MISSING__",
+    "female": "__MISSING__",
+    "other": "__MISSING__"
+  },
+  "fitnessLevels": {
+    "beginner": "__MISSING__",
+    "intermediate": "__MISSING__",
+    "advanced": "__MISSING__",
+    "elite": "__MISSING__"
+  },
+  "goalName": "__MISSING__",
+  "goalNamePlaceholder": "__MISSING__",
+  "targetDate": "__MISSING__",
+  "eventName": "__MISSING__",
+  "eventNamePlaceholder": "__MISSING__",
+  "back": "__MISSING__",
+  "next": "__MISSING__",
+  "generate": "__MISSING__",
+  "generating": "__MISSING__",
+  "success": "__MISSING__",
+  "error": "__MISSING__",
+  "goals": {
+    "marathon": {
+      "label": "__MISSING__",
+      "desc": "__MISSING__"
+    },
+    "half_marathon": {
+      "label": "__MISSING__",
+      "desc": "__MISSING__"
+    },
+    "10k": {
+      "label": "__MISSING__",
+      "desc": "__MISSING__"
+    },
+    "5k": {
+      "label": "__MISSING__",
+      "desc": "__MISSING__"
+    },
+    "ironman": {
+      "label": "__MISSING__",
+      "desc": "__MISSING__"
+    },
+    "half_ironman": {
+      "label": "__MISSING__",
+      "desc": "__MISSING__"
+    },
+    "sprint_triathlon": {
+      "label": "__MISSING__",
+      "desc": "__MISSING__"
+    },
+    "cycling_event": {
+      "label": "__MISSING__",
+      "desc": "__MISSING__"
+    },
+    "strength": {
+      "label": "__MISSING__",
+      "desc": "__MISSING__"
+    },
+    "general_fitness": {
+      "label": "__MISSING__",
+      "desc": "__MISSING__"
+    }
+  }
+}

@@ -11,6 +11,7 @@ import Sync from './pages/Sync'
 import Settings from './pages/Settings'
 import Credentials from './pages/Credentials'
 import Branding from './pages/Branding'
+import Translations from './pages/Translations'
 import AuthCallback from './pages/AuthCallback'
 
 function Protected({ children }) {
@@ -35,6 +36,7 @@ function AppRoutes() {
       <Route path="/settings" element={<Protected><Settings /></Protected>} />
       <Route path="/credentials" element={<Protected><Credentials /></Protected>} />
       <Route path="/branding" element={<Protected><Branding /></Protected>} />
+      <Route path="/translations" element={<Protected><Translations /></Protected>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

@@ -1,0 +1,52 @@
+{
+  "title": "Nutrition",
+  "trainingDay": "{{min}} min training today · {{kcal}} kcal target",
+  "restDay": "Rest day targets",
+  "caloriesMacros": "Calories & Macros",
+  "caloriesRemaining": "{{n}} kcal remaining",
+  "targetReached": "Target reached",
+  "electrolytes": "Electrolytes",
+  "electrolytesDesc": "Scaled to sweat loss — critical on heavy training days",
+  "vitamins": "Vitamins & Minerals",
+  "hydration": "Hydration & Recovery",
+  "waterTarget": "Water target",
+  "waterHint": "35 ml/kg + ~500 ml/hr exercise",
+  "sleepTarget": "Sleep target",
+  "sleepHint": "Base 8h → Peak 9h",
+  "formula": "How was this calculated?",
+  "calorieFormula": "Calorie Formula (TDEE)",
+  "macroFormula": "Macro Formula",
+  "metValues": "MET Values Used",
+  "metDesc": "MET (metabolic equivalent): energy cost relative to rest. Cycling Z2 = 8 METs, Run Z2 = 9 METs, Swim Z2 = 7 METs, Brick Z3 = 11.5 METs. Formula: MET × weight_kg × hours = kcal burned.",
+  "addFood": "Add Food",
+  "searchPlaceholder": "Search food (e.g. chicken, rice...)",
+  "add": "Add",
+  "todayLog": "Today's Log",
+  "foodLogged": "Food logged!",
+  "meals": {
+    "breakfast": "Breakfast",
+    "lunch": "Lunch",
+    "dinner": "Dinner",
+    "snack": "Snack",
+    "pre_workout": "Pre-workout",
+    "post_workout": "Post-workout"
+  },
+  "macros": {
+    "protein": "Protein",
+    "carbs": "Carbs",
+    "fat": "Fat",
+    "fiber": "Fiber",
+    "omega3": "Omega-3"
+  },
+  "micros": {
+    "sodium": "Sodium",
+    "potassium": "Potassium",
+    "magnesium": "Magnesium",
+    "calcium": "Calcium",
+    "vitaminD": "Vitamin D",
+    "vitaminC": "Vitamin C",
+    "vitaminB12": "Vitamin B12",
+    "iron": "Iron",
+    "zinc": "Zinc"
+  }
+}

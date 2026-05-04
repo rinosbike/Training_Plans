@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import api from '../services/api'
 import BottomNav from '../components/BottomNav'
 
 export default function Progress() {
+  const { t } = useTranslation('progress')
   const { data: load = [] } = useQuery({
     queryKey: ['training-load'],
     queryFn: () => api.get('/api/progress/load').then(r => r.data),
@@ -19,8 +21,8 @@ export default function Progress() {
   return (
     <div className="min-h-screen bg-gray-50 pb-nav">
       <div className="bg-primary-600 text-white px-4 pt-12 pb-4">
-        <h1 className="text-xl font-bold">Training Load</h1>
-        <p className="text-primary-200 text-sm">CTL · ATL · Form (TSB)</p>
+        <h1 className="text-xl font-bold">{t('title')}</h1>
+        <p className="text-primary-200 text-sm">{t('subtitle')}</p>
       </div>
 
       <div className="px-4 mt-4 space-y-4">
@@ -31,16 +33,16 @@ export default function Progress() {
               const latest = load[load.length - 1]
               return (
                 <div className="grid grid-cols-3 gap-3">
-                  <MetricCard label="Fitness (CTL)" value={Math.round(latest.ctl||0)} color="text-blue-600" bg="bg-blue-50" desc="42-day avg TSS/day" />
-                  <MetricCard label="Fatigue (ATL)" value={Math.round(latest.atl||0)} color="text-red-600" bg="bg-red-50" desc="7-day avg TSS/day" />
-                  <MetricCard label="Form (TSB)" value={Math.round(latest.tsb||0)} color={latest.tsb >= 0 ? 'text-green-600' : 'text-orange-600'} bg={latest.tsb >= 0 ? 'bg-green-50' : 'bg-orange-50'} desc="CTL − ATL" />
+                  <MetricCard label={t('fitness')} value={Math.round(latest.ctl||0)} color="text-blue-600" bg="bg-blue-50" desc={t('fitnessDesc')} />
+                  <MetricCard label={t('fatigue')} value={Math.round(latest.atl||0)} color="text-red-600" bg="bg-red-50" desc={t('fatigueDesc')} />
+                  <MetricCard label={t('form')} value={Math.round(latest.tsb||0)} color={latest.tsb >= 0 ? 'text-green-600' : 'text-orange-600'} bg={latest.tsb >= 0 ? 'bg-green-50' : 'bg-orange-50'} desc={t('formDesc')} />
                 </div>
               )
             })()}
 
             {/* Chart */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4">
-              <h2 className="font-semibold text-gray-900 mb-4">Last 60 Days</h2>
+              <h2 className="font-semibold text-gray-900 mb-4">{t('last60')}</h2>
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={chartData.slice(-60)} margin={{ top: 5, right: 5, bottom: 5, left: -15 }}>
                   <XAxis dataKey="date" tick={{ fontSize: 10 }} tickLine={false} interval={9} />
@@ -53,17 +55,17 @@ export default function Progress() {
                 </LineChart>
               </ResponsiveContainer>
               <div className="mt-2 text-xs text-gray-400 space-y-1">
-                <p>Form &gt; 5: Fresh — ready to race or go hard</p>
-                <p>Form −10 to 5: Normal training state</p>
-                <p>Form &lt; −20: Fatigued — recovery needed</p>
+                <p>{t('formFresh')}</p>
+                <p>{t('formNormal')}</p>
+                <p>{t('formFatigued')}</p>
               </div>
             </div>
           </>
         ) : (
           <div className="text-center py-16 text-gray-400">
             <div className="text-4xl mb-3">📈</div>
-            <p className="font-medium text-gray-600">No training data yet</p>
-            <p className="text-sm">Log some workouts to see your load trends.</p>
+            <p className="font-medium text-gray-600">{t('noData')}</p>
+            <p className="text-sm">{t('noDataDesc')}</p>
           </div>
         )}
       </div>

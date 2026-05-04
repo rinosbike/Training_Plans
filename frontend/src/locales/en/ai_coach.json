@@ -1,0 +1,9 @@
+{
+  "title": "AI Coach",
+  "subtitle": "Powered by Claude Sonnet",
+  "placeholder": "Ask your coach anything...",
+  "empty": "Your AI Training Coach",
+  "emptyDesc": "Ask me to adjust your plan, explain workouts, or give nutrition advice.",
+  "connectionError": "Connection error. Please try again.",
+  "dayPrompt": "I need help with my {{dayType}} session on {{date}}. Can you help me adjust or explain it?"
+}

@@ -1,0 +1,38 @@
+{
+  "title": "__MISSING__",
+  "blockLabel": "__MISSING__",
+  "week": "__MISSING__",
+  "month": "__MISSING__",
+  "restDay": "__MISSING__",
+  "aiAdjust": "__MISSING__",
+  "dayTypes": {
+    "rest": "__MISSING__",
+    "easy": "__MISSING__",
+    "tempo": "__MISSING__",
+    "interval": "__MISSING__",
+    "long": "__MISSING__",
+    "race": "__MISSING__",
+    "strength": "__MISSING__",
+    "brick": "__MISSING__",
+    "core": "__MISSING__",
+    "swim": "__MISSING__",
+    "cycle": "__MISSING__"
+  },
+  "hrZone": {
+    "noHr": "__MISSING__",
+    "hint": "__MISSING__",
+    "maxBpm": "__MISSING__"
+  },
+  "noGoal": {
+    "title": "__MISSING__",
+    "subtitle": "__MISSING__",
+    "cta": "__MISSING__"
+  },
+  "nutrition": {
+    "title": "__MISSING__",
+    "logFood": "__MISSING__",
+    "protein": "__MISSING__",
+    "carbs": "__MISSING__",
+    "fat": "__MISSING__"
+  }
+}

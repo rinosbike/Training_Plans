@@ -1,0 +1,16 @@
+{
+  "title": "Training Load",
+  "subtitle": "CTL · ATL · Form (TSB)",
+  "fitness": "Fitness (CTL)",
+  "fatigue": "Fatigue (ATL)",
+  "form": "Form (TSB)",
+  "fitnessDesc": "42-day avg TSS/day",
+  "fatigueDesc": "7-day avg TSS/day",
+  "formDesc": "CTL − ATL",
+  "last60": "Last 60 Days",
+  "formFresh": "Form > 5: Fresh — ready to race or go hard",
+  "formNormal": "Form −10 to 5: Normal training state",
+  "formFatigued": "Form < −20: Fatigued — recovery needed",
+  "noData": "No training data yet",
+  "noDataDesc": "Log some workouts to see your load trends."
+}

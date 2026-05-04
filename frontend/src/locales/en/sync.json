@@ -1,0 +1,29 @@
+{
+  "title": "Device Sync",
+  "subtitle": "Connect Strava or Suunto to import your workouts",
+  "syncNow": "Sync Now",
+  "syncing": "Syncing…",
+  "syncSuccess": "Imported {{count}} new activities from {{provider}}",
+  "syncFailed": "{{provider}} sync failed",
+  "disconnected": "Disconnected from {{provider}}",
+  "lastSync": "Last sync: {{date}}",
+  "setupSteps": "Setup steps",
+  "connectBtn": "Connect {{provider}}",
+  "recentlyImported": "Recently Imported",
+  "autoMatch": {
+    "title": "How Auto-Match Works",
+    "desc1": "When an activity is imported, we look for a planned workout on the same date with the same sport type and duration within ±40%.",
+    "desc2": "If matched: the planned workout shows as completed ✓ on your calendar with your actual stats.",
+    "desc3": "If no match: the activity is still saved and visible here — useful for unplanned extra sessions."
+  },
+  "providers": {
+    "strava": {
+      "desc": "Import all activities — including those auto-synced from your Suunto watch.",
+      "note": "Free. Suunto → Strava auto-sync means this covers your watch data immediately."
+    },
+    "suunto": {
+      "desc": "Direct API access — richer data: R-R intervals, Peak Training Effect, recovery time.",
+      "note": "Adds HRV, Peak TE, recovery hours — not available via Strava. Application may take 1-5 days."
+    }
+  }
+}

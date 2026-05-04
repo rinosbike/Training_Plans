@@ -1,0 +1,49 @@
+{
+  "planned": "Planned",
+  "completed": "Completed ✓",
+  "completedLabel": "Completed",
+  "logWorkout": "Log This Workout",
+  "editLog": "Edit log",
+  "saveLog": "Save Log",
+  "fields": {
+    "duration": "Duration",
+    "distance": "Distance",
+    "tss": "TSS",
+    "avgHr": "Avg HR",
+    "maxHr": "Max HR",
+    "rpe": "RPE",
+    "calories": "Calories",
+    "power": "Power",
+    "notes": "Notes",
+    "durationMin": "Duration (min)",
+    "distanceKm": "Distance (km)",
+    "avgHrBpm": "Avg HR (bpm)",
+    "maxHrBpm": "Max HR (bpm)",
+    "perceivedEffort": "Perceived Effort (1-10)",
+    "notesPlaceholder": "How did it feel?"
+  },
+  "vsplan": "{{diff}} min vs plan",
+  "zones": {
+    "title": "Heart Rate Zones (max {{bpm}} bpm)",
+    "noHr": "Set your max HR in Settings to see heart rate zone targets.",
+    "target": "Target",
+    "1": { "name": "Recovery",  "desc": "Very easy, can hold full conversation" },
+    "2": { "name": "Aerobic",   "desc": "Easy, comfortable, aerobic base building" },
+    "3": { "name": "Tempo",     "desc": "Comfortably hard, limited conversation" },
+    "4": { "name": "Threshold", "desc": "Hard, only short sentences" },
+    "5": { "name": "VO2max",    "desc": "Very hard, cannot speak" }
+  },
+  "source": {
+    "strava": "Strava Activity",
+    "suunto": "Suunto Activity",
+    "manual": "Logged"
+  },
+  "sports": {
+    "run": "Run",
+    "cycle": "Ride",
+    "swim": "Swim",
+    "strength": "Strength",
+    "core": "Core",
+    "brick": "Brick"
+  }
+}

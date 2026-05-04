@@ -1,0 +1,29 @@
+{
+  "title": "__MISSING__",
+  "subtitle": "__MISSING__",
+  "syncNow": "__MISSING__",
+  "syncing": "__MISSING__",
+  "syncSuccess": "__MISSING__",
+  "syncFailed": "__MISSING__",
+  "disconnected": "__MISSING__",
+  "lastSync": "__MISSING__",
+  "setupSteps": "__MISSING__",
+  "connectBtn": "__MISSING__",
+  "recentlyImported": "__MISSING__",
+  "autoMatch": {
+    "title": "__MISSING__",
+    "desc1": "__MISSING__",
+    "desc2": "__MISSING__",
+    "desc3": "__MISSING__"
+  },
+  "providers": {
+    "strava": {
+      "desc": "__MISSING__",
+      "note": "__MISSING__"
+    },
+    "suunto": {
+      "desc": "__MISSING__",
+      "note": "__MISSING__"
+    }
+  }
+}

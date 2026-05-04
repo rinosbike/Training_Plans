@@ -1,0 +1,64 @@
+{
+  "planned": "__MISSING__",
+  "completed": "__MISSING__",
+  "completedLabel": "__MISSING__",
+  "logWorkout": "__MISSING__",
+  "editLog": "__MISSING__",
+  "saveLog": "__MISSING__",
+  "fields": {
+    "duration": "__MISSING__",
+    "distance": "__MISSING__",
+    "tss": "__MISSING__",
+    "avgHr": "__MISSING__",
+    "maxHr": "__MISSING__",
+    "rpe": "__MISSING__",
+    "calories": "__MISSING__",
+    "power": "__MISSING__",
+    "notes": "__MISSING__",
+    "durationMin": "__MISSING__",
+    "distanceKm": "__MISSING__",
+    "avgHrBpm": "__MISSING__",
+    "maxHrBpm": "__MISSING__",
+    "perceivedEffort": "__MISSING__",
+    "notesPlaceholder": "__MISSING__"
+  },
+  "vsplan": "__MISSING__",
+  "zones": {
+    "1": {
+      "name": "__MISSING__",
+      "desc": "__MISSING__"
+    },
+    "2": {
+      "name": "__MISSING__",
+      "desc": "__MISSING__"
+    },
+    "3": {
+      "name": "__MISSING__",
+      "desc": "__MISSING__"
+    },
+    "4": {
+      "name": "__MISSING__",
+      "desc": "__MISSING__"
+    },
+    "5": {
+      "name": "__MISSING__",
+      "desc": "__MISSING__"
+    },
+    "title": "__MISSING__",
+    "noHr": "__MISSING__",
+    "target": "__MISSING__"
+  },
+  "source": {
+    "strava": "__MISSING__",
+    "suunto": "__MISSING__",
+    "manual": "__MISSING__"
+  },
+  "sports": {
+    "run": "__MISSING__",
+    "cycle": "__MISSING__",
+    "swim": "__MISSING__",
+    "strength": "__MISSING__",
+    "core": "__MISSING__",
+    "brick": "__MISSING__"
+  }
+}

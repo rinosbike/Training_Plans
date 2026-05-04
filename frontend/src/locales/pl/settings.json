@@ -1,0 +1,30 @@
+{
+  "title": "__MISSING__",
+  "fitnessLevel": "__MISSING__",
+  "fitnessLevels": {
+    "beginner": "__MISSING__",
+    "intermediate": "__MISSING__",
+    "advanced": "__MISSING__",
+    "elite": "__MISSING__"
+  },
+  "profile": "__MISSING__",
+  "fields": {
+    "weight": "__MISSING__",
+    "height": "__MISSING__",
+    "restingHr": "__MISSING__",
+    "maxHr": "__MISSING__",
+    "maxHrHint": "__MISSING__",
+    "ftp": "__MISSING__",
+    "weeklyHours": "__MISSING__"
+  },
+  "saveProfile": "__MISSING__",
+  "saved": "__MISSING__",
+  "nav": {
+    "newGoal": "__MISSING__",
+    "deviceSync": "__MISSING__",
+    "branding": "__MISSING__",
+    "credentials": "__MISSING__",
+    "translations": "__MISSING__",
+    "language": "__MISSING__"
+  }
+}

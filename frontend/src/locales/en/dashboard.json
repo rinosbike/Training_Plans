@@ -1,0 +1,38 @@
+{
+  "title": "Training Plan",
+  "blockLabel": "{{block}} Block",
+  "week": "Week",
+  "month": "Month",
+  "restDay": "Rest day — recover and recharge",
+  "aiAdjust": "AI Adjust",
+  "dayTypes": {
+    "rest": "Rest",
+    "easy": "Easy",
+    "tempo": "Tempo",
+    "interval": "Intervals",
+    "long": "Long",
+    "race": "Race",
+    "strength": "Strength",
+    "brick": "Brick",
+    "core": "Core",
+    "swim": "Swim",
+    "cycle": "Ride"
+  },
+  "hrZone": {
+    "noHr": "Set your Max HR to see heart rate zones",
+    "hint": "Simple estimate: 220 − your age  ·  More accurate: 208 − (0.7 × age) — set it in Settings → Max HR",
+    "maxBpm": "max {{bpm}} bpm"
+  },
+  "noGoal": {
+    "title": "Welcome to Training Plans",
+    "subtitle": "Set your first goal to generate a personalized training plan.",
+    "cta": "Get Started"
+  },
+  "nutrition": {
+    "title": "Nutrition Target",
+    "logFood": "Log food →",
+    "protein": "Protein",
+    "carbs": "Carbs",
+    "fat": "Fat"
+  }
+}

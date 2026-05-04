@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import api from '../services/api'
 import BottomNav from '../components/BottomNav'
@@ -15,19 +16,13 @@ const HR_ZONES = [
   { z: 5, name: 'VO2max',    pct: [0.90, 1.00], bg: 'bg-red-500',     text: 'text-white'      },
 ]
 
-function HRZoneStrip({ maxHr }) {
+function HRZoneStrip({ maxHr, t }) {
   if (!maxHr) return (
     <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 flex items-center gap-3">
       <span className="text-lg shrink-0">❤️</span>
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold text-amber-800">Set your Max HR to see heart rate zones</p>
-        <p className="text-xs text-amber-700 mt-0.5">
-          Simple estimate: <span className="font-bold">220 − your age</span>
-          <span className="text-amber-600"> · More accurate: </span>
-          <span className="font-bold">208 − (0.7 × age)</span>
-          <span className="text-amber-600"> — set it in </span>
-          <span className="font-semibold underline">Settings → Max HR</span>
-        </p>
+        <p className="text-xs font-semibold text-amber-800">{t('hrZone.noHr')}</p>
+        <p className="text-xs text-amber-700 mt-0.5">{t('hrZone.hint')}</p>
       </div>
     </div>
   )
@@ -88,6 +83,7 @@ function getMonthRange(m) {
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const { t, i18n } = useTranslation('dashboard')
   const today = localDateStr(new Date())
   const [view, setView] = useState('week')
   const [selectedDate, setSelectedDate] = useState(today)
@@ -128,13 +124,13 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
         <div className="text-6xl mb-4">🏁</div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome to Training Plans</h1>
-        <p className="text-gray-500 mb-6">Set your first goal to generate a personalized training plan.</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('noGoal.title')}</h1>
+        <p className="text-gray-500 mb-6">{t('noGoal.subtitle')}</p>
         <button
           onClick={() => navigate('/onboarding')}
           className="bg-primary-600 text-white px-8 py-3 rounded-xl font-semibold text-lg active:bg-primary-700"
         >
-          Get Started
+          {t('noGoal.cta')}
         </button>
       </div>
     )
@@ -146,9 +142,9 @@ export default function Dashboard() {
       <div className="bg-primary-600 text-white px-4 pt-12 pb-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold">Training Plan</h1>
+            <h1 className="text-xl font-bold">{t('title')}</h1>
             {selectedDay.block_type && (
-              <p className="text-primary-200 text-sm capitalize">{selectedDay.block_type} block</p>
+              <p className="text-primary-200 text-sm">{t('blockLabel', { block: selectedDay.block_type })}</p>
             )}
           </div>
           {/* Week / Month toggle */}
@@ -160,7 +156,7 @@ export default function Dashboard() {
                 className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all capitalize
                   ${view === v ? 'bg-white text-primary-600 shadow-sm' : 'text-primary-200 active:text-white'}`}
               >
-                {v}
+                {t(v)}
               </button>
             ))}
           </div>
@@ -187,19 +183,19 @@ export default function Dashboard() {
         )}
 
         {/* HR Zone strip */}
-        <HRZoneStrip maxHr={profile?.max_hr} />
+        <HRZoneStrip maxHr={profile?.max_hr} t={t} />
 
         {/* Selected day detail */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h2 className="font-semibold text-gray-900">
-                {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-GB', {
+                {new Date(selectedDate + 'T00:00:00').toLocaleDateString(i18n.language, {
                   weekday: 'long', month: 'long', day: 'numeric'
                 })}
               </h2>
               <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium mt-1 ${badge.bg}`}>
-                {badge.label}
+                {t(`dayTypes.${selectedDay.day_type}`, badge.label)}
               </span>
             </div>
             {selectedDay.day_type !== 'rest' && (
@@ -207,7 +203,7 @@ export default function Dashboard() {
                 onClick={() => navigate(`/ai-coach?date=${selectedDate}&day_type=${selectedDay.day_type}`)}
                 className="flex items-center gap-1 text-xs bg-primary-50 text-primary-600 px-3 py-1.5 rounded-full font-medium active:bg-primary-100"
               >
-                🤖 AI Adjust
+                🤖 {t('aiAdjust')}
               </button>
             )}
           </div>
@@ -221,7 +217,7 @@ export default function Dashboard() {
           ) : (
             <div className="text-center py-6 text-gray-400">
               <div className="text-3xl mb-2">💤</div>
-              <p className="text-sm">Rest day — recover and recharge</p>
+              <p className="text-sm">{t('restDay')}</p>
             </div>
           )}
         </div>
@@ -230,9 +226,9 @@ export default function Dashboard() {
         {nutrition && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-gray-900">Nutrition Target</h3>
+              <h3 className="font-semibold text-gray-900">{t('nutrition.title')}</h3>
               <button onClick={() => navigate('/nutrition')} className="text-xs text-primary-600 font-medium">
-                Log food →
+                {t('nutrition.logFood')}
               </button>
             </div>
             <div className="text-center mb-3">
@@ -241,9 +237,9 @@ export default function Dashboard() {
             </div>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { label: 'Protein', value: nutrition.protein_g, color: 'text-orange-600' },
-                { label: 'Carbs',   value: nutrition.carbs_g,   color: 'text-blue-600' },
-                { label: 'Fat',     value: nutrition.fat_g,      color: 'text-yellow-600' },
+                { label: t('nutrition.protein'), value: nutrition.protein_g, color: 'text-orange-600' },
+                { label: t('nutrition.carbs'),   value: nutrition.carbs_g,   color: 'text-blue-600' },
+                { label: t('nutrition.fat'),     value: nutrition.fat_g,     color: 'text-yellow-600' },
               ].map(m => (
                 <div key={m.label} className="text-center">
                   <p className={`text-lg font-bold ${m.color}`}>

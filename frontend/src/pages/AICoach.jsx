@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import api from '../services/api'
 import BottomNav from '../components/BottomNav'
@@ -11,8 +12,8 @@ export default function AICoach() {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
-  const [model, setModel] = useState('gpt-4o')
   const bottomRef = useRef(null)
+  const { t } = useTranslation('ai_coach')
 
   const { data: goals = [] } = useQuery({
     queryKey: ['goals'],
@@ -29,7 +30,7 @@ export default function AICoach() {
         const date = params.get('date')
         const dayType = params.get('day_type')
         if (date && dayType) {
-          setInput(`I need help with my ${dayType} session on ${date}. Can you help me adjust or explain it?`)
+          setInput(t('dayPrompt', { dayType, date }))
         }
       })
   }, [goals.length])
@@ -52,7 +53,7 @@ export default function AICoach() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('access_token')}`,
         },
-        body: JSON.stringify({ message: text, model }),
+        body: JSON.stringify({ message: text }),
       })
 
       let assistantText = ''
@@ -83,7 +84,7 @@ export default function AICoach() {
         }
       }
     } catch {
-      toast.error('Connection error. Please try again.')
+      toast.error(t('connectionError'))
     } finally {
       setStreaming(false)
     }
@@ -92,17 +93,9 @@ export default function AICoach() {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 pb-nav">
       {/* Header */}
-      <div className="bg-primary-600 text-white px-4 pt-12 pb-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold">AI Coach</h1>
-          <p className="text-primary-200 text-sm">Powered by GitHub Copilot</p>
-        </div>
-        <select value={model} onChange={e => setModel(e.target.value)}
-          className="bg-primary-700 text-white text-xs rounded-lg px-2 py-1 border border-primary-500">
-          <option value="gpt-4o">GPT-4o</option>
-          <option value="gpt-4.1">GPT-4.1</option>
-          <option value="claude-sonnet-4.6">Claude Sonnet</option>
-        </select>
+      <div className="bg-primary-600 text-white px-4 pt-12 pb-4">
+        <h1 className="text-xl font-bold">{t('title')}</h1>
+        <p className="text-primary-200 text-sm">{t('subtitle')}</p>
       </div>
 
       {/* Messages */}
@@ -110,8 +103,8 @@ export default function AICoach() {
         {messages.length === 0 && (
           <div className="text-center py-12">
             <div className="text-5xl mb-3">🤖</div>
-            <p className="text-gray-600 font-medium">Your AI Training Coach</p>
-            <p className="text-gray-400 text-sm mt-1">Ask me to adjust your plan, explain workouts, or give nutrition advice.</p>
+            <p className="text-gray-600 font-medium">{t('empty')}</p>
+            <p className="text-gray-400 text-sm mt-1">{t('emptyDesc')}</p>
           </div>
         )}
         {messages.map((m, i) => (
@@ -136,7 +129,7 @@ export default function AICoach() {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
-            placeholder="Ask your coach anything..."
+            placeholder={t('placeholder')}
             rows={1}
             className="flex-1 border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
           />

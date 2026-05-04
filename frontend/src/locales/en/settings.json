@@ -1,0 +1,30 @@
+{
+  "title": "Settings",
+  "fitnessLevel": "Fitness Level",
+  "fitnessLevels": {
+    "beginner": "Beginner",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced",
+    "elite": "Elite"
+  },
+  "profile": "Profile",
+  "fields": {
+    "weight": "Weight (kg)",
+    "height": "Height (cm)",
+    "restingHr": "Resting HR (bpm)",
+    "maxHr": "Max HR (bpm)",
+    "maxHrHint": "Estimate: 220 − age  ·  Accurate: 208 − (0.7 × age)",
+    "ftp": "FTP (W)",
+    "weeklyHours": "Weekly hours"
+  },
+  "saveProfile": "Save Profile",
+  "saved": "Profile saved",
+  "nav": {
+    "newGoal": "Set New Goal",
+    "deviceSync": "Device Sync",
+    "branding": "Branding & App Info",
+    "credentials": "API Credentials",
+    "translations": "Translations",
+    "language": "Language"
+  }
+}
