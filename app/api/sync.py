@@ -12,6 +12,7 @@ from app.db import execute_query, execute_write, set_user_context
 from app.services.sync import strava as strava_svc
 from app.services.sync import suunto as suunto_svc
 from app.services.credential_service import get_credential
+from app.services.load_service import compute_load_for_user
 
 sync_bp = Blueprint('sync', __name__)
 log = logging.getLogger(__name__)
@@ -224,6 +225,8 @@ def strava_run():
         activities = strava_svc.fetch_activities(access_token, after_epoch=after)
         mapped     = [strava_svc.map_activity(a) for a in activities]
         imported   = _import_mapped(mapped, user_id)
+        if imported:
+            compute_load_for_user(user_id)
         _upsert_log(user_id, 'strava', imported, 'success')
         return jsonify({'imported': imported, 'total_fetched': len(activities)})
 
@@ -363,6 +366,8 @@ def suunto_run():
         workouts = suunto_svc.fetch_workouts(access_token, sub_key, since_epoch_ms=since_ms)
         mapped   = [suunto_svc.map_workout(w) for w in workouts]
         imported = _import_mapped(mapped, user_id)
+        if imported:
+            compute_load_for_user(user_id)
         _upsert_log(user_id, 'suunto', imported, 'success')
         return jsonify({'imported': imported, 'total_fetched': len(workouts)})
 

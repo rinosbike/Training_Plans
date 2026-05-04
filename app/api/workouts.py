@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.db import execute_query, execute_write
 from app.exceptions import NotFoundError, ValidationError
+from app.services.load_service import compute_load_for_user
 
 workouts_bp = Blueprint('workouts', __name__)
 
@@ -108,6 +109,7 @@ def log_workout(workout_id):
             returning=True
         )
 
+    compute_load_for_user(user_id)
     return jsonify(dict(row)), 201
 
 
