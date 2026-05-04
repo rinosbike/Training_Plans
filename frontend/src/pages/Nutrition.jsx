@@ -59,6 +59,7 @@ function MicroRow({ label, actual, target, unit, color = 'bg-teal-400' }) {
 }
 
 function FormulaCard({ formula, calories }) {
+  const { t } = useTranslation('nutrition')
   const [open, setOpen] = useState(false)
   if (!formula) return null
   const { bmr_kcal, neat_kcal, eee_kcal, epoc_kcal,
@@ -71,7 +72,7 @@ function FormulaCard({ formula, calories }) {
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between px-4 py-3 text-left"
       >
-        <span className="text-sm font-semibold text-gray-700">How was this calculated?</span>
+        <span className="text-sm font-semibold text-gray-700">{t('formula')}</span>
         <span className="text-gray-400 text-lg">{open ? '▲' : '▼'}</span>
       </button>
 
@@ -79,7 +80,7 @@ function FormulaCard({ formula, calories }) {
         <div className="px-4 pb-4 space-y-4 border-t border-gray-100 pt-3">
           {/* Calorie formula */}
           <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Calorie Formula (TDEE)</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{t('calorieFormula')}</p>
             <div className="space-y-1.5 font-mono text-xs">
               <div className="flex justify-between text-gray-600">
                 <span>BMR (Mifflin-St Jeor)</span>
@@ -110,7 +111,7 @@ function FormulaCard({ formula, calories }) {
 
           {/* Macro formula */}
           <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Macro Formula</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{t('macroFormula')}</p>
             <div className="space-y-1 text-xs text-gray-600">
               <div className="flex justify-between">
                 <span>Protein: {protein_g_per_kg} g/kg × {weight_kg} kg</span>
@@ -130,12 +131,8 @@ function FormulaCard({ formula, calories }) {
           {/* MET reference */}
           {eee_kcal > 0 && (
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">MET Values Used</p>
-              <p className="text-xs text-gray-500 leading-relaxed">
-                MET (metabolic equivalent): energy cost relative to rest.
-                Cycling Z2 = 8 METs, Run Z2 = 9 METs, Swim Z2 = 7 METs, Brick Z3 = 11.5 METs.
-                Formula: MET × weight_kg × hours = kcal burned.
-              </p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{t('metValues')}</p>
+              <p className="text-xs text-gray-500 leading-relaxed">{t('metDesc')}</p>
             </div>
           )}
         </div>

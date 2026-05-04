@@ -1,6 +1,5 @@
+import { useTranslation } from 'react-i18next'
 import { SportBadge } from '../workout/SportIcon'
-
-const DAY_LABELS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 const DAY_TYPE_COLORS = {
   rest:     'bg-gray-100 text-gray-500',
   easy:     'bg-green-100 text-green-700',
@@ -16,8 +15,9 @@ const DAY_TYPE_COLORS = {
 }
 
 export default function DayCard({ day, isToday, isSelected, onClick }) {
+  const { i18n } = useTranslation()
   const d = new Date(day.date + 'T00:00:00')
-  const dayName = DAY_LABELS[d.getDay()]
+  const dayName = d.toLocaleDateString(i18n.language, { weekday: 'short' })
   const dayNum = d.getDate()
   const workouts = day.workouts || []
   const isRest = day.day_type === 'rest'

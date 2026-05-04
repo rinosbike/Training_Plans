@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import DayCard from './DayCard'
 
 function localDateStr(d) {
@@ -14,14 +15,15 @@ function startOfWeek(d) {
   return dt
 }
 
-function formatWeekLabel(monday) {
+function formatWeekLabel(monday, lang) {
   const sunday = new Date(monday)
   sunday.setDate(sunday.getDate() + 6)
   const opts = { month: 'short', day: 'numeric' }
-  return `${monday.toLocaleDateString('en-GB', opts)} – ${sunday.toLocaleDateString('en-GB', opts)}, ${monday.getFullYear()}`
+  return `${monday.toLocaleDateString(lang, opts)} – ${sunday.toLocaleDateString(lang, opts)}, ${monday.getFullYear()}`
 }
 
 export default function WeekView({ days, selectedDate, onSelectDate, onWeekChange }) {
+  const { i18n } = useTranslation()
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()))
   const touchStartX = useRef(null)
 
@@ -60,7 +62,7 @@ export default function WeekView({ days, selectedDate, onSelectDate, onWeekChang
         <button onClick={() => changeWeek(-1)} className="p-1 text-gray-500 active:text-primary-600">
           ‹
         </button>
-        <span className="text-sm font-semibold text-gray-700">{formatWeekLabel(weekStart)}</span>
+        <span className="text-sm font-semibold text-gray-700">{formatWeekLabel(weekStart, i18n.language)}</span>
         <button onClick={() => changeWeek(1)} className="p-1 text-gray-500 active:text-primary-600">
           ›
         </button>

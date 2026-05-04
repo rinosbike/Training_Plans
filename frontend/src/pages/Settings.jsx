@@ -102,7 +102,7 @@ export default function Settings() {
           onClick={logout}
           className="w-full py-2.5 rounded-2xl border border-red-200 text-red-500 text-sm font-medium active:bg-red-50"
         >
-          Sign Out
+          {t('signOut', { ns: 'common' })}
         </button>
 
       </div>
