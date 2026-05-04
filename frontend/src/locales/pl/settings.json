@@ -1,30 +1,30 @@
 {
-  "title": "__MISSING__",
-  "fitnessLevel": "__MISSING__",
+  "title": "Ustawienia",
+  "fitnessLevel": "Poziom sprawności",
   "fitnessLevels": {
-    "beginner": "__MISSING__",
-    "intermediate": "__MISSING__",
-    "advanced": "__MISSING__",
-    "elite": "__MISSING__"
+    "beginner": "Początkujący",
+    "intermediate": "Średnio zaawansowany",
+    "advanced": "Zaawansowany",
+    "elite": "Elite"
   },
-  "profile": "__MISSING__",
+  "profile": "Profil",
   "fields": {
-    "weight": "__MISSING__",
-    "height": "__MISSING__",
-    "restingHr": "__MISSING__",
-    "maxHr": "__MISSING__",
-    "maxHrHint": "__MISSING__",
-    "ftp": "__MISSING__",
-    "weeklyHours": "__MISSING__"
+    "weight": "Waga (kg)",
+    "height": "Wzrost (cm)",
+    "restingHr": "Tętno spoczynkowe (bpm)",
+    "maxHr": "Tętno maks. (bpm)",
+    "maxHrHint": "Pozostaw puste dla automatycznego obliczenia",
+    "ftp": "FTP (wat)",
+    "weeklyHours": "Tygodniowe godziny"
   },
-  "saveProfile": "__MISSING__",
-  "saved": "__MISSING__",
+  "saveProfile": "Zapisz profil",
+  "saved": "Zapisano",
   "nav": {
-    "newGoal": "__MISSING__",
-    "deviceSync": "__MISSING__",
-    "branding": "__MISSING__",
-    "credentials": "__MISSING__",
-    "translations": "__MISSING__",
-    "language": "__MISSING__"
+    "newGoal": "Nowy cel",
+    "deviceSync": "Synchronizacja urządzeń",
+    "branding": "O aplikacji",
+    "credentials": "Dane dostępowe API",
+    "translations": "Tłumaczenia",
+    "language": "Język"
   }
 }

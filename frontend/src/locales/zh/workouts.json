@@ -1,64 +1,64 @@
 {
-  "planned": "__MISSING__",
-  "completed": "__MISSING__",
-  "completedLabel": "__MISSING__",
-  "logWorkout": "__MISSING__",
-  "editLog": "__MISSING__",
-  "saveLog": "__MISSING__",
+  "planned": "已计划",
+  "completed": "已完成 ✓",
+  "completedLabel": "已完成",
+  "logWorkout": "记录训练",
+  "editLog": "编辑记录",
+  "saveLog": "保存记录",
   "fields": {
-    "duration": "__MISSING__",
-    "distance": "__MISSING__",
-    "tss": "__MISSING__",
-    "avgHr": "__MISSING__",
-    "maxHr": "__MISSING__",
-    "rpe": "__MISSING__",
-    "calories": "__MISSING__",
-    "power": "__MISSING__",
-    "notes": "__MISSING__",
-    "durationMin": "__MISSING__",
-    "distanceKm": "__MISSING__",
-    "avgHrBpm": "__MISSING__",
-    "maxHrBpm": "__MISSING__",
-    "perceivedEffort": "__MISSING__",
-    "notesPlaceholder": "__MISSING__"
+    "duration": "时长",
+    "distance": "距离",
+    "tss": "TSS",
+    "avgHr": "平均心率",
+    "maxHr": "最大心率",
+    "rpe": "努力程度",
+    "calories": "卡路里",
+    "power": "功率",
+    "notes": "备注",
+    "durationMin": "时长（分钟）",
+    "distanceKm": "距离（公里）",
+    "avgHrBpm": "平均心率（次/分）",
+    "maxHrBpm": "最大心率（次/分）",
+    "perceivedEffort": "主观努力程度（1–10）",
+    "notesPlaceholder": "感觉如何？"
   },
-  "vsplan": "__MISSING__",
+  "vsplan": "对比计划",
   "zones": {
     "1": {
-      "name": "__MISSING__",
-      "desc": "__MISSING__"
+      "name": "恢复",
+      "desc": "非常轻松，恢复配速"
     },
     "2": {
-      "name": "__MISSING__",
-      "desc": "__MISSING__"
+      "name": "基础",
+      "desc": "轻松有氧配速，可以正常交谈"
     },
     "3": {
-      "name": "__MISSING__",
-      "desc": "__MISSING__"
+      "name": "节奏",
+      "desc": "中等配速，舒适但有挑战"
     },
     "4": {
-      "name": "__MISSING__",
-      "desc": "__MISSING__"
+      "name": "阈值",
+      "desc": "乳酸阈值，比赛配速"
     },
     "5": {
-      "name": "__MISSING__",
-      "desc": "__MISSING__"
+      "name": "VO2最大值",
+      "desc": "非常高强度，短间歇"
     },
-    "title": "__MISSING__",
-    "noHr": "__MISSING__",
-    "target": "__MISSING__"
+    "title": "心率区间",
+    "noHr": "心率不可用",
+    "target": "目标区间"
   },
   "source": {
-    "strava": "__MISSING__",
-    "suunto": "__MISSING__",
-    "manual": "__MISSING__"
+    "strava": "Strava",
+    "suunto": "Suunto",
+    "manual": "手动"
   },
   "sports": {
-    "run": "__MISSING__",
-    "cycle": "__MISSING__",
-    "swim": "__MISSING__",
-    "strength": "__MISSING__",
-    "core": "__MISSING__",
-    "brick": "__MISSING__"
+    "run": "跑步",
+    "cycle": "骑行",
+    "swim": "游泳",
+    "strength": "力量训练",
+    "core": "核心训练",
+    "brick": "砖块训练"
   }
 }

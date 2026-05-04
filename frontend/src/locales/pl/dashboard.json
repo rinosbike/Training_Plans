@@ -1,38 +1,38 @@
 {
-  "title": "__MISSING__",
-  "blockLabel": "__MISSING__",
-  "week": "__MISSING__",
-  "month": "__MISSING__",
-  "restDay": "__MISSING__",
-  "aiAdjust": "__MISSING__",
+  "title": "Plan Treningowy",
+  "blockLabel": "Blok",
+  "week": "Tydzień",
+  "month": "Miesiąc",
+  "restDay": "Dzień odpoczynku — zrelaksuj się i naładuj baterie",
+  "aiAdjust": "Dostosuj AI",
   "dayTypes": {
-    "rest": "__MISSING__",
-    "easy": "__MISSING__",
-    "tempo": "__MISSING__",
-    "interval": "__MISSING__",
-    "long": "__MISSING__",
-    "race": "__MISSING__",
-    "strength": "__MISSING__",
-    "brick": "__MISSING__",
-    "core": "__MISSING__",
-    "swim": "__MISSING__",
-    "cycle": "__MISSING__"
+    "rest": "Odpoczynek",
+    "easy": "Lekki",
+    "tempo": "Tempo",
+    "interval": "Interwał",
+    "long": "Długi",
+    "race": "Zawody",
+    "strength": "Siła",
+    "brick": "Brick",
+    "core": "Core",
+    "swim": "Pływanie",
+    "cycle": "Kolarstwo"
   },
   "hrZone": {
-    "noHr": "__MISSING__",
-    "hint": "__MISSING__",
-    "maxBpm": "__MISSING__"
+    "noHr": "Tętno nie ustawione",
+    "hint": "Ustaw tętno spoczynkowe i maksymalne w ustawieniach",
+    "maxBpm": "Tętno maks."
   },
   "noGoal": {
-    "title": "__MISSING__",
-    "subtitle": "__MISSING__",
-    "cta": "__MISSING__"
+    "title": "Brak celu treningowego",
+    "subtitle": "Utwórz cel, aby rozpocząć spersonalizowany plan",
+    "cta": "Zacznij teraz"
   },
   "nutrition": {
-    "title": "__MISSING__",
-    "logFood": "__MISSING__",
-    "protein": "__MISSING__",
-    "carbs": "__MISSING__",
-    "fat": "__MISSING__"
+    "title": "Dzisiejsze żywienie",
+    "logFood": "Dodaj posiłek",
+    "protein": "Białko",
+    "carbs": "Węglowodany",
+    "fat": "Tłuszcz"
   }
 }

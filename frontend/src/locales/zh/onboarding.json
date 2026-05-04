@@ -1,79 +1,79 @@
 {
   "steps": {
-    "1": "__MISSING__",
-    "2": "__MISSING__",
-    "3": "__MISSING__"
+    "1": "您的资料",
+    "2": "您的目标",
+    "3": "体能评估"
   },
-  "stepOf": "__MISSING__",
+  "stepOf": "第 {{current}} 步，共 {{total}} 步",
   "fields": {
-    "weight": "__MISSING__",
-    "height": "__MISSING__",
-    "gender": "__MISSING__",
-    "fitnessLevel": "__MISSING__",
-    "weeklyHours": "__MISSING__"
+    "weight": "体重（公斤）",
+    "height": "身高（厘米）",
+    "gender": "性别",
+    "fitnessLevel": "健身水平",
+    "weeklyHours": "每周训练时长"
   },
   "genders": {
-    "male": "__MISSING__",
-    "female": "__MISSING__",
-    "other": "__MISSING__"
+    "male": "男",
+    "female": "女",
+    "other": "其他"
   },
   "fitnessLevels": {
-    "beginner": "__MISSING__",
-    "intermediate": "__MISSING__",
-    "advanced": "__MISSING__",
-    "elite": "__MISSING__"
+    "beginner": "初学者",
+    "intermediate": "中级",
+    "advanced": "高级",
+    "elite": "精英"
   },
-  "goalName": "__MISSING__",
-  "goalNamePlaceholder": "__MISSING__",
-  "targetDate": "__MISSING__",
-  "eventName": "__MISSING__",
-  "eventNamePlaceholder": "__MISSING__",
-  "back": "__MISSING__",
-  "next": "__MISSING__",
-  "generate": "__MISSING__",
-  "generating": "__MISSING__",
-  "success": "__MISSING__",
-  "error": "__MISSING__",
+  "goalName": "目标名称",
+  "goalNamePlaceholder": "例如：2026年北京马拉松",
+  "targetDate": "目标日期",
+  "eventName": "赛事名称",
+  "eventNamePlaceholder": "例如：北京马拉松",
+  "back": "返回",
+  "next": "下一步",
+  "generate": "创建我的计划",
+  "generating": "正在创建计划…",
+  "success": "您的训练计划已就绪！",
+  "error": "无法创建计划，请重试。",
   "goals": {
     "marathon": {
-      "label": "__MISSING__",
-      "desc": "__MISSING__"
+      "label": "马拉松",
+      "desc": "42.2公里 • 16–20周"
     },
     "half_marathon": {
-      "label": "__MISSING__",
-      "desc": "__MISSING__"
+      "label": "半程马拉松",
+      "desc": "21.1公里 • 10–14周"
     },
     "10k": {
-      "label": "__MISSING__",
-      "desc": "__MISSING__"
+      "label": "10公里",
+      "desc": "10公里 • 6–10周"
     },
     "5k": {
-      "label": "__MISSING__",
-      "desc": "__MISSING__"
+      "label": "5公里",
+      "desc": "5公里 • 4–8周"
     },
     "ironman": {
-      "label": "__MISSING__",
-      "desc": "__MISSING__"
+      "label": "铁人三项",
+      "desc": "3.8/180/42.2公里 • 20–24周"
     },
     "half_ironman": {
-      "label": "__MISSING__",
-      "desc": "__MISSING__"
+      "label": "半程铁人三项",
+      "desc": "1.9/90/21.1公里 • 14–18周"
     },
     "sprint_triathlon": {
-      "label": "__MISSING__",
-      "desc": "__MISSING__"
+      "label": "短程铁人三项",
+      "desc": "0.75/20/5公里 • 8–12周"
     },
     "cycling_event": {
-      "label": "__MISSING__",
-      "desc": "__MISSING__"
+      "label": "自行车赛事",
+      "desc": "骑行赛事 • 8–16周"
     },
     "strength": {
-      "label": "__MISSING__",
-      "desc": "__MISSING__"
+      "label": "力量训练",
+      "desc": "肌肉增长与体能训练"
     },
     "general_fitness": {
-      "label": "__MISSING__",
-      "desc": "__MISSING__"
+      "label": "综合健身",
+      "desc": "健康与体能"
     }
   }
 }

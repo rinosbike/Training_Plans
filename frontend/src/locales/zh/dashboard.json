@@ -1,38 +1,38 @@
 {
-  "title": "__MISSING__",
-  "blockLabel": "__MISSING__",
-  "week": "__MISSING__",
-  "month": "__MISSING__",
-  "restDay": "__MISSING__",
-  "aiAdjust": "__MISSING__",
+  "title": "训练计划",
+  "blockLabel": "训练块",
+  "week": "周",
+  "month": "月",
+  "restDay": "休息日 — 恢复体力，补充能量",
+  "aiAdjust": "AI调整",
   "dayTypes": {
-    "rest": "__MISSING__",
-    "easy": "__MISSING__",
-    "tempo": "__MISSING__",
-    "interval": "__MISSING__",
-    "long": "__MISSING__",
-    "race": "__MISSING__",
-    "strength": "__MISSING__",
-    "brick": "__MISSING__",
-    "core": "__MISSING__",
-    "swim": "__MISSING__",
-    "cycle": "__MISSING__"
+    "rest": "休息",
+    "easy": "轻松",
+    "tempo": "节奏",
+    "interval": "间歇",
+    "long": "长距离",
+    "race": "比赛",
+    "strength": "力量",
+    "brick": "砖块训练",
+    "core": "核心",
+    "swim": "游泳",
+    "cycle": "骑行"
   },
   "hrZone": {
-    "noHr": "__MISSING__",
-    "hint": "__MISSING__",
-    "maxBpm": "__MISSING__"
+    "noHr": "未设置心率",
+    "hint": "在设置中配置静息心率和最大心率",
+    "maxBpm": "最大心率"
   },
   "noGoal": {
-    "title": "__MISSING__",
-    "subtitle": "__MISSING__",
-    "cta": "__MISSING__"
+    "title": "尚未设置目标",
+    "subtitle": "创建目标以启动您的个性化计划",
+    "cta": "立即开始"
   },
   "nutrition": {
-    "title": "__MISSING__",
-    "logFood": "__MISSING__",
-    "protein": "__MISSING__",
-    "carbs": "__MISSING__",
-    "fat": "__MISSING__"
+    "title": "今日饮食",
+    "logFood": "记录饮食",
+    "protein": "蛋白质",
+    "carbs": "碳水化合物",
+    "fat": "脂肪"
   }
 }

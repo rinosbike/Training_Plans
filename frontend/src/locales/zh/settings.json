@@ -1,30 +1,30 @@
 {
-  "title": "__MISSING__",
-  "fitnessLevel": "__MISSING__",
+  "title": "设置",
+  "fitnessLevel": "健身水平",
   "fitnessLevels": {
-    "beginner": "__MISSING__",
-    "intermediate": "__MISSING__",
-    "advanced": "__MISSING__",
-    "elite": "__MISSING__"
+    "beginner": "初学者",
+    "intermediate": "中级",
+    "advanced": "高级",
+    "elite": "精英"
   },
-  "profile": "__MISSING__",
+  "profile": "个人资料",
   "fields": {
-    "weight": "__MISSING__",
-    "height": "__MISSING__",
-    "restingHr": "__MISSING__",
-    "maxHr": "__MISSING__",
-    "maxHrHint": "__MISSING__",
-    "ftp": "__MISSING__",
-    "weeklyHours": "__MISSING__"
+    "weight": "体重（公斤）",
+    "height": "身高（厘米）",
+    "restingHr": "静息心率（次/分）",
+    "maxHr": "最大心率（次/分）",
+    "maxHrHint": "留空以自动计算",
+    "ftp": "FTP（瓦）",
+    "weeklyHours": "每周训练时长"
   },
-  "saveProfile": "__MISSING__",
-  "saved": "__MISSING__",
+  "saveProfile": "保存资料",
+  "saved": "已保存",
   "nav": {
-    "newGoal": "__MISSING__",
-    "deviceSync": "__MISSING__",
-    "branding": "__MISSING__",
-    "credentials": "__MISSING__",
-    "translations": "__MISSING__",
-    "language": "__MISSING__"
+    "newGoal": "新目标",
+    "deviceSync": "设备同步",
+    "branding": "关于应用",
+    "credentials": "API凭据",
+    "translations": "翻译",
+    "language": "语言"
   }
 }

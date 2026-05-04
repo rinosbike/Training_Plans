@@ -1,64 +1,64 @@
 {
-  "planned": "__MISSING__",
-  "completed": "__MISSING__",
-  "completedLabel": "__MISSING__",
-  "logWorkout": "__MISSING__",
-  "editLog": "__MISSING__",
-  "saveLog": "__MISSING__",
+  "planned": "Zaplanowany",
+  "completed": "Ukończony ✓",
+  "completedLabel": "Ukończony",
+  "logWorkout": "Zarejestruj trening",
+  "editLog": "Edytuj wpis",
+  "saveLog": "Zapisz wpis",
   "fields": {
-    "duration": "__MISSING__",
-    "distance": "__MISSING__",
-    "tss": "__MISSING__",
-    "avgHr": "__MISSING__",
-    "maxHr": "__MISSING__",
-    "rpe": "__MISSING__",
-    "calories": "__MISSING__",
-    "power": "__MISSING__",
-    "notes": "__MISSING__",
-    "durationMin": "__MISSING__",
-    "distanceKm": "__MISSING__",
-    "avgHrBpm": "__MISSING__",
-    "maxHrBpm": "__MISSING__",
-    "perceivedEffort": "__MISSING__",
-    "notesPlaceholder": "__MISSING__"
+    "duration": "Czas trwania",
+    "distance": "Dystans",
+    "tss": "TSS",
+    "avgHr": "Śr. tętno",
+    "maxHr": "Maks. tętno",
+    "rpe": "Wysiłek",
+    "calories": "Kalorie",
+    "power": "Moc",
+    "notes": "Notatki",
+    "durationMin": "Czas trwania (min)",
+    "distanceKm": "Dystans (km)",
+    "avgHrBpm": "Śr. tętno (bpm)",
+    "maxHrBpm": "Maks. tętno (bpm)",
+    "perceivedEffort": "Odczuwany wysiłek (1–10)",
+    "notesPlaceholder": "Jak się czułeś/aś?"
   },
-  "vsplan": "__MISSING__",
+  "vsplan": "vs. plan",
   "zones": {
     "1": {
-      "name": "__MISSING__",
-      "desc": "__MISSING__"
+      "name": "Regeneracja",
+      "desc": "Bardzo lekko, tempo regeneracyjne"
     },
     "2": {
-      "name": "__MISSING__",
-      "desc": "__MISSING__"
+      "name": "Baza",
+      "desc": "Łatwe tempo aerobowe, tempo konwersacyjne"
     },
     "3": {
-      "name": "__MISSING__",
-      "desc": "__MISSING__"
+      "name": "Tempo",
+      "desc": "Umiarkowane tempo, komfortowe ale wymagające"
     },
     "4": {
-      "name": "__MISSING__",
-      "desc": "__MISSING__"
+      "name": "Próg",
+      "desc": "Próg mleczanowy, tempo zawodnicze"
     },
     "5": {
-      "name": "__MISSING__",
-      "desc": "__MISSING__"
+      "name": "VO2max",
+      "desc": "Bardzo wysoka intensywność, krótkie interwały"
     },
-    "title": "__MISSING__",
-    "noHr": "__MISSING__",
-    "target": "__MISSING__"
+    "title": "Strefy tętna",
+    "noHr": "Tętno niedostępne",
+    "target": "Strefa docelowa"
   },
   "source": {
-    "strava": "__MISSING__",
-    "suunto": "__MISSING__",
-    "manual": "__MISSING__"
+    "strava": "Strava",
+    "suunto": "Suunto",
+    "manual": "Ręcznie"
   },
   "sports": {
-    "run": "__MISSING__",
-    "cycle": "__MISSING__",
-    "swim": "__MISSING__",
-    "strength": "__MISSING__",
-    "core": "__MISSING__",
-    "brick": "__MISSING__"
+    "run": "Bieganie",
+    "cycle": "Kolarstwo",
+    "swim": "Pływanie",
+    "strength": "Siłownia",
+    "core": "Core",
+    "brick": "Brick"
   }
 }

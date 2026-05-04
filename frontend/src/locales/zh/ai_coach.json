@@ -1,9 +1,9 @@
 {
-  "title": "__MISSING__",
-  "subtitle": "__MISSING__",
-  "placeholder": "__MISSING__",
-  "empty": "__MISSING__",
-  "emptyDesc": "__MISSING__",
-  "connectionError": "__MISSING__",
-  "dayPrompt": "__MISSING__"
+  "title": "AI教练",
+  "subtitle": "您的私人训练顾问",
+  "placeholder": "向您的教练提问…",
+  "empty": "你好！我是您的AI训练教练。",
+  "emptyDesc": "向我询问关于训练、饮食或恢复的问题。",
+  "connectionError": "连接错误，请重试。",
+  "dayPrompt": "请解释今天的训练内容以及如何调整。"
 }

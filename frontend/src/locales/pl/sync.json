@@ -1,29 +1,29 @@
 {
-  "title": "__MISSING__",
-  "subtitle": "__MISSING__",
-  "syncNow": "__MISSING__",
-  "syncing": "__MISSING__",
-  "syncSuccess": "__MISSING__",
-  "syncFailed": "__MISSING__",
-  "disconnected": "__MISSING__",
-  "lastSync": "__MISSING__",
-  "setupSteps": "__MISSING__",
-  "connectBtn": "__MISSING__",
-  "recentlyImported": "__MISSING__",
+  "title": "Synchronizacja urządzeń",
+  "subtitle": "Połącz swoje urządzenia treningowe",
+  "syncNow": "Synchronizuj teraz",
+  "syncing": "Synchronizowanie…",
+  "syncSuccess": "Synchronizacja zakończona",
+  "syncFailed": "Synchronizacja nieudana",
+  "disconnected": "Rozłączony",
+  "lastSync": "Ostatnia synchronizacja",
+  "setupSteps": "Kroki konfiguracji",
+  "connectBtn": "Połącz",
+  "recentlyImported": "Ostatnio zaimportowane",
   "autoMatch": {
-    "title": "__MISSING__",
-    "desc1": "__MISSING__",
-    "desc2": "__MISSING__",
-    "desc3": "__MISSING__"
+    "title": "Automatyczne dopasowanie",
+    "desc1": "Zaimportowane aktywności są automatycznie dopasowywane do planu",
+    "desc2": "Dopasowanie według daty, dyscypliny i czasu trwania (±20%)",
+    "desc3": "Ręcznie zarejestrowane treningi nie są nadpisywane"
   },
   "providers": {
     "strava": {
-      "desc": "__MISSING__",
-      "note": "__MISSING__"
+      "desc": "Importuj biegi, przejazdy rowerowe i więcej ze Stravy",
+      "note": "Wymaga konta Strava i rejestracji aplikacji"
     },
     "suunto": {
-      "desc": "__MISSING__",
-      "note": "__MISSING__"
+      "desc": "Synchronizuj treningi z zegarka Suunto",
+      "note": "Wymaga konta Suunto i rejestracji deweloperskiej"
     }
   }
 }
