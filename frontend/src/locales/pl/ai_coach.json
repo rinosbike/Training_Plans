@@ -9,6 +9,8 @@
   "dayPrompt": "Wyjaśnij mi dzisiejszy trening i jak mogę go dostosować.",
   "foodLogged": "Zapisano w dzienniku",
   "proposedChange": "Proponowana zmiana planu",
+  "proposedDbFix": "Proponowana korekta bazy danych żywności",
+  "dbFixNote": "Zastosowanie zaktualizuje wartości na 100g dla wszystkich użytkowników i przeliczy minione wpisy.",
   "apply": "Zastosuj",
   "dismiss": "Odrzuć",
   "applied": "Zastosowano",

@@ -197,10 +197,13 @@ def chat(session_id):
                             food_logged += _edit_food_items(user_id, actions['food_edits'])
                         if food_logged:
                             yield f'data: {json.dumps({"food_logged": food_logged})}\n\n'
+                        proposed = []
                         if actions.get('plan_changes'):
-                            proposed = _resolve_plan_changes(user_id, actions['plan_changes'])
-                            if proposed:
-                                yield f'data: {json.dumps({"proposed_actions": proposed})}\n\n'
+                            proposed += _resolve_plan_changes(user_id, actions['plan_changes'])
+                        if actions.get('food_db_corrections'):
+                            proposed += _resolve_food_db_corrections(actions['food_db_corrections'])
+                        if proposed:
+                            yield f'data: {json.dumps({"proposed_actions": proposed})}\n\n'
                     except Exception as ex:
                         log.warning('Action extraction failed: %s', ex)
 
@@ -249,13 +252,62 @@ def apply_action(session_id):
         action_date = action.get('date')
         if not action_date:
             return jsonify({'error': 'date required'}), 400
-        # Find the plan_day for this date and update day_type
         execute_write(
             '''UPDATE training.plan_days SET day_type = 'rest', ai_adjusted = TRUE
                WHERE user_id = %s AND date = %s''',
             (user_id, action_date)
         )
         return jsonify({'status': 'applied'})
+
+    elif action_type == 'update_food_db':
+        food_id = action.get('food_id')
+        nutrients = action.get('nutrients', {})
+        if not food_id or not nutrients:
+            return jsonify({'error': 'food_id and nutrients required'}), 400
+
+        # Whitelist: only allow updating known nutrient columns
+        ALLOWED = {
+            'calories_per_100g', 'protein_per_100g', 'carbs_per_100g', 'fat_per_100g',
+            'fiber_per_100g', 'sodium_per_100g', 'iron_per_100g', 'calcium_per_100g',
+            'vitamin_d_per_100g', 'vitamin_b12_per_100g', 'vitamin_c_per_100g',
+            'magnesium_per_100g', 'potassium_per_100g', 'zinc_per_100g',
+        }
+        safe = {k: float(v) for k, v in nutrients.items() if k in ALLOWED and v is not None}
+        if not safe:
+            return jsonify({'error': 'No valid nutrient columns to update'}), 400
+
+        set_clauses = ', '.join(f'{col} = %s' for col in safe)
+        params = list(safe.values()) + [food_id]
+        execute_write(
+            f"UPDATE training.food_database SET {set_clauses}, source = 'user' WHERE id = %s",
+            tuple(params)
+        )
+
+        # Recalculate food_log entries that reference this food
+        log_rows = execute_query(
+            'SELECT id, amount_g FROM training.food_log WHERE food_id = %s',
+            (food_id,)
+        )
+        updated_food = execute_query(
+            'SELECT * FROM training.food_database WHERE id = %s', (food_id,), fetch_one=True
+        )
+        if updated_food:
+            for lr in log_rows:
+                ratio = float(lr['amount_g']) / 100.0
+                execute_write(
+                    '''UPDATE training.food_log
+                       SET calories  = %s, protein_g = %s, carbs_g = %s,
+                           fat_g     = %s, fiber_g   = %s
+                       WHERE id = %s''',
+                    (updated_food['calories_per_100g'] * ratio,
+                     updated_food['protein_per_100g'] * ratio,
+                     updated_food['carbs_per_100g'] * ratio,
+                     updated_food['fat_per_100g'] * ratio,
+                     (updated_food['fiber_per_100g'] or 0) * ratio,
+                     lr['id'])
+                )
+
+        return jsonify({'status': 'applied', 'logs_recalculated': len(list(log_rows))})
 
     return jsonify({'error': f'Unknown action type: {action_type}'}), 400
 
@@ -378,6 +430,47 @@ def _edit_food_items(user_id: str, food_edits: list) -> list:
                 'calories': round((row['calories'] or 0) * factor),
             })
     return results
+
+
+def _resolve_food_db_corrections(corrections: list) -> list:
+    """Look up current DB values so the frontend can show old→new diff."""
+    ALLOWED = {
+        'calories_per_100g', 'protein_per_100g', 'carbs_per_100g', 'fat_per_100g',
+        'fiber_per_100g', 'sodium_per_100g', 'iron_per_100g', 'calcium_per_100g',
+        'vitamin_d_per_100g', 'vitamin_b12_per_100g', 'vitamin_c_per_100g',
+        'magnesium_per_100g', 'potassium_per_100g', 'zinc_per_100g',
+    }
+    resolved = []
+    for c in corrections:
+        food_name = c.get('food_name', '')
+        nutrients = {k: float(v) for k, v in (c.get('nutrients') or {}).items() if k in ALLOWED}
+        if not food_name or not nutrients:
+            continue
+        food = execute_query(
+            '''SELECT id, name, calories_per_100g, protein_per_100g, carbs_per_100g,
+                      fat_per_100g, fiber_per_100g, sodium_per_100g, source
+               FROM training.food_database
+               WHERE LOWER(name) LIKE %s
+               ORDER BY LENGTH(name) ASC LIMIT 1''',
+            (f'%{food_name.lower()}%',), fetch_one=True
+        )
+        if not food:
+            continue
+        # Build old/new diff only for nutrients being changed
+        diff = {}
+        for col, new_val in nutrients.items():
+            old_val = float(food.get(col) or 0)
+            diff[col] = {'old': old_val, 'new': new_val}
+
+        resolved.append({
+            'type': 'update_food_db',
+            'food_id': food['id'],
+            'food_name': food['name'],
+            'description': c.get('description', f'Correct {food["name"]} per-100g values from food label'),
+            'nutrients': nutrients,
+            'diff': diff,
+        })
+    return resolved
 
 
 def _resolve_plan_changes(user_id: str, plan_changes: list) -> list:

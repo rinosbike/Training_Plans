@@ -9,6 +9,8 @@
   "dayPrompt": "请解释今天的训练内容以及如何调整。",
   "foodLogged": "已记录到饮食日记",
   "proposedChange": "建议的计划变更",
+  "proposedDbFix": "建议的食物数据库更正",
+  "dbFixNote": "应用后将更新所有用户的每100克数值，并重新计算历史记录。",
   "apply": "应用",
   "dismiss": "忽略",
   "applied": "已应用",

@@ -76,26 +76,75 @@ function FoodLoggedCard({ items, t }) {
   )
 }
 
+const NUTRIENT_LABELS = {
+  calories_per_100g: 'Energy', protein_per_100g: 'Protein', carbs_per_100g: 'Carbs',
+  fat_per_100g: 'Fat', fiber_per_100g: 'Fibre', sodium_per_100g: 'Sodium',
+  iron_per_100g: 'Iron', calcium_per_100g: 'Calcium', vitamin_d_per_100g: 'Vit D',
+  vitamin_b12_per_100g: 'Vit B12', vitamin_c_per_100g: 'Vit C',
+  magnesium_per_100g: 'Magnesium', potassium_per_100g: 'Potassium', zinc_per_100g: 'Zinc',
+}
+const NUTRIENT_UNITS = {
+  calories_per_100g: 'kcal', protein_per_100g: 'g', carbs_per_100g: 'g',
+  fat_per_100g: 'g', fiber_per_100g: 'g', sodium_per_100g: 'mg',
+  iron_per_100g: 'mg', calcium_per_100g: 'mg', vitamin_d_per_100g: 'mcg',
+  vitamin_b12_per_100g: 'mcg', vitamin_c_per_100g: 'mg',
+  magnesium_per_100g: 'mg', potassium_per_100g: 'mg', zinc_per_100g: 'mg',
+}
+
+function fmt2(v) {
+  const n = Number(v)
+  return n < 10 ? n.toFixed(1) : Math.round(n).toString()
+}
+
 function ProposedActionsCard({ actions, onApply, onDismiss, appliedIds, t }) {
   if (!actions || actions.length === 0) return null
   return (
     <div className="mx-4 my-2 space-y-2">
       {actions.map((action, i) => {
-        const key = `${action.type}-${action.date}-${i}`
+        const key = `${action.type}-${action.date || action.food_id}-${i}`
         const applied = appliedIds.has(key)
+        const isDbFix = action.type === 'update_food_db'
         return (
           <div key={key} className={`bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 ${applied ? 'opacity-60' : ''}`}>
             <div className="flex items-start gap-2">
-              <span className="text-amber-500 text-lg mt-0.5">⚡</span>
+              <span className="text-amber-500 text-lg mt-0.5">{isDbFix ? '🏷' : '⚡'}</span>
               <div className="flex-1">
-                <p className="text-amber-900 font-semibold text-sm">{t('proposedChange')}</p>
+                <p className="text-amber-900 font-semibold text-sm">
+                  {isDbFix ? t('proposedDbFix') : t('proposedChange')}
+                </p>
                 <p className="text-amber-800 text-xs mt-0.5">{action.description}</p>
-                {action.date && (
+                {action.date && !isDbFix && (
                   <p className="text-amber-600 text-xs mt-0.5">
                     {new Date(action.date + 'T12:00:00').toLocaleDateString(undefined, {
                       weekday: 'short', month: 'short', day: 'numeric'
                     })}
                     {action.workout_title ? ` — ${action.workout_title}` : ''}
+                  </p>
+                )}
+                {/* Old → new diff table for DB corrections */}
+                {isDbFix && action.diff && (
+                  <table className="mt-2 w-full text-xs">
+                    <thead>
+                      <tr className="text-amber-600 border-b border-amber-200">
+                        <th className="text-left pb-1 font-semibold">Nutrient</th>
+                        <th className="text-right pb-1 pr-3 font-semibold">Was</th>
+                        <th className="text-right pb-1 font-semibold">Label</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(action.diff).map(([col, { old: o, new: n }]) => (
+                        <tr key={col} className="border-t border-amber-100">
+                          <td className="py-0.5 text-amber-800">{NUTRIENT_LABELS[col] || col}</td>
+                          <td className="py-0.5 pr-3 text-right text-amber-600 tabular-nums line-through">{fmt2(o)} {NUTRIENT_UNITS[col]}</td>
+                          <td className="py-0.5 text-right text-green-700 font-semibold tabular-nums">{fmt2(n)} {NUTRIENT_UNITS[col]}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                {isDbFix && (
+                  <p className="text-amber-600 text-[10px] mt-1.5 italic">
+                    {t('dbFixNote')}
                   </p>
                 )}
               </div>

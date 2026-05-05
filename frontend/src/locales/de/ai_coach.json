@@ -9,6 +9,8 @@
   "dayPrompt": "Erkläre mir das Training für heute und wie ich es anpassen kann.",
   "foodLogged": "Im Ernährungstagebuch erfasst",
   "proposedChange": "Vorgeschlagene Planänderung",
+  "proposedDbFix": "Vorgeschlagene Datenbank-Korrektur",
+  "dbFixNote": "Beim Übernehmen werden die Nährwerte je 100g für alle Nutzer aktualisiert und vergangene Einträge neu berechnet.",
   "apply": "Übernehmen",
   "dismiss": "Ablehnen",
   "applied": "Übernommen",

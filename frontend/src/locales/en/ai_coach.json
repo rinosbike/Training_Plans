@@ -9,6 +9,8 @@
   "dayPrompt": "I need help with my {{dayType}} session on {{date}}. Can you help me adjust or explain it?",
   "foodLogged": "Logged to diary",
   "proposedChange": "Proposed plan change",
+  "proposedDbFix": "Proposed food database correction",
+  "dbFixNote": "Applying will update per-100g values for all users and recalculate past log entries.",
   "apply": "Apply",
   "dismiss": "Dismiss",
   "applied": "Applied",
