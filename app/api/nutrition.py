@@ -33,7 +33,7 @@ def food_search():
 @jwt_required()
 def get_food_log():
     user_id = get_jwt_identity()
-    log_date = request.args.get('date', str(date.today()))
+    log_date = request.args.get('date') or str(date.today())
     rows = execute_query(
         '''SELECT fl.*, fd.calories_per_100g, fd.protein_per_100g, fd.carbs_per_100g,
                   fd.fat_per_100g, fd.fiber_per_100g, fd.iron_per_100g, fd.calcium_per_100g,
@@ -195,7 +195,7 @@ def delete_food_log(entry_id):
 @jwt_required()
 def get_nutrition_targets():
     user_id = get_jwt_identity()
-    target_date = request.args.get('date', str(date.today()))
+    target_date = request.args.get('date') or str(date.today())
 
     profile = execute_query(
         'SELECT * FROM training.profiles WHERE user_id = %s', (user_id,), fetch_one=True

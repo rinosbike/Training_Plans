@@ -10,6 +10,7 @@ import base64
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from app.services import ai_coach_service as svc
+from app.db import execute_write
 from app.exceptions import ValidationError
 
 ocr_bp = Blueprint('ocr', __name__)
@@ -130,8 +131,28 @@ def scan_food_label():
         if k in NUTRIENT_COLS and v is not None
     }
 
+    food_name = parsed.get('food_name_guess', '').strip()
+    food_id = None
+
+    # Save to food_database immediately so AI coach can log it with correct macros
+    if food_name and per_100g.get('calories_per_100g') is not None:
+        try:
+            cols = ['name', 'source'] + list(per_100g.keys())
+            vals = [food_name, 'user'] + list(per_100g.values())
+            placeholders = ', '.join(['%s'] * len(vals))
+            col_names = ', '.join(cols)
+            row = execute_write(
+                f'INSERT INTO training.food_database ({col_names}) VALUES ({placeholders}) RETURNING id',
+                vals, returning=True
+            )
+            food_id = row['id'] if row else None
+            log.info('Saved scanned food "%s" to food_database id=%s', food_name, food_id)
+        except Exception as e:
+            log.warning('Could not save scanned food to DB: %s', e)
+
     return jsonify({
-        'food_name_guess': parsed.get('food_name_guess', ''),
+        'food_name_guess': food_name,
         'per_100g': per_100g,
         'warnings': parsed.get('warnings', []),
+        'food_id': food_id,
     })

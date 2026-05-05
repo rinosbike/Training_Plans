@@ -211,16 +211,8 @@ def strava_run():
         if refreshed:
             _upsert_token(user_id, 'strava', refreshed)
 
-        # Fetch since last sync or 30 days
-        last_sync = execute_query(
-            "SELECT synced_at FROM training.sync_log WHERE user_id=%s AND provider='strava' AND status='success' ORDER BY synced_at DESC LIMIT 1",
-            (user_id,), fetch_one=True
-        )
-        after = None
-        if last_sync and last_sync['synced_at']:
-            after = last_sync['synced_at'].timestamp()
-        else:
-            after = (datetime.now(timezone.utc) - timedelta(days=30)).timestamp()
+        # Fetch since 2 days ago (manual trigger — catches anything missed since last auto-sync)
+        after = (datetime.now(timezone.utc) - timedelta(days=2)).timestamp()
 
         activities = strava_svc.fetch_activities(access_token, after_epoch=after)
         mapped     = [strava_svc.map_activity(a) for a in activities]
