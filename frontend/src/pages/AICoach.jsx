@@ -283,9 +283,7 @@ export default function AICoach() {
     try {
       const fd = new FormData()
       fd.append('image', file)
-      const { data } = await api.post('/api/ocr/food-label', fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      const { data } = await api.post('/api/ocr/food-label', fd)
       const p = data.per_100g || {}
       const parts = [`Food label scanned: "${data.food_name_guess || 'Unknown food'}".`]
       parts.push(`Per 100g — Energy: ${p.calories_per_100g ?? '?'} kcal, Protein: ${p.protein_per_100g ?? '?'}g, Carbs: ${p.carbs_per_100g ?? '?'}g, Fat: ${p.fat_per_100g ?? '?'}g${p.fiber_per_100g != null ? `, Fibre: ${p.fiber_per_100g}g` : ''}.`)
