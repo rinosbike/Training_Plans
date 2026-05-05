@@ -186,6 +186,9 @@ export default function AICoach() {
   const [streaming, setStreaming] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [appliedIds, setAppliedIds] = useState(new Set())
+  const [scanning, setScanning] = useState(false)
+  const [attachment, setAttachment] = useState(null) // {name, preview}
+  const fileRef = useRef(null)
   const bottomRef = useRef(null)
 
   const { data: goals = [] } = useQuery({
@@ -269,8 +272,37 @@ export default function AICoach() {
     setAppliedIds(prev => new Set([...prev, key]))
   }
 
+  async function handleAttachment(e) {
+    const file = e.target.files[0]
+    e.target.value = ''
+    if (!file) return
+    if (file.size > 8 * 1024 * 1024) { toast.error('Image must be under 8 MB'); return }
+
+    setScanning(true)
+    setAttachment({ name: file.name })
+    try {
+      const fd = new FormData()
+      fd.append('image', file)
+      const { data } = await api.post('/api/ocr/food-label', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      const p = data.per_100g || {}
+      const parts = [`Food label scanned: "${data.food_name_guess || 'Unknown food'}".`]
+      parts.push(`Per 100g — Energy: ${p.calories_per_100g ?? '?'} kcal, Protein: ${p.protein_per_100g ?? '?'}g, Carbs: ${p.carbs_per_100g ?? '?'}g, Fat: ${p.fat_per_100g ?? '?'}g${p.fiber_per_100g != null ? `, Fibre: ${p.fiber_per_100g}g` : ''}.`)
+      if (data.warnings?.length) parts.push(`Note: ${data.warnings.join('; ')}`)
+      parts.push('Please log this for me and save these values to the database.')
+      setInput(parts.join(' '))
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'OCR failed — try a clearer photo')
+      setAttachment(null)
+    } finally {
+      setScanning(false)
+    }
+  }
+
   async function sendMessage() {
     if (!input.trim() || !sessionId || streaming) return
+    setAttachment(null)
     const text = input.trim()
     setInput('')
     const now = new Date().toISOString()
@@ -463,22 +495,52 @@ export default function AICoach() {
 
       {/* Input */}
       <div className="bg-white border-t border-gray-200 px-4 py-3 safe-bottom">
-        <div className="flex gap-2 items-end max-w-lg mx-auto">
-          <textarea
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
-            placeholder={t('placeholder')}
-            rows={1}
-            className="flex-1 border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
-          />
-          <button
-            onClick={sendMessage}
-            disabled={!input.trim() || streaming || !sessionId}
-            className="bg-primary-600 text-white p-2.5 rounded-xl active:bg-primary-700 disabled:opacity-40"
-          >
-            {streaming ? '⏳' : '➤'}
-          </button>
+        <div className="max-w-lg mx-auto">
+          {attachment && (
+            <div className="flex items-center gap-2 mb-1.5 px-1">
+              <span className="text-xs text-primary-600 font-medium truncate">📎 {attachment.name}</span>
+              <button onClick={() => setAttachment(null)} className="text-gray-400 text-xs hover:text-gray-600">✕</button>
+            </div>
+          )}
+          <div className="flex gap-2 items-end">
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={scanning || streaming}
+              className="p-2.5 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 active:bg-gray-100 disabled:opacity-40 shrink-0"
+              title="Scan food label"
+            >
+              {scanning
+                ? <span className="animate-spin inline-block w-5 h-5 border-2 border-gray-300 border-t-primary-600 rounded-full" />
+                : <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                  </svg>
+              }
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handleAttachment}
+            />
+            <textarea
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
+              placeholder={t('placeholder')}
+              rows={1}
+              className="flex-1 border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+            />
+            <button
+              onClick={sendMessage}
+              disabled={!input.trim() || streaming || !sessionId}
+              className="bg-primary-600 text-white p-2.5 rounded-xl active:bg-primary-700 disabled:opacity-40 shrink-0"
+            >
+              {streaming ? '⏳' : '➤'}
+            </button>
+          </div>
         </div>
       </div>
 
