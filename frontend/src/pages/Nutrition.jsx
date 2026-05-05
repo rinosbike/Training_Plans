@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../services/api'
@@ -135,6 +135,192 @@ function FormulaCard({ formula, calories }) {
               <p className="text-xs text-gray-500 leading-relaxed">{t('metDesc')}</p>
             </div>
           )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const NUTRIENT_LABEL_MAP = {
+  calories_per_100g: { label: 'Energy', unit: 'kcal' },
+  protein_per_100g:  { label: 'Protein', unit: 'g' },
+  carbs_per_100g:    { label: 'Carbohydrates', unit: 'g' },
+  fat_per_100g:      { label: 'Fat', unit: 'g' },
+  fiber_per_100g:    { label: 'Fibre', unit: 'g' },
+  sodium_per_100g:   { label: 'Sodium', unit: 'mg' },
+  iron_per_100g:     { label: 'Iron', unit: 'mg' },
+  calcium_per_100g:  { label: 'Calcium', unit: 'mg' },
+  vitamin_d_per_100g:   { label: 'Vitamin D', unit: 'mcg' },
+  vitamin_b12_per_100g: { label: 'Vitamin B12', unit: 'mcg' },
+  vitamin_c_per_100g:   { label: 'Vitamin C', unit: 'mg' },
+  magnesium_per_100g:   { label: 'Magnesium', unit: 'mg' },
+  potassium_per_100g:   { label: 'Potassium', unit: 'mg' },
+  zinc_per_100g:        { label: 'Zinc', unit: 'mg' },
+}
+
+function LabelScanner({ onApplyCorrection, t }) {
+  const fileRef = useRef(null)
+  const [scanning, setScanning] = useState(false)
+  const [result, setResult] = useState(null)      // {food_name_guess, per_100g, warnings, ocr_text}
+  const [edits, setEdits] = useState({})           // user-edited values
+  const [foodName, setFoodName] = useState('')
+  const [showOcr, setShowOcr] = useState(false)
+  const [matchedFood, setMatchedFood] = useState(null)
+  const [searchResults, setSearchResults] = useState([])
+
+  async function handleFile(file) {
+    if (!file) return
+    setScanning(true)
+    setResult(null)
+    setEdits({})
+    try {
+      const fd = new FormData()
+      fd.append('image', file)
+      const { data } = await api.post('/api/ocr/food-label', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      setResult(data)
+      setFoodName(data.food_name_guess || '')
+      // Pre-fill edits with detected values
+      setEdits({ ...data.per_100g })
+    } catch (err) {
+      toast.error(t('ocrFailed'))
+    } finally {
+      setScanning(false)
+    }
+  }
+
+  async function searchFood(q) {
+    setFoodName(q)
+    if (q.length < 2) { setSearchResults([]); return }
+    const { data } = await api.get('/api/food/search', { params: { q } })
+    setSearchResults(data)
+  }
+
+  function applyCorrection() {
+    if (!matchedFood) { toast.error(t('ocrSelectFood')); return }
+    const nutrients = Object.fromEntries(
+      Object.entries(edits).filter(([, v]) => v !== '' && !isNaN(Number(v)))
+        .map(([k, v]) => [k, Number(v)])
+    )
+    onApplyCorrection({ food_id: matchedFood.id, food_name: matchedFood.name, nutrients })
+    setResult(null); setEdits({}); setMatchedFood(null); setFoodName('')
+  }
+
+  return (
+    <div className="border border-dashed border-primary-300 rounded-xl p-3 bg-primary-50">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-semibold text-primary-800">{t('ocrTitle')}</span>
+        <button
+          onClick={() => fileRef.current?.click()}
+          disabled={scanning}
+          className="flex items-center gap-1.5 bg-primary-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg active:bg-primary-700 disabled:opacity-50"
+        >
+          {scanning ? <span className="animate-spin">⟳</span> : '📷'}
+          {scanning ? t('ocrScanning') : t('ocrScan')}
+        </button>
+        <input ref={fileRef} type="file" accept="image/*" capture="environment"
+          className="hidden" onChange={e => handleFile(e.target.files[0])} />
+      </div>
+      <p className="text-xs text-primary-600">{t('ocrHint')}</p>
+
+      {result && (
+        <div className="mt-3 space-y-3">
+          {/* Food name match */}
+          <div>
+            <p className="text-xs font-semibold text-gray-700 mb-1">{t('ocrMatchFood')}</p>
+            <input
+              value={foodName}
+              onChange={e => searchFood(e.target.value)}
+              placeholder={t('ocrFoodPlaceholder')}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+            {searchResults.length > 0 && (
+              <div className="border border-gray-200 rounded-lg overflow-hidden divide-y divide-gray-100 mt-1">
+                {searchResults.map(f => (
+                  <button key={f.id}
+                    onClick={() => { setMatchedFood(f); setFoodName(f.name); setSearchResults([]) }}
+                    className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 ${matchedFood?.id === f.id ? 'bg-primary-50 font-semibold' : ''}`}
+                  >
+                    {f.name}
+                    <span className="text-gray-400 ml-2">{Math.round(f.calories_per_100g)} kcal</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {matchedFood && (
+              <p className="text-xs text-green-700 mt-1">✓ {matchedFood.name}</p>
+            )}
+          </div>
+
+          {/* Editable nutrient table */}
+          <div>
+            <p className="text-xs font-semibold text-gray-700 mb-1">{t('ocrReviewValues')}</p>
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="text-left text-xs text-gray-500 font-semibold px-3 py-1.5">{t('labelNutrient')}</th>
+                    <th className="text-right text-xs text-gray-500 font-semibold px-3 py-1.5">{t('ocrDetected')}</th>
+                    <th className="text-right text-xs text-gray-500 font-semibold px-3 py-1.5">{t('ocrConfirm')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(NUTRIENT_LABEL_MAP).map(([col, { label, unit }]) => {
+                    const detected = result.per_100g[col]
+                    if (detected == null && edits[col] == null) return null
+                    return (
+                      <tr key={col} className="border-t border-gray-100">
+                        <td className="px-3 py-1.5 text-xs text-gray-700">{label}</td>
+                        <td className="px-3 py-1.5 text-xs text-right text-gray-400 tabular-nums">
+                          {detected != null ? `${detected} ${unit}` : '—'}
+                        </td>
+                        <td className="px-3 py-1.5 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <input
+                              type="number"
+                              value={edits[col] ?? detected ?? ''}
+                              onChange={e => setEdits(prev => ({ ...prev, [col]: e.target.value }))}
+                              className="w-16 text-xs text-right border border-gray-300 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary-400"
+                            />
+                            <span className="text-xs text-gray-400 w-6">{unit}</span>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Warnings */}
+          {result.warnings?.length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              <p className="text-xs font-semibold text-amber-800 mb-1">⚠ {t('ocrWarnings')}</p>
+              {result.warnings.map((w, i) => (
+                <p key={i} className="text-xs text-amber-700">• {w}</p>
+              ))}
+            </div>
+          )}
+
+          {/* OCR raw text (collapsible) */}
+          <button onClick={() => setShowOcr(o => !o)} className="text-xs text-gray-400 underline">
+            {showOcr ? t('ocrHideRaw') : t('ocrShowRaw')}
+          </button>
+          {showOcr && (
+            <pre className="text-[10px] text-gray-500 bg-gray-100 rounded p-2 overflow-x-auto whitespace-pre-wrap max-h-32">
+              {result.ocr_text}
+            </pre>
+          )}
+
+          <button
+            onClick={applyCorrection}
+            disabled={!matchedFood}
+            className="w-full bg-primary-600 text-white text-sm font-semibold py-2 rounded-xl active:bg-primary-700 disabled:opacity-40"
+          >
+            {t('ocrApply')}
+          </button>
         </div>
       )}
     </div>
@@ -357,6 +543,16 @@ export default function Nutrition() {
     },
   })
 
+  const applyLabelCorrection = useMutation({
+    mutationFn: ({ food_id, nutrients }) =>
+      api.patch(`/api/food/database/${food_id}`, { nutrients }),
+    onSuccess: () => {
+      qc.invalidateQueries(['food-log', date])
+      toast.success(t('ocrApplied'))
+    },
+    onError: () => toast.error(t('ocrApplyError')),
+  })
+
   async function doSearch(q) {
     setSearch(q)
     if (q.length < 2) { setSearchResults([]); return }
@@ -456,6 +652,14 @@ export default function Nutrition() {
 
         {/* Formula breakdown */}
         <FormulaCard formula={f} calories={tgt.calories_kcal} />
+
+        {/* Scan food label */}
+        <LabelScanner
+          t={t}
+          onApplyCorrection={({ food_id, food_name, nutrients }) =>
+            applyLabelCorrection.mutate({ food_id, nutrients })
+          }
+        />
 
         {/* Add food */}
         <div className="bg-white rounded-2xl border border-gray-100 p-4">

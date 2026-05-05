@@ -94,6 +94,58 @@ def add_food_log():
     return jsonify(dict(row)), 201
 
 
+@nutrition_bp.route('/api/food/database/<int:food_id>', methods=['PATCH'])
+@jwt_required()
+def patch_food_database(food_id):
+    """User-supplied label correction: update per-100g nutrient values + recalculate logs."""
+    data = request.get_json()
+    nutrients = data.get('nutrients', {})
+
+    ALLOWED = {
+        'calories_per_100g', 'protein_per_100g', 'carbs_per_100g', 'fat_per_100g',
+        'fiber_per_100g', 'sodium_per_100g', 'iron_per_100g', 'calcium_per_100g',
+        'vitamin_d_per_100g', 'vitamin_b12_per_100g', 'vitamin_c_per_100g',
+        'magnesium_per_100g', 'potassium_per_100g', 'zinc_per_100g',
+    }
+    safe = {k: float(v) for k, v in nutrients.items() if k in ALLOWED and v is not None}
+    if not safe:
+        raise ValidationError('No valid nutrient columns provided')
+
+    set_clauses = ', '.join(f'{col} = %s' for col in safe)
+    params = list(safe.values()) + [food_id]
+    execute_write(
+        f"UPDATE training.food_database SET {set_clauses}, source = 'user' WHERE id = %s",
+        tuple(params)
+    )
+
+    # Recalculate food_log entries referencing this food
+    log_rows = execute_query(
+        'SELECT id, amount_g FROM training.food_log WHERE food_id = %s', (food_id,)
+    )
+    updated = execute_query(
+        'SELECT * FROM training.food_database WHERE id = %s', (food_id,), fetch_one=True
+    )
+    recalc_count = 0
+    if updated and log_rows:
+        for lr in log_rows:
+            ratio = float(lr['amount_g']) / 100.0
+            execute_write(
+                '''UPDATE training.food_log
+                   SET calories = %s, protein_g = %s, carbs_g = %s,
+                       fat_g = %s, fiber_g = %s
+                   WHERE id = %s''',
+                (updated['calories_per_100g'] * ratio,
+                 updated['protein_per_100g'] * ratio,
+                 updated['carbs_per_100g'] * ratio,
+                 updated['fat_per_100g'] * ratio,
+                 (updated['fiber_per_100g'] or 0) * ratio,
+                 lr['id'])
+            )
+            recalc_count += 1
+
+    return jsonify({'message': 'Updated', 'logs_recalculated': recalc_count})
+
+
 @nutrition_bp.route('/api/food/log/<entry_id>', methods=['PUT'])
 @jwt_required()
 def update_food_log(entry_id):
