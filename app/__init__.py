@@ -71,6 +71,7 @@ def _register_blueprints(app):
     from app.api.credentials import credentials_bp
     from app.api.translations import translations_bp
     from app.api.ocr import ocr_bp
+    from app.api.admin import admin_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(goals_bp)
@@ -84,6 +85,7 @@ def _register_blueprints(app):
     app.register_blueprint(credentials_bp)
     app.register_blueprint(translations_bp)
     app.register_blueprint(ocr_bp)
+    app.register_blueprint(admin_bp)
 
 
 def _register_jwt_callbacks(app):

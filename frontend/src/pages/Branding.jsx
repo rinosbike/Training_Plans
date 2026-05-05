@@ -132,13 +132,14 @@ function IconSection({ intg, icon, isAdmin }) {
 
 export default function Branding() {
   const { user } = useAuth()
-  if (user && !['admin', 'super_admin'].includes(user.role)) return <Navigate to="/settings" replace />
-  const isAdmin = ['admin', 'super_admin'].includes(user?.role)
 
   const { data: icons = {} } = useQuery({
     queryKey: ['platform-icons'],
     queryFn: () => api.get('/api/admin/platform-icons').then(r => r.data),
   })
+
+  if (user && !['admin', 'super_admin'].includes(user.role)) return <Navigate to="/settings" replace />
+  const isAdmin = ['admin', 'super_admin'].includes(user?.role)
 
   return (
     <div className="min-h-screen bg-gray-50 pb-nav">

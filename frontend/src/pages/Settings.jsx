@@ -44,7 +44,10 @@ export default function Settings() {
             <p className="font-semibold text-white leading-tight truncate">{user?.name}</p>
             <p className="text-primary-200 text-xs truncate">{user?.email}</p>
           </div>
-          {user?.is_admin && (
+          {user?.role === 'super_admin' && (
+            <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-red-500 text-white font-semibold shrink-0">Super Admin</span>
+          )}
+          {user?.role === 'admin' && (
             <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-amber-400 text-amber-900 font-semibold shrink-0">Admin</span>
           )}
         </div>
@@ -88,12 +91,13 @@ export default function Settings() {
 
         {/* Quick actions — compact list */}
         <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-100">
-          <NavRow label={t('nav.newGoal')}      icon="🎯" onClick={() => navigate('/onboarding')} />
-          <NavRow label={t('nav.deviceSync')}   icon="📡" onClick={() => navigate('/sync')} />
-          <NavRow label={t('nav.branding')}     icon="ℹ️" onClick={() => navigate('/branding')} />
-          {user?.is_admin && <>
-            <NavRow label={t('nav.credentials')}  icon="🔑" onClick={() => navigate('/credentials')} badge="Admin" />
-            <NavRow label={t('nav.translations')} icon="🌐" onClick={() => navigate('/translations')} badge="Admin" />
+          <NavRow label={t('nav.newGoal')}    icon="🎯" onClick={() => navigate('/onboarding')} />
+          <NavRow label={t('nav.deviceSync')} icon="📡" onClick={() => navigate('/sync')} />
+          {['admin','super_admin'].includes(user?.role) && <>
+            <NavRow label={t('nav.branding')}     icon="ℹ️"  onClick={() => navigate('/branding')}     badge="Admin" />
+            <NavRow label={t('nav.credentials')}  icon="🔑"  onClick={() => navigate('/credentials')}  badge="Admin" />
+            <NavRow label={t('nav.translations')} icon="🌐"  onClick={() => navigate('/translations')} badge="Admin" />
+            <NavRow label={t('nav.userManagement')} icon="👥" onClick={() => navigate('/admin/users')} badge="Admin" />
           </>}
         </div>
 

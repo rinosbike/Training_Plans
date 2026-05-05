@@ -193,19 +193,21 @@ export default function AICoach() {
     queryFn: () => api.get('/api/goals').then(r => r.data),
   })
 
-  const { data: sessions = [], refetch: refetchSessions } = useQuery({
+  const { data: sessions = [], refetch: refetchSessions, isSuccess: sessionsLoaded } = useQuery({
     queryKey: ['ai-sessions'],
     queryFn: () => api.get('/api/ai-coach/sessions').then(r => r.data),
   })
 
-  // Load or create session on mount
+  const initialized = useRef(false)
+
+  // Load most recent session (or create one) — runs once when sessions query settles
   useEffect(() => {
-    if (goals.length === 0) return
+    if (!sessionsLoaded || initialized.current) return
+    initialized.current = true
 
     async function init() {
-      const existing = sessions[0]  // most recent, sorted by updated_at desc
-      if (existing) {
-        await loadSession(existing.id)
+      if (sessions.length > 0) {
+        await loadSession(sessions[0].id)
       } else {
         await createNewSession()
       }
@@ -216,7 +218,7 @@ export default function AICoach() {
       }
     }
     init()
-  }, [goals.length, sessions.length])
+  }, [sessionsLoaded])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })

@@ -219,7 +219,7 @@ export default function Credentials() {
   })
 
   // Non-admin users have no business here
-  if (user && !user.is_admin) return <Navigate to="/settings" replace />
+  if (user && !['admin','super_admin'].includes(user.role)) return <Navigate to="/settings" replace />
 
   return (
     <div className="min-h-screen bg-gray-50 pb-nav">
@@ -233,7 +233,7 @@ export default function Credentials() {
           <div className="text-center py-12 text-gray-400 text-sm">Loading...</div>
         )}
         {platforms?.map(p => (
-          <PlatformCard key={p.platform} platform={p} iconData={icons[p.platform]} isAdmin={!!user?.is_admin} />
+          <PlatformCard key={p.platform} platform={p} iconData={icons[p.platform]} isAdmin={['admin','super_admin'].includes(user?.role)} />
         ))}
 
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">

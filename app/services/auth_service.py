@@ -129,7 +129,7 @@ def upsert_user(email: str, name: str, avatar_url: str = '',
 
 def get_user_by_id(user_id: str) -> dict | None:
     row = execute_query(
-        'SELECT id, email, name, avatar_url, is_admin, created_at FROM training.users WHERE id = %s',
+        'SELECT id, email, name, avatar_url, is_admin, role, created_at FROM training.users WHERE id = %s',
         (user_id,), fetch_one=True
     )
     return dict(row) if row else None

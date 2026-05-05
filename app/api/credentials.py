@@ -5,6 +5,7 @@ Admin-level: admin users can manage app credentials and upload platform icons.
 import base64
 import logging
 from flask import Blueprint, request, jsonify
+from flask import abort
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.db import execute_query
 from app.services.credential_service import get_credential, set_credential, list_credentials, delete_credential
@@ -38,9 +39,9 @@ PLATFORMS = {
 @credentials_bp.route('/api/credentials/platforms')
 @jwt_required()
 def get_platforms():
-    """Return platform definitions + current saved key names.
-    Non-secret values (e.g. client_id) are returned in plain text.
-    Secret values are masked."""
+    """Return platform definitions + current saved key names (admin/super_admin only)."""
+    if not _is_admin(get_jwt_identity()):
+        abort(403)
     result = []
     for platform_id, meta in PLATFORMS.items():
         saved = list_credentials(platform_id)
@@ -69,6 +70,8 @@ def get_platforms():
 @credentials_bp.route('/api/credentials/<platform>', methods=['GET'])
 @jwt_required()
 def get_platform_creds(platform):
+    if not _is_admin(get_jwt_identity()):
+        abort(403)
     if platform not in PLATFORMS:
         return jsonify({'error': 'Unknown platform'}), 404
     rows = list_credentials(platform)
@@ -82,6 +85,8 @@ def get_platform_creds(platform):
 @credentials_bp.route('/api/credentials/<platform>', methods=['PUT'])
 @jwt_required()
 def upsert_platform_creds(platform):
+    if not _is_admin(get_jwt_identity()):
+        abort(403)
     if platform not in PLATFORMS:
         return jsonify({'error': 'Unknown platform'}), 404
     body = request.get_json() or {}
@@ -103,6 +108,8 @@ def upsert_platform_creds(platform):
 @credentials_bp.route('/api/credentials/<platform>/<key_name>', methods=['DELETE'])
 @jwt_required()
 def delete_platform_cred(platform, key_name):
+    if not _is_admin(get_jwt_identity()):
+        abort(403)
     if platform not in PLATFORMS:
         return jsonify({'error': 'Unknown platform'}), 404
     deleted = delete_credential(platform, key_name)
@@ -111,9 +118,9 @@ def delete_platform_cred(platform, key_name):
 
 def _is_admin(user_id: str) -> bool:
     row = execute_query(
-        'SELECT is_admin FROM training.users WHERE id = %s', (user_id,), fetch_one=True
+        "SELECT role FROM training.users WHERE id = %s", (user_id,), fetch_one=True
     )
-    return bool(row and row.get('is_admin'))
+    return bool(row and row['role'] in ('admin', 'super_admin'))
 
 
 @credentials_bp.route('/api/admin/platform-icons', methods=['GET'])
