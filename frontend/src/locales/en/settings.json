@@ -25,6 +25,7 @@
     "branding": "Branding & App Info",
     "credentials": "API Credentials",
     "translations": "Translations",
+    "userManagement": "User Management",
     "language": "Language"
   }
 }

@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { Navigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
@@ -131,7 +132,8 @@ function IconSection({ intg, icon, isAdmin }) {
 
 export default function Branding() {
   const { user } = useAuth()
-  const isAdmin = !!user?.is_admin
+  if (user && !['admin', 'super_admin'].includes(user.role)) return <Navigate to="/settings" replace />
+  const isAdmin = ['admin', 'super_admin'].includes(user?.role)
 
   const { data: icons = {} } = useQuery({
     queryKey: ['platform-icons'],
