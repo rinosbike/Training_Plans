@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../services/api'
@@ -143,6 +143,181 @@ function FormulaCard({ formula, calories }) {
 
 const MEALS = ['breakfast','lunch','dinner','snack','pre_workout','post_workout']
 
+const MEAL_COLORS = {
+  breakfast: 'bg-amber-100 text-amber-700',
+  lunch: 'bg-green-100 text-green-700',
+  dinner: 'bg-blue-100 text-blue-700',
+  snack: 'bg-purple-100 text-purple-700',
+  pre_workout: 'bg-orange-100 text-orange-700',
+  post_workout: 'bg-teal-100 text-teal-700',
+}
+
+function fmt(val, dec = 1) {
+  if (val == null || val === 0) return '0'
+  const n = Number(val)
+  return n < 10 ? n.toFixed(dec) : Math.round(n).toString()
+}
+
+function LabelRow({ label, per100, forAmount, unit, highlight = false }) {
+  return (
+    <tr className={`border-t border-gray-100 ${highlight ? 'font-semibold' : ''}`}>
+      <td className={`py-1.5 pr-3 text-xs text-gray-700 ${highlight ? 'font-semibold' : ''}`}>{label}</td>
+      <td className="py-1.5 pr-3 text-xs text-gray-500 text-right tabular-nums">{fmt(per100)} {unit}</td>
+      <td className={`py-1.5 text-xs text-right tabular-nums ${highlight ? 'text-gray-900 font-bold' : 'text-gray-700'}`}>{fmt(forAmount)} {unit}</td>
+    </tr>
+  )
+}
+
+function FoodEntry({ entry, onDelete, onUpdate, t }) {
+  const [open, setOpen] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editVal, setEditVal] = useState(String(entry.amount_g))
+  const inputRef = useRef(null)
+
+  const amount = Number(entry.amount_g) || 100
+  const factor = amount / 100
+
+  // Per-100g reference values from the joined food_database columns
+  const cal100  = Number(entry.calories_per_100g  || (entry.calories  / factor))
+  const prot100 = Number(entry.protein_per_100g   || (entry.protein_g / factor))
+  const carb100 = Number(entry.carbs_per_100g     || (entry.carbs_g   / factor))
+  const fat100  = Number(entry.fat_per_100g       || (entry.fat_g     / factor))
+  const fib100  = Number(entry.fiber_per_100g     || 0)
+  const sod100  = Number(entry.sodium_per_100g    || 0)
+  const fe100   = Number(entry.iron_per_100g      || 0)
+  const ca100   = Number(entry.calcium_per_100g   || 0)
+
+  const hasLabel = entry.calories_per_100g != null
+
+  function startEdit(e) {
+    e.stopPropagation()
+    setEditing(true)
+    setEditVal(String(amount))
+    setTimeout(() => inputRef.current?.select(), 50)
+  }
+
+  function saveEdit() {
+    const v = parseFloat(editVal)
+    if (!v || v === amount) { setEditing(false); return }
+    onUpdate(entry.id, v)
+    setEditing(false)
+  }
+
+  return (
+    <div className="border border-gray-100 rounded-xl overflow-hidden">
+      {/* Collapsed header — always visible */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full text-left px-3 py-2.5 flex items-start gap-2 hover:bg-gray-50 active:bg-gray-100"
+      >
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-semibold text-gray-900 truncate">{entry.food_name}</span>
+            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${MEAL_COLORS[entry.meal_type] || 'bg-gray-100 text-gray-600'}`}>
+              {entry.meal_type.replace('_', ' ')}
+            </span>
+          </div>
+          <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+            <span className="text-xs text-gray-500">{amount}g</span>
+            <span className="text-xs font-semibold text-gray-800">{Math.round(entry.calories || 0)} kcal</span>
+            <span className="text-xs text-orange-600">P {fmt(entry.protein_g)}g</span>
+            <span className="text-xs text-blue-600">C {fmt(entry.carbs_g)}g</span>
+            <span className="text-xs text-yellow-600">F {fmt(entry.fat_g)}g</span>
+            {entry.fiber_g > 0 && <span className="text-xs text-green-600">Fib {fmt(entry.fiber_g)}g</span>}
+          </div>
+        </div>
+        <div className="flex items-center gap-1 mt-0.5 shrink-0">
+          <span className="text-gray-300 text-sm">{open ? '▲' : '▼'}</span>
+          <button
+            onClick={e => { e.stopPropagation(); onDelete(entry.id) }}
+            className="text-red-400 text-lg px-1 leading-none"
+            aria-label="delete"
+          >×</button>
+        </div>
+      </button>
+
+      {/* Expanded — food label table */}
+      {open && (
+        <div className="px-3 pb-3 bg-gray-50 border-t border-gray-100">
+          <table className="w-full mt-2">
+            <thead>
+              <tr className="border-b-2 border-gray-300">
+                <th className="text-left text-xs text-gray-500 font-semibold pb-1.5">{t('labelNutrient')}</th>
+                <th className="text-right text-xs text-gray-500 font-semibold pb-1.5 pr-3">{t('labelPer100g')}</th>
+                <th className="text-right text-xs text-gray-900 font-semibold pb-1.5">
+                  {editing ? (
+                    <span className="flex items-center justify-end gap-1">
+                      <input
+                        ref={inputRef}
+                        type="number"
+                        value={editVal}
+                        onChange={e => setEditVal(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditing(false) }}
+                        className="w-16 border border-primary-400 rounded px-1 py-0.5 text-xs text-center focus:outline-none focus:ring-1 focus:ring-primary-500"
+                      />
+                      <span className="text-gray-500">g</span>
+                      <button onClick={saveEdit} className="text-primary-600 font-bold text-xs">✓</button>
+                    </span>
+                  ) : (
+                    <button onClick={startEdit} className="flex items-center justify-end gap-1 hover:text-primary-600">
+                      {t('labelForAmount', { g: amount })}
+                      <span className="text-gray-400 text-[10px]">✏</span>
+                    </button>
+                  )}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <LabelRow label={t('labelEnergy')}   per100={cal100}  forAmount={cal100 * factor}  unit="kcal" highlight />
+              <LabelRow label={t('labelProtein')}  per100={prot100} forAmount={prot100 * factor}  unit="g" />
+              <LabelRow label={t('labelCarbs')}    per100={carb100} forAmount={carb100 * factor}  unit="g" />
+              <LabelRow label={t('labelFat')}      per100={fat100}  forAmount={fat100 * factor}   unit="g" />
+              {(fib100 > 0 || entry.fiber_g > 0) && (
+                <LabelRow label={t('labelFiber')} per100={fib100} forAmount={fib100 * factor}  unit="g" />
+              )}
+              {sod100 > 0 && (
+                <LabelRow label={t('labelSodium')} per100={sod100} forAmount={sod100 * factor} unit="mg" />
+              )}
+              {fe100 > 0 && (
+                <LabelRow label={t('labelIron')} per100={fe100} forAmount={fe100 * factor} unit="mg" />
+              )}
+              {ca100 > 0 && (
+                <LabelRow label={t('labelCalcium')} per100={ca100} forAmount={ca100 * factor} unit="mg" />
+              )}
+            </tbody>
+          </table>
+          {!hasLabel && (
+            <p className="text-xs text-gray-400 mt-2 italic">{t('labelEstimated')}</p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SearchResult({ food, onSelect }) {
+  const amount = Number(food.calories_per_100g)
+  return (
+    <button
+      onClick={() => onSelect(food)}
+      className="w-full text-left px-3 py-2.5 hover:bg-gray-50 active:bg-gray-100"
+    >
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-sm font-medium text-gray-900 truncate">{food.name}</span>
+        <span className="text-xs font-semibold text-gray-700 shrink-0">{Math.round(food.calories_per_100g)} kcal</span>
+      </div>
+      <div className="flex items-center gap-2.5 mt-0.5 text-xs">
+        <span className="text-gray-400 text-[10px] uppercase tracking-wide">per 100g</span>
+        <span className="text-orange-600">P {fmt(food.protein_per_100g)}g</span>
+        <span className="text-blue-600">C {fmt(food.carbs_per_100g)}g</span>
+        <span className="text-yellow-600">F {fmt(food.fat_per_100g)}g</span>
+        {food.fiber_per_100g > 0 && <span className="text-green-600">Fib {fmt(food.fiber_per_100g)}g</span>}
+        {food.sodium_per_100g > 0 && <span className="text-gray-500">Na {Math.round(food.sodium_per_100g)}mg</span>}
+      </div>
+    </button>
+  )
+}
+
 export default function Nutrition() {
   const { t } = useTranslation('nutrition')
   const [date, setDate] = useState(localDateStr(new Date()))
@@ -173,6 +348,13 @@ export default function Nutrition() {
   const deleteFood = useMutation({
     mutationFn: (id) => api.delete(`/api/food/log/${id}`),
     onSuccess: () => qc.invalidateQueries(['food-log', date]),
+  })
+  const updateFood = useMutation({
+    mutationFn: ({ id, amount_g }) => api.put(`/api/food/log/${id}`, { amount_g }),
+    onSuccess: () => {
+      qc.invalidateQueries(['food-log', date])
+      toast.success(t('amountUpdated'))
+    },
   })
 
   async function doSearch(q) {
@@ -291,11 +473,7 @@ export default function Nutrition() {
           {searchResults.length > 0 && (
             <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 mb-3">
               {searchResults.map(f => (
-                <button key={f.id} onClick={() => { setSelected(f); setSearchResults([]); setSearch(f.name) }}
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 active:bg-gray-100">
-                  <span className="font-medium">{f.name}</span>
-                  <span className="text-gray-400 ml-2 text-xs">{f.calories_per_100g} kcal · {f.protein_per_100g}g P / {f.carbs_per_100g}g C / {f.fat_per_100g}g F per 100g</span>
-                </button>
+                <SearchResult key={f.id} food={f} onSelect={food => { setSelected(food); setSearchResults([]); setSearch(food.name) }} />
               ))}
             </div>
           )}
@@ -317,17 +495,29 @@ export default function Nutrition() {
         {/* Food log */}
         {entries.length > 0 && (
           <div className="bg-white rounded-2xl border border-gray-100 p-4">
-            <h2 className="font-semibold text-gray-900 mb-3">{t('todayLog')}</h2>
+            <div className="flex items-baseline justify-between mb-3">
+              <h2 className="font-semibold text-gray-900">{t('todayLog')}</h2>
+              <span className="text-xs text-gray-400">{t('tapToExpand')}</span>
+            </div>
             <div className="space-y-2">
               {entries.map(e => (
-                <div key={e.id} className="flex items-center gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{e.food_name}</p>
-                    <p className="text-xs text-gray-500">{e.amount_g}g · {Math.round(e.calories||0)} kcal · {e.protein_g?.toFixed(1)}g P · {e.meal_type.replace('_',' ')}</p>
-                  </div>
-                  <button onClick={() => deleteFood.mutate(e.id)} className="text-red-400 text-lg p-1">×</button>
-                </div>
+                <FoodEntry
+                  key={e.id}
+                  entry={e}
+                  t={t}
+                  onDelete={id => deleteFood.mutate(id)}
+                  onUpdate={(id, amount_g) => updateFood.mutate({ id, amount_g })}
+                />
               ))}
+            </div>
+            <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+              <span className="text-xs text-gray-500 font-medium">{t('totalDay')}</span>
+              <div className="flex gap-3 text-xs">
+                <span className="font-semibold text-gray-900">{Math.round(totals.calories || 0)} kcal</span>
+                <span className="text-orange-600">P {fmt(totals.protein_g)}g</span>
+                <span className="text-blue-600">C {fmt(totals.carbs_g)}g</span>
+                <span className="text-yellow-600">F {fmt(totals.fat_g)}g</span>
+              </div>
             </div>
           </div>
         )}

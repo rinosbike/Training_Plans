@@ -15,8 +15,12 @@ def food_search():
     if len(q) < 2:
         return jsonify([])
     rows = execute_query(
-        '''SELECT id, name, category, calories_per_100g, protein_per_100g,
-                  carbs_per_100g, fat_per_100g
+        '''SELECT id, name, category,
+                  calories_per_100g, protein_per_100g, carbs_per_100g,
+                  fat_per_100g, fiber_per_100g, sodium_per_100g,
+                  iron_per_100g, calcium_per_100g, vitamin_d_per_100g,
+                  vitamin_b12_per_100g, vitamin_c_per_100g, magnesium_per_100g,
+                  potassium_per_100g, zinc_per_100g
            FROM training.food_database
            WHERE name ILIKE %s OR name_de ILIKE %s OR name_pl ILIKE %s
            ORDER BY name LIMIT 20''',
@@ -88,6 +92,40 @@ def add_food_log():
         returning=True
     )
     return jsonify(dict(row)), 201
+
+
+@nutrition_bp.route('/api/food/log/<entry_id>', methods=['PUT'])
+@jwt_required()
+def update_food_log(entry_id):
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    new_amount = data.get('amount_g')
+    if not new_amount or float(new_amount) <= 0:
+        raise ValidationError('amount_g must be positive')
+
+    entry = execute_query(
+        'SELECT * FROM training.food_log WHERE id = %s AND user_id = %s',
+        (entry_id, user_id), fetch_one=True
+    )
+    if not entry:
+        raise NotFoundError('Entry not found')
+
+    old_amount = float(entry['amount_g']) if entry['amount_g'] else 100.0
+    factor = float(new_amount) / old_amount
+
+    # Scale all stored nutrients proportionally
+    execute_write(
+        '''UPDATE training.food_log
+           SET amount_g   = %s,
+               calories   = COALESCE(calories,0)   * %s,
+               protein_g  = COALESCE(protein_g,0)  * %s,
+               carbs_g    = COALESCE(carbs_g,0)    * %s,
+               fat_g      = COALESCE(fat_g,0)      * %s,
+               fiber_g    = COALESCE(fiber_g,0)    * %s
+           WHERE id = %s AND user_id = %s''',
+        (new_amount, factor, factor, factor, factor, factor, entry_id, user_id)
+    )
+    return jsonify({'message': 'Updated'})
 
 
 @nutrition_bp.route('/api/food/log/<entry_id>', methods=['DELETE'])
