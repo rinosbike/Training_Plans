@@ -339,23 +339,24 @@ def _log_food_items(user_id: str, food_items: list, log_date: str) -> list:
         food = _fuzzy_match_food(name)
         if food:
             factor = amount_g / 100.0
+            cal   = float(food['calories_per_100g'] or 0) * factor
+            prot  = float(food['protein_per_100g']  or 0) * factor
+            carb  = float(food['carbs_per_100g']    or 0) * factor
+            fat   = float(food['fat_per_100g']      or 0) * factor
+            fiber = float(food['fiber_per_100g']    or 0) * factor
             execute_write(
                 '''INSERT INTO training.food_log
                      (user_id, log_date, meal_type, food_id, food_name, amount_g,
                       calories, protein_g, carbs_g, fat_g, fiber_g)
                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
                 (user_id, log_date, meal_type, food['id'], food['name'], amount_g,
-                 food['calories_per_100g'] * factor,
-                 food['protein_per_100g'] * factor,
-                 food['carbs_per_100g'] * factor,
-                 food['fat_per_100g'] * factor,
-                 (food['fiber_per_100g'] or 0) * factor)
+                 cal, prot, carb, fat, fiber)
             )
             logged.append({
                 'name': food['name'],
                 'amount_g': amount_g,
                 'meal_type': meal_type,
-                'calories': round(food['calories_per_100g'] * factor),
+                'calories': round(cal),
             })
         else:
             # Log with zero macros but record the name (user can edit later)

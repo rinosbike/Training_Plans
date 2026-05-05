@@ -246,18 +246,27 @@ def calc_nutrients_from_log(food_entries: list) -> dict:
     }
     for entry in food_entries:
         ratio = float(entry.get('amount_g', 0)) / 100.0
-        totals['calories']       += float(entry.get('calories_per_100g')   or 0) * ratio
-        totals['protein_g']      += float(entry.get('protein_per_100g')    or 0) * ratio
-        totals['carbs_g']        += float(entry.get('carbs_per_100g')      or 0) * ratio
-        totals['fat_g']          += float(entry.get('fat_per_100g')        or 0) * ratio
-        totals['fiber_g']        += float(entry.get('fiber_per_100g')      or 0) * ratio
-        totals['iron_mg']        += float(entry.get('iron_per_100g')       or 0) * ratio
-        totals['calcium_mg']     += float(entry.get('calcium_per_100g')    or 0) * ratio
-        totals['vitamin_d_mcg']  += float(entry.get('vitamin_d_per_100g') or 0) * ratio
+        # Macros: prefer pre-stored values (computed at log time); fall back to per_100g * ratio
+        # This handles entries with NULL food_id (no JOIN data) correctly.
+        def _stored(col, per100_col):
+            stored = entry.get(col)
+            if stored is not None:
+                return float(stored)
+            return float(entry.get(per100_col) or 0) * ratio
+
+        totals['calories']  += _stored('calories',  'calories_per_100g')
+        totals['protein_g'] += _stored('protein_g', 'protein_per_100g')
+        totals['carbs_g']   += _stored('carbs_g',   'carbs_per_100g')
+        totals['fat_g']     += _stored('fat_g',     'fat_per_100g')
+        totals['fiber_g']   += _stored('fiber_g',   'fiber_per_100g')
+        # Micronutrients are not stored in food_log columns — always recompute from JOIN data
+        totals['iron_mg']        += float(entry.get('iron_per_100g')         or 0) * ratio
+        totals['calcium_mg']     += float(entry.get('calcium_per_100g')      or 0) * ratio
+        totals['vitamin_d_mcg']  += float(entry.get('vitamin_d_per_100g')   or 0) * ratio
         totals['vitamin_b12_mcg']+= float(entry.get('vitamin_b12_per_100g') or 0) * ratio
-        totals['vitamin_c_mg']   += float(entry.get('vitamin_c_per_100g') or 0) * ratio
-        totals['magnesium_mg']   += float(entry.get('magnesium_per_100g') or 0) * ratio
-        totals['potassium_mg']   += float(entry.get('potassium_per_100g') or 0) * ratio
-        totals['zinc_mg']        += float(entry.get('zinc_per_100g')       or 0) * ratio
-        totals['sodium_mg']      += float(entry.get('sodium_per_100g')     or 0) * ratio
+        totals['vitamin_c_mg']   += float(entry.get('vitamin_c_per_100g')   or 0) * ratio
+        totals['magnesium_mg']   += float(entry.get('magnesium_per_100g')   or 0) * ratio
+        totals['potassium_mg']   += float(entry.get('potassium_per_100g')   or 0) * ratio
+        totals['zinc_mg']        += float(entry.get('zinc_per_100g')         or 0) * ratio
+        totals['sodium_mg']      += float(entry.get('sodium_per_100g')       or 0) * ratio
     return {k: round(v, 2) for k, v in totals.items()}

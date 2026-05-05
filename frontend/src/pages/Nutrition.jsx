@@ -176,9 +176,7 @@ function LabelScanner({ onApplyCorrection, t }) {
     try {
       const fd = new FormData()
       fd.append('image', file)
-      const { data } = await api.post('/api/ocr/food-label', fd, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
+      const { data } = await api.post('/api/ocr/food-label', fd)
       setResult(data)
       setFoodName(data.food_name_guess || '')
       // Pre-fill edits with detected values
