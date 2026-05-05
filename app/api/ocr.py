@@ -1,7 +1,6 @@
 """
-OCR endpoint: accepts a food label image, extracts text via tesseract,
-then uses Claude to parse out the per-100g nutritional values.
-Returns a structured preview the frontend shows for human confirmation.
+OCR endpoint: accepts a food label image, sends it directly to Claude vision
+to extract per-100g nutritional values. No tesseract dependency.
 """
 import io
 import re
@@ -17,7 +16,8 @@ ocr_bp = Blueprint('ocr', __name__)
 log = logging.getLogger(__name__)
 
 MAX_IMAGE_BYTES = 8 * 1024 * 1024   # 8 MB
-ALLOWED_MIMES = {'image/jpeg', 'image/png', 'image/webp', 'image/gif'}
+MAX_SEND_BYTES  = 3 * 1024 * 1024   # resize if over 3 MB before sending
+ALLOWED_MIMES   = {'image/jpeg', 'image/png', 'image/webp', 'image/gif'}
 
 NUTRIENT_COLS = {
     'calories_per_100g', 'protein_per_100g', 'carbs_per_100g', 'fat_per_100g',
@@ -26,75 +26,77 @@ NUTRIENT_COLS = {
     'magnesium_per_100g', 'potassium_per_100g', 'zinc_per_100g',
 }
 
-PARSE_PROMPT = """You are reading OCR text extracted from a food nutrition label.
-Extract the per-100g (or per 100ml) values for each nutrient listed below.
-If the label shows "per serving" only and not per 100g, convert using the serving size if stated.
-If a value is not present on the label, omit it.
+VISION_PROMPT = """You are reading a food product nutrition label from the photo provided.
 
-Return ONLY valid JSON — no other text:
-{{
-  "food_name_guess": "best guess at the food name from the label text",
-  "per_100g": {{
-    "calories_per_100g": 64,
-    "protein_per_100g": 3.2,
-    "carbs_per_100g": 4.8,
-    "fat_per_100g": 3.5,
-    "fiber_per_100g": 0,
-    "sodium_per_100g": 40,
-    "iron_per_100g": 0.03,
-    "calcium_per_100g": 120,
-    "vitamin_d_per_100g": 1.2,
-    "vitamin_b12_per_100g": 0.4,
-    "vitamin_c_per_100g": 1,
-    "magnesium_per_100g": 11,
-    "potassium_per_100g": 150,
-    "zinc_per_100g": 0.4
-  }},
-  "warnings": ["any notes about ambiguous values or conversions made"]
-}}
+Extract the nutritional values **per 100g** (or per 100ml for liquids).
+- If the label only shows per-serving values, convert using the serving size stated.
+- If a nutrient is not visible on the label, omit it from the JSON.
+- For the food name, use the product name printed on the packaging.
 
-OCR text from label:
-{ocr_text}"""
+Return ONLY valid JSON — no markdown fences, no other text:
+{
+  "food_name_guess": "product name from the label",
+  "per_100g": {
+    "calories_per_100g": 150,
+    "protein_per_100g": 8.5,
+    "carbs_per_100g": 20.0,
+    "fat_per_100g": 4.2,
+    "fiber_per_100g": 1.8,
+    "sodium_per_100g": 0.35,
+    "iron_per_100g": 1.2,
+    "calcium_per_100g": 180,
+    "vitamin_d_per_100g": 0.5,
+    "vitamin_b12_per_100g": 0.3,
+    "vitamin_c_per_100g": 2.0,
+    "magnesium_per_100g": 22,
+    "potassium_per_100g": 280,
+    "zinc_per_100g": 0.8
+  },
+  "warnings": ["any notes about ambiguous values or conversions"]
+}"""
 
 
-def _run_ocr(image_bytes: bytes, mime: str) -> str:
-    """Extract text from image bytes using pytesseract (primary) with fitz fallback for PDFs."""
+def _prepare_image(image_bytes: bytes, mime: str) -> tuple[bytes, str]:
+    """Resize image to under MAX_SEND_BYTES to stay within Claude's limits."""
+    if len(image_bytes) <= MAX_SEND_BYTES:
+        return image_bytes, mime
     try:
-        import pytesseract
-        from PIL import Image, ImageFilter, ImageOps
+        from PIL import Image
         img = Image.open(io.BytesIO(image_bytes))
-        # Upscale small images for better OCR accuracy
+        # Downscale iteratively until under limit
         w, h = img.size
-        if max(w, h) < 1200:
-            scale = 1200 / max(w, h)
-            img = img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
-        # Convert to greyscale + enhance contrast
-        img = ImageOps.autocontrast(img.convert('L'))
-        text = pytesseract.image_to_string(img, config='--psm 6')
-        return text.strip()
+        scale = (MAX_SEND_BYTES / len(image_bytes)) ** 0.5
+        new_w, new_h = max(400, int(w * scale)), max(400, int(h * scale))
+        img = img.resize((new_w, new_h), Image.LANCZOS)
+        buf = io.BytesIO()
+        img.convert('RGB').save(buf, format='JPEG', quality=82)
+        return buf.getvalue(), 'image/jpeg'
     except Exception as e:
-        log.warning('OCR failed: %s', e)
-        return ''
+        log.warning('Image resize failed: %s — sending original', e)
+        return image_bytes, mime
 
 
-def _parse_with_claude(ocr_text: str) -> dict:
-    """Use Claude to structure the raw OCR text into per-100g nutrient values."""
-    if not ocr_text:
-        return {}
-    prompt = PARSE_PROMPT.format(ocr_text=ocr_text[:3000])
-    try:
-        content, _ = svc.chat_complete(
-            [{'role': 'user', 'content': prompt}],
-            max_tokens=600,
-        )
-        content = content.strip()
-        if content.startswith('```'):
-            content = re.sub(r'^```[a-z]*\n?', '', content)
-            content = re.sub(r'\n?```$', '', content)
-        return json.loads(content)
-    except Exception as e:
-        log.warning('Claude parse failed: %s', e)
-        return {}
+def _read_label_with_vision(image_bytes: bytes, mime: str) -> dict:
+    """Send image to Claude vision and extract structured nutrition data."""
+    image_bytes, mime = _prepare_image(image_bytes, mime)
+    b64 = base64.b64encode(image_bytes).decode()
+    data_url = f"data:{mime};base64,{b64}"
+
+    messages = [{
+        'role': 'user',
+        'content': [
+            {'type': 'image_url', 'image_url': {'url': data_url}},
+            {'type': 'text', 'text': VISION_PROMPT},
+        ],
+    }]
+
+    content, _ = svc.chat_complete(messages, max_tokens=700)
+    content = content.strip()
+    # Strip markdown fences if present
+    if content.startswith('```'):
+        content = re.sub(r'^```[a-z]*\n?', '', content)
+        content = re.sub(r'\n?```$', '', content)
+    return json.loads(content)
 
 
 @ocr_bp.route('/api/ocr/food-label', methods=['POST'])
@@ -102,26 +104,27 @@ def _parse_with_claude(ocr_text: str) -> dict:
 def scan_food_label():
     """
     Accept multipart/form-data with field 'image'.
-    Returns structured per-100g values + raw OCR text for user review.
+    Returns structured per-100g values parsed directly by Claude vision.
     """
     if 'image' not in request.files:
         raise ValidationError('image file required')
 
     f = request.files['image']
-    if f.content_type not in ALLOWED_MIMES:
-        raise ValidationError(f'Unsupported image type: {f.content_type}')
+    mime = f.content_type or 'image/jpeg'
+    if mime not in ALLOWED_MIMES:
+        raise ValidationError(f'Unsupported image type: {mime}')
 
     image_bytes = f.read()
     if len(image_bytes) > MAX_IMAGE_BYTES:
         raise ValidationError('Image too large (max 8 MB)')
 
-    ocr_text = _run_ocr(image_bytes, f.content_type)
-    if not ocr_text:
-        return jsonify({'error': 'Could not extract text from image', 'ocr_text': ''}), 422
+    try:
+        parsed = _read_label_with_vision(image_bytes, mime)
+    except Exception as e:
+        log.error('Vision label read failed: %s', e)
+        return jsonify({'error': 'Could not read the label — try a clearer, well-lit photo'}), 422
 
-    parsed = _parse_with_claude(ocr_text)
-
-    # Sanitize: only return whitelisted nutrient keys
+    # Sanitize: only return whitelisted nutrient keys with float values
     per_100g = {
         k: float(v) for k, v in (parsed.get('per_100g') or {}).items()
         if k in NUTRIENT_COLS and v is not None
@@ -131,5 +134,4 @@ def scan_food_label():
         'food_name_guess': parsed.get('food_name_guess', ''),
         'per_100g': per_100g,
         'warnings': parsed.get('warnings', []),
-        'ocr_text': ocr_text,          # shown to user so they can spot OCR errors
     })
