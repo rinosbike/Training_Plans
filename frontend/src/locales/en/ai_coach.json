@@ -3,7 +3,17 @@
   "subtitle": "Powered by Claude Sonnet",
   "placeholder": "Ask your coach anything...",
   "empty": "Your AI Training Coach",
-  "emptyDesc": "Ask me to adjust your plan, explain workouts, or give nutrition advice.",
+  "emptyDesc": "Ask me to adjust your plan, log food, or give nutrition advice.",
   "connectionError": "Connection error. Please try again.",
-  "dayPrompt": "I need help with my {{dayType}} session on {{date}}. Can you help me adjust or explain it?"
+  "applyError": "Could not apply change. Please try again.",
+  "dayPrompt": "I need help with my {{dayType}} session on {{date}}. Can you help me adjust or explain it?",
+  "foodLogged": "Logged to diary",
+  "proposedChange": "Proposed plan change",
+  "apply": "Apply",
+  "dismiss": "Dismiss",
+  "applied": "Applied",
+  "history": "Chat History",
+  "newChat": "New Chat",
+  "noSessions": "No previous conversations",
+  "untitledSession": "Conversation"
 }

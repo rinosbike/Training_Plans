@@ -3,7 +3,17 @@
   "subtitle": "Twój osobisty doradca treningowy",
   "placeholder": "Zapytaj swojego trenera…",
   "empty": "Cześć! Jestem twoim trenerem AI.",
-  "emptyDesc": "Zapytaj mnie o trening, żywienie lub regenerację.",
+  "emptyDesc": "Zapytaj mnie o trening, żywienie lub regenerację — mogę też rejestrować posiłki i dostosowywać plan.",
   "connectionError": "Błąd połączenia. Spróbuj ponownie.",
-  "dayPrompt": "Wyjaśnij mi dzisiejszy trening i jak mogę go dostosować."
+  "applyError": "Nie można zastosować zmiany. Spróbuj ponownie.",
+  "dayPrompt": "Wyjaśnij mi dzisiejszy trening i jak mogę go dostosować.",
+  "foodLogged": "Zapisano w dzienniku",
+  "proposedChange": "Proponowana zmiana planu",
+  "apply": "Zastosuj",
+  "dismiss": "Odrzuć",
+  "applied": "Zastosowano",
+  "history": "Historia czatów",
+  "newChat": "Nowy czat",
+  "noSessions": "Brak wcześniejszych rozmów",
+  "untitledSession": "Rozmowa"
 }

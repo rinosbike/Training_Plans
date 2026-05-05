@@ -3,7 +3,17 @@
   "subtitle": "您的私人训练顾问",
   "placeholder": "向您的教练提问…",
   "empty": "你好！我是您的AI训练教练。",
-  "emptyDesc": "向我询问关于训练、饮食或恢复的问题。",
+  "emptyDesc": "您可以询问训练、饮食或恢复建议——我还可以记录饮食并调整训练计划。",
   "connectionError": "连接错误，请重试。",
-  "dayPrompt": "请解释今天的训练内容以及如何调整。"
+  "applyError": "无法应用更改，请重试。",
+  "dayPrompt": "请解释今天的训练内容以及如何调整。",
+  "foodLogged": "已记录到饮食日记",
+  "proposedChange": "建议的计划变更",
+  "apply": "应用",
+  "dismiss": "忽略",
+  "applied": "已应用",
+  "history": "聊天记录",
+  "newChat": "新对话",
+  "noSessions": "暂无历史对话",
+  "untitledSession": "对话"
 }

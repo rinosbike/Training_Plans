@@ -3,7 +3,17 @@
   "subtitle": "Tu asesor personal de entrenamiento",
   "placeholder": "Pregunta a tu coach…",
   "empty": "¡Hola! Soy tu coach de entrenamiento con IA.",
-  "emptyDesc": "Pregúntame sobre tu entrenamiento, nutrición o recuperación.",
+  "emptyDesc": "Pregúntame sobre entrenamiento, nutrición o recuperación — también puedo registrar comidas y ajustar tu plan.",
   "connectionError": "Error de conexión. Por favor, inténtalo de nuevo.",
-  "dayPrompt": "Explícame el entrenamiento de hoy y cómo puedo adaptarlo."
+  "applyError": "No se pudo aplicar el cambio. Inténtalo de nuevo.",
+  "dayPrompt": "Explícame el entrenamiento de hoy y cómo puedo adaptarlo.",
+  "foodLogged": "Registrado en el diario",
+  "proposedChange": "Cambio de plan propuesto",
+  "apply": "Aplicar",
+  "dismiss": "Rechazar",
+  "applied": "Aplicado",
+  "history": "Historial de chats",
+  "newChat": "Nuevo chat",
+  "noSessions": "Sin conversaciones anteriores",
+  "untitledSession": "Conversación"
 }

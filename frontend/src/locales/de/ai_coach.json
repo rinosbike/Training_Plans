@@ -3,7 +3,17 @@
   "subtitle": "Dein persönlicher Trainingsberater",
   "placeholder": "Frage deinen Coach…",
   "empty": "Hallo! Ich bin dein KI-Trainingscoach.",
-  "emptyDesc": "Frag mich etwas zu deinem Training, deiner Ernährung oder Erholung.",
+  "emptyDesc": "Frag mich zu Training, Ernährung oder Erholung — ich kann auch Mahlzeiten erfassen und deinen Plan anpassen.",
   "connectionError": "Verbindungsfehler. Bitte versuche es erneut.",
-  "dayPrompt": "Erkläre mir das Training für heute und wie ich es anpassen kann."
+  "applyError": "Änderung konnte nicht angewendet werden. Bitte versuche es erneut.",
+  "dayPrompt": "Erkläre mir das Training für heute und wie ich es anpassen kann.",
+  "foodLogged": "Im Ernährungstagebuch erfasst",
+  "proposedChange": "Vorgeschlagene Planänderung",
+  "apply": "Übernehmen",
+  "dismiss": "Ablehnen",
+  "applied": "Übernommen",
+  "history": "Chat-Verlauf",
+  "newChat": "Neuer Chat",
+  "noSessions": "Keine früheren Gespräche",
+  "untitledSession": "Gespräch"
 }
