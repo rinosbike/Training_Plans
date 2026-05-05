@@ -191,11 +191,13 @@ def chat(session_id):
                     try:
                         actions = svc.extract_actions(message, ai_text, today_str)
                         food_logged = []
-                        if actions['food_items']:
-                            food_logged = _log_food_items(user_id, actions['food_items'], today_str)
+                        if actions.get('food_items'):
+                            food_logged += _log_food_items(user_id, actions['food_items'], today_str)
+                        if actions.get('food_edits'):
+                            food_logged += _edit_food_items(user_id, actions['food_edits'])
                         if food_logged:
                             yield f'data: {json.dumps({"food_logged": food_logged})}\n\n'
-                        if actions['plan_changes']:
+                        if actions.get('plan_changes'):
                             proposed = _resolve_plan_changes(user_id, actions['plan_changes'])
                             if proposed:
                                 yield f'data: {json.dumps({"proposed_actions": proposed})}\n\n'
@@ -320,6 +322,62 @@ def _log_food_items(user_id: str, food_items: list, log_date: str) -> list:
                 'unknown': True,
             })
     return logged
+
+
+def _edit_food_items(user_id: str, food_edits: list) -> list:
+    """Apply UPDATE or DELETE to existing food_log entries by fuzzy name + date."""
+    results = []
+    for edit in food_edits:
+        action = edit.get('action')
+        food_name = edit.get('food_name', '')
+        log_date = edit.get('log_date')
+        if not food_name or not log_date:
+            continue
+
+        # Find the food_log row (most recent on that date matching name)
+        row = execute_query(
+            '''SELECT id, food_name, amount_g, calories, protein_g, carbs_g, fat_g
+               FROM training.food_log
+               WHERE user_id = %s AND log_date = %s AND LOWER(food_name) LIKE %s
+               ORDER BY id DESC LIMIT 1''',
+            (user_id, log_date, f'%{food_name.lower()}%'), fetch_one=True
+        )
+        if not row:
+            results.append({'name': food_name, 'log_date': log_date, 'action': action, 'notFound': True})
+            continue
+
+        if action == 'delete':
+            execute_write('DELETE FROM training.food_log WHERE id = %s AND user_id = %s',
+                          (row['id'], user_id))
+            results.append({'name': row['food_name'], 'log_date': log_date, 'action': 'deleted'})
+
+        elif action == 'update':
+            new_amount = float(edit.get('new_amount_g') or row['amount_g'])
+            old_amount = float(row['amount_g']) if row['amount_g'] else 100.0
+            factor = new_amount / old_amount if old_amount else 1.0
+            execute_write(
+                '''UPDATE training.food_log
+                   SET amount_g = %s,
+                       calories = %s,
+                       protein_g = %s,
+                       carbs_g = %s,
+                       fat_g = %s
+                   WHERE id = %s AND user_id = %s''',
+                (new_amount,
+                 (row['calories'] or 0) * factor,
+                 (row['protein_g'] or 0) * factor,
+                 (row['carbs_g'] or 0) * factor,
+                 (row['fat_g'] or 0) * factor,
+                 row['id'], user_id)
+            )
+            results.append({
+                'name': row['food_name'],
+                'log_date': log_date,
+                'action': 'updated',
+                'amount_g': new_amount,
+                'calories': round((row['calories'] or 0) * factor),
+            })
+    return results
 
 
 def _resolve_plan_changes(user_id: str, plan_changes: list) -> list:

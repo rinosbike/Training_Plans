@@ -43,19 +43,32 @@ function SessionPanel({ sessions, activeId, onSelect, onNew, t }) {
 
 function FoodLoggedCard({ items, t }) {
   if (!items || items.length === 0) return null
-  const totalCal = items.reduce((s, i) => s + (i.calories || 0), 0)
+  const newItems = items.filter(i => !i.action)
+  const editItems = items.filter(i => i.action)
+  const totalCal = newItems.reduce((s, i) => s + (i.calories || 0), 0)
   return (
     <div className="mx-4 my-2 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
       <div className="flex items-center gap-2 mb-2">
         <span className="text-green-600 text-lg">✓</span>
         <span className="text-green-800 font-semibold text-sm">{t('foodLogged')}</span>
-        <span className="ml-auto text-green-700 text-xs font-medium">{totalCal} kcal</span>
+        {totalCal > 0 && <span className="ml-auto text-green-700 text-xs font-medium">{totalCal} kcal</span>}
       </div>
       <ul className="space-y-0.5">
-        {items.map((item, i) => (
-          <li key={i} className="text-xs text-green-700 flex justify-between">
+        {newItems.map((item, i) => (
+          <li key={`new-${i}`} className="text-xs text-green-700 flex justify-between">
             <span>{item.name} – {item.amount_g}g ({item.meal_type})</span>
             {item.unknown && <span className="text-orange-500 ml-1">?</span>}
+          </li>
+        ))}
+        {editItems.map((item, i) => (
+          <li key={`edit-${i}`} className={`text-xs flex justify-between ${item.notFound ? 'text-orange-600' : item.action === 'deleted' ? 'text-red-600 line-through' : 'text-blue-700'}`}>
+            <span>
+              {item.action === 'deleted' ? '🗑 ' : item.action === 'updated' ? '✏ ' : '? '}
+              {item.name}
+              {item.action === 'updated' && item.amount_g ? ` → ${item.amount_g}g` : ''}
+              {item.notFound ? ' (not found)' : ''}
+            </span>
+            {item.calories > 0 && <span>{item.calories} kcal</span>}
           </li>
         ))}
       </ul>
