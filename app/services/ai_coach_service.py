@@ -44,7 +44,8 @@ EXTRACTION_PROMPT = """Analyze the conversation and extract:
 Return ONLY valid JSON in this exact format (no other text):
 {{
   "food_items": [
-    {{"name": "food name", "amount_g": 100, "meal_type": "lunch", "log_date": "{today}"}}
+    {{"name": "food name", "amount_g": 100, "meal_type": "lunch", "log_date": "{today}",
+      "per_100g": {{"calories_per_100g": 265, "protein_per_100g": 21, "carbs_per_100g": 18, "fat_per_100g": 12, "fiber_per_100g": 1.5}}}}
   ],
   "food_edits": [
     {{"action": "update", "food_name": "milk", "log_date": "2026-05-04", "new_amount_g": 600}},
@@ -69,7 +70,7 @@ Return ONLY valid JSON in this exact format (no other text):
 }}
 
 Rules:
-- food_items: only if the USER said they just ate/drank something new today. meal_type must be one of: breakfast, lunch, dinner, snack, pre_workout, post_workout. log_date defaults to today unless user specifies otherwise.
+- food_items: only if the USER said they just ate/drank something new today. meal_type must be one of: breakfast, lunch, dinner, snack, pre_workout, post_workout. log_date defaults to today unless user specifies otherwise. per_100g: include your best estimated nutritional values per 100g for this food — calories_per_100g is required; add protein/carbs/fat if you mentioned them in your response. These are used when the food is not in our database.
 - food_edits: if user wants to CHANGE or DELETE a previously logged food entry. "action" must be "update" or "delete". log_date: resolve relative terms ("yesterday"=today minus 1 day, "this morning"=today). new_amount_g: the new amount in grams/ml.
 - food_db_corrections: ONLY if the user provides actual real-world label values to correct a wrong per-100g figure in the database. Allowed nutrient keys: calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, fiber_per_100g, sodium_per_100g, iron_per_100g, calcium_per_100g, vitamin_d_per_100g, vitamin_b12_per_100g, vitamin_c_per_100g, magnesium_per_100g, potassium_per_100g, zinc_per_100g. Only include nutrients the user actually mentioned.
 - plan_changes: only concrete changes the user EXPLICITLY requested. type must be "modify_workout" or "mark_rest_day".

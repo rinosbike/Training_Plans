@@ -337,6 +337,28 @@ def _log_food_items(user_id: str, food_items: list, log_date: str) -> list:
             meal_type = 'snack'
 
         food = _fuzzy_match_food(name)
+
+        # If not in DB but extraction provided per_100g estimates, insert it now
+        if not food and item.get('per_100g'):
+            _ALLOWED_COLS = {
+                'calories_per_100g', 'protein_per_100g', 'carbs_per_100g',
+                'fat_per_100g', 'fiber_per_100g', 'sodium_per_100g',
+            }
+            safe = {k: float(v) for k, v in item['per_100g'].items()
+                    if k in _ALLOWED_COLS and v is not None}
+            if safe.get('calories_per_100g'):
+                cols = ['name', 'source'] + list(safe.keys())
+                vals = [name, 'ai_estimate'] + list(safe.values())
+                placeholders = ', '.join(['%s'] * len(vals))
+                new_row = execute_write(
+                    f"INSERT INTO training.food_database ({', '.join(cols)}) "
+                    f"VALUES ({placeholders}) RETURNING *",
+                    vals, returning=True
+                )
+                if new_row:
+                    food = dict(new_row)
+                    log.info('Inserted AI-estimated food "%s" id=%s', name, food.get('id'))
+
         if food:
             factor = amount_g / 100.0
             cal   = float(food['calories_per_100g'] or 0) * factor
@@ -359,7 +381,7 @@ def _log_food_items(user_id: str, food_items: list, log_date: str) -> list:
                 'calories': round(cal),
             })
         else:
-            # Log with zero macros but record the name (user can edit later)
+            # No DB match and no AI estimates — log with zero macros, user can correct
             execute_write(
                 '''INSERT INTO training.food_log
                      (user_id, log_date, meal_type, food_name, amount_g,
