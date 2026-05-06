@@ -19,7 +19,7 @@ function Bar({ actual, target, color = 'bg-primary-500' }) {
   )
 }
 
-function MacroRow({ label, actual, target, unit, color, barColor }) {
+function MacroRow({ label, actual, target, unit, color, barColor, formula }) {
   const pct = target > 0 ? Math.min(100, Math.round((actual / target) * 100)) : 0
   return (
     <div>
@@ -32,6 +32,9 @@ function MacroRow({ label, actual, target, unit, color, barColor }) {
         </span>
       </div>
       <Bar actual={actual} target={target} color={barColor} />
+      {formula && (
+        <p className="text-[11px] text-gray-400 mt-0.5">{formula} = {Math.round(target)}{unit}</p>
+      )}
     </div>
   )
 }
@@ -60,7 +63,7 @@ function MicroRow({ label, actual, target, unit, color = 'bg-teal-400' }) {
 
 function FormulaCard({ formula, calories }) {
   const { t } = useTranslation('nutrition')
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(true)
   if (!formula) return null
   const { bmr_kcal, neat_kcal, eee_kcal, epoc_kcal,
           weight_kg, protein_g_per_kg, carb_g_per_kg, fat_g_per_kg,
@@ -595,10 +598,33 @@ export default function Nutrition() {
             </div>
             <Bar actual={totals.calories || 0} target={tgt.calories_kcal} color="bg-gray-700" />
 
+            {/* Calorie formula — always visible */}
+            {f.neat_kcal != null && (
+              <div className="pt-2 border-t border-gray-100 space-y-1">
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>Base (BMR × 1.30 NEAT)</span>
+                  <span className="font-medium tabular-nums">{f.neat_kcal?.toLocaleString()} kcal</span>
+                </div>
+                {f.eee_kcal > 0 && (
+                  <div className="flex justify-between text-xs text-blue-600">
+                    <span>+ Training ({f.workouts_min} min, Zone {f.max_zone})</span>
+                    <span className="font-medium tabular-nums">+{(f.eee_kcal + f.epoc_kcal).toLocaleString()} kcal</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-xs font-semibold text-gray-700 border-t border-gray-100 pt-1">
+                  <span>= Daily target</span>
+                  <span className="tabular-nums">{tgt.calories_kcal?.toLocaleString()} kcal</span>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2.5 pt-1">
-              <MacroRow label={t('macros.protein')} actual={totals.protein_g||0} target={targets.protein_g} unit="g" color="text-orange-600" barColor="bg-orange-400" />
-              <MacroRow label={t('macros.carbs')}   actual={totals.carbs_g||0}   target={targets.carbs_g}   unit="g" color="text-blue-600"   barColor="bg-blue-400" />
-              <MacroRow label={t('macros.fat')}     actual={totals.fat_g||0}     target={targets.fat_g}     unit="g" color="text-yellow-600" barColor="bg-yellow-400" />
+              <MacroRow label={t('macros.protein')} actual={totals.protein_g||0} target={targets.protein_g} unit="g" color="text-orange-600" barColor="bg-orange-400"
+                formula={f.weight_kg ? `${f.protein_g_per_kg} g/kg × ${f.weight_kg} kg` : null} />
+              <MacroRow label={t('macros.carbs')}   actual={totals.carbs_g||0}   target={targets.carbs_g}   unit="g" color="text-blue-600"   barColor="bg-blue-400"
+                formula={f.weight_kg ? `${f.carb_g_per_kg} g/kg × ${f.weight_kg} kg` : null} />
+              <MacroRow label={t('macros.fat')}     actual={totals.fat_g||0}     target={targets.fat_g}     unit="g" color="text-yellow-600" barColor="bg-yellow-400"
+                formula={f.weight_kg ? `${f.fat_g_per_kg} g/kg × ${f.weight_kg} kg (residual)` : null} />
               <MacroRow label={t('macros.fiber')}   actual={totals.fiber_g||0}   target={targets.fiber_g}   unit="g" color="text-green-600"  barColor="bg-green-400" />
               <MacroRow label={t('macros.omega3')}  actual={0}                   target={targets.omega3_g}  unit="g" color="text-cyan-600"   barColor="bg-cyan-400" />
             </div>
