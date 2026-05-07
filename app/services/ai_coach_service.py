@@ -74,8 +74,8 @@ Return ONLY valid JSON in this exact format (no other text):
   ],
   "workout_logs": [
     {{"action": "add", "sport": "swim", "date": "{today}", "actual_duration_min": 30, "actual_distance_km": 1.2, "avg_hr": 145, "max_hr": 165, "perceived_effort": 7, "calories_burned": 400, "notes": "morning swim"}},
-    {{"action": "update", "sport": "run", "date": "{today}", "actual_duration_min": 45, "avg_hr": 138}},
-    {{"action": "delete", "sport": "cycle", "date": "2026-05-06"}}
+    {{"action": "update", "sport": "run", "date": "{today}", "duration_hint": 20, "actual_duration_min": 45, "avg_hr": 138}},
+    {{"action": "delete", "sport": "cycle", "date": "2026-05-06", "duration_hint": 60}}
   ]
 }}
 
@@ -86,7 +86,7 @@ Rules:
 - plan_changes: only concrete changes the user EXPLICITLY requested. type must be "modify_workout" or "mark_rest_day".
 - For modify_workout: include date (YYYY-MM-DD), description, and any of: new_duration_min, new_zone (1-5).
 - For mark_rest_day: include date (YYYY-MM-DD) and description.
-- workout_logs: use when user says they completed/did a workout, wants to fix/update an existing logged activity, or wants to delete one. action must be "add", "update", or "delete". sport must be one of: swim, run, cycle, strength, core, brick. date defaults to today. Include only fields the user mentioned; all fields except action/sport/date are optional.
+- workout_logs: use when user says they completed/did a workout, wants to fix/update an existing logged activity, or wants to delete one. action must be "add", "update", or "delete". sport must be one of: swim, run, cycle, strength, core, brick. date defaults to today. Include only fields the user mentioned; all fields except action/sport/date are optional. Multiple entries of the same sport on the same day are allowed (e.g. morning swim + evening swim = two separate "add" entries). For "update" and "delete": if user mentions a duration that identifies which log they mean (e.g. "fix my 20-min swim"), set duration_hint to that value so the correct log is targeted when multiple exist.
 - If no items, return empty arrays. workout_id: leave null. Do NOT invent corrections not explicitly stated by the user.
 
 Today's date: {today}

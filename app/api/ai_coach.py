@@ -350,6 +350,29 @@ def _fuzzy_match_food(name: str) -> dict | None:
     return dict(row) if row else None
 
 
+def _find_workout_log(user_id: str, log_date: str, sport: str,
+                      duration_hint: float = None) -> dict | None:
+    """
+    Find a workout_log for user/date/sport.
+    If duration_hint is given, pick the closest matching log by duration.
+    If multiple logs exist with no hint, pick the most recent.
+    """
+    rows = execute_query(
+        '''SELECT wl.id, wl.actual_duration_min FROM training.workout_logs wl
+           LEFT JOIN training.workouts w ON w.id = wl.workout_id
+           WHERE wl.user_id = %s AND wl.log_date = %s AND w.sport = %s
+           ORDER BY wl.created_at DESC''',
+        (user_id, log_date, sport)
+    )
+    if not rows:
+        return None
+    if duration_hint and len(rows) > 1:
+        # Pick the log whose duration is closest to the hint
+        best = min(rows, key=lambda r: abs((r['actual_duration_min'] or 0) - duration_hint))
+        return dict(best)
+    return dict(rows[0])
+
+
 def _handle_workout_logs(user_id: str, workout_logs: list) -> list:
     """Add, update, or delete workout_log entries from AI coach instructions."""
     results = []
@@ -369,7 +392,8 @@ def _handle_workout_logs(user_id: str, workout_logs: list) -> list:
             continue
 
         if action == 'add':
-            # Find the matching planned workout (same date + sport)
+            # Find a planned workout for this date+sport to link against.
+            # Multiple logs may link to the same planned workout (double sessions).
             plan_row = execute_query(
                 '''SELECT w.id, w.sport, w.title, w.duration_min
                    FROM training.workouts w
@@ -386,8 +410,7 @@ def _handle_workout_logs(user_id: str, workout_logs: list) -> list:
                       actual_duration_min, actual_distance_km,
                       avg_hr, max_hr, avg_power_watts, calories_burned,
                       perceived_effort, notes)
-                   VALUES (%s, %s, %s::date, 'manual', %s, %s, %s, %s, %s, %s, %s, %s)
-                   ON CONFLICT DO NOTHING''',
+                   VALUES (%s, %s, %s::date, 'manual', %s, %s, %s, %s, %s, %s, %s, %s)''',
                 (user_id, workout_id, log_date,
                  item.get('actual_duration_min'), item.get('actual_distance_km'),
                  item.get('avg_hr'), item.get('max_hr'),
@@ -401,15 +424,8 @@ def _handle_workout_logs(user_id: str, workout_logs: list) -> list:
                             'duration_min': item.get('actual_duration_min')})
 
         elif action == 'update':
-            # Find existing log by date + sport (via planned workout join)
-            existing = execute_query(
-                '''SELECT wl.id FROM training.workout_logs wl
-                   LEFT JOIN training.workouts w ON w.id = wl.workout_id
-                   WHERE wl.user_id = %s AND wl.log_date = %s
-                     AND (w.sport = %s OR wl.workout_id IS NULL)
-                   ORDER BY wl.created_at DESC LIMIT 1''',
-                (user_id, log_date, sport), fetch_one=True
-            )
+            duration_hint = item.get('duration_hint')
+            existing = _find_workout_log(user_id, log_date, sport, duration_hint)
             if not existing:
                 results.append({'action': 'not_found', 'sport': sport, 'date': log_date})
                 continue
@@ -428,14 +444,8 @@ def _handle_workout_logs(user_id: str, workout_logs: list) -> list:
             results.append({'action': 'updated', 'sport': sport, 'date': log_date, **updates})
 
         elif action == 'delete':
-            existing = execute_query(
-                '''SELECT wl.id FROM training.workout_logs wl
-                   LEFT JOIN training.workouts w ON w.id = wl.workout_id
-                   WHERE wl.user_id = %s AND wl.log_date = %s
-                     AND (w.sport = %s OR wl.workout_id IS NULL)
-                   ORDER BY wl.created_at DESC LIMIT 1''',
-                (user_id, log_date, sport), fetch_one=True
-            )
+            duration_hint = item.get('duration_hint')
+            existing = _find_workout_log(user_id, log_date, sport, duration_hint)
             if existing:
                 execute_write('DELETE FROM training.workout_logs WHERE id = %s', (existing['id'],))
                 log.info('AI deleted workout log %s for user %s', existing['id'], user_id)
