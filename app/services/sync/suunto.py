@@ -229,14 +229,18 @@ def match_to_plan(mapped: dict, user_id: str, db_query_fn) -> str | None:
         return None
     dur = mapped.get('actual_duration_min') or 0
     sport = mapped['sport']
+    same_sport = [row for row in rows if row['sport'] == sport]
+    if not same_sport:
+        return None
     best, best_diff = None, float('inf')
-    for row in rows:
-        if row['sport'] != sport:
-            continue
+    for row in same_sport:
         plan_dur = float(row['duration_min'] or 0)
         if plan_dur == 0:
             continue
         diff = abs(dur - plan_dur) / plan_dur
         if diff < 0.40 and diff < best_diff:
             best, best_diff = str(row['id']), diff
+    # Fallback: only one option of this sport — match regardless of duration
+    if best is None and len(same_sport) == 1:
+        best = str(same_sport[0]['id'])
     return best
