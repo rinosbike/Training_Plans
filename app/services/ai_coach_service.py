@@ -30,8 +30,12 @@ _ACTION_KEYWORDS = re.compile(
     r'change|update|edit|fix|correct|wrong|incorrect|delete|remove|'
     r'label|says|actual|real value|package|per 100|per100|nutrition facts|'
     r'yesterday|this morning|last night|earlier today|'
+    r'swam|swum|swum|ran|cycled|biked|lifted|trained|completed|finished|did|done|'
+    r'swim|run|cycle|bike|ride|swim|row|walked|'
+    r'km|kilometers?|miles?|meters?|laps?|'
+    r'heart rate|avg hr|bpm|pace|watts|power|rpe|effort|'
     r'rest day|swap|modify|reschedule|move|adjust|replace|'
-    r'workout|session|training day|plan)\b',
+    r'workout|session|training day|activity|plan)\b',
     re.IGNORECASE,
 )
 
@@ -40,6 +44,7 @@ EXTRACTION_PROMPT = """Analyze the conversation and extract:
 2. Edits to existing food log entries (UPDATE or DELETE by food name + date)
 3. Training plan changes requested
 4. Corrections to the food database per-100g nutritional values (when user provides real label data)
+5. Workout activity logs the user wants to add, update, or delete
 
 Return ONLY valid JSON in this exact format (no other text):
 {{
@@ -66,6 +71,11 @@ Return ONLY valid JSON in this exact format (no other text):
   "plan_changes": [
     {{"type": "modify_workout", "workout_id": null, "description": "Change Thursday run to 30min easy", "date": "2026-05-08", "new_duration_min": 30, "new_zone": 2}},
     {{"type": "mark_rest_day", "date": "2026-05-09", "description": "Mark Sunday as rest day"}}
+  ],
+  "workout_logs": [
+    {{"action": "add", "sport": "swim", "date": "{today}", "actual_duration_min": 30, "actual_distance_km": 1.2, "avg_hr": 145, "max_hr": 165, "perceived_effort": 7, "calories_burned": 400, "notes": "morning swim"}},
+    {{"action": "update", "sport": "run", "date": "{today}", "actual_duration_min": 45, "avg_hr": 138}},
+    {{"action": "delete", "sport": "cycle", "date": "2026-05-06"}}
   ]
 }}
 
@@ -76,6 +86,7 @@ Rules:
 - plan_changes: only concrete changes the user EXPLICITLY requested. type must be "modify_workout" or "mark_rest_day".
 - For modify_workout: include date (YYYY-MM-DD), description, and any of: new_duration_min, new_zone (1-5).
 - For mark_rest_day: include date (YYYY-MM-DD) and description.
+- workout_logs: use when user says they completed/did a workout, wants to fix/update an existing logged activity, or wants to delete one. action must be "add", "update", or "delete". sport must be one of: swim, run, cycle, strength, core, brick. date defaults to today. Include only fields the user mentioned; all fields except action/sport/date are optional.
 - If no items, return empty arrays. workout_id: leave null. Do NOT invent corrections not explicitly stated by the user.
 
 Today's date: {today}
@@ -105,7 +116,8 @@ def validate_message(message: str) -> str:
 
 
 def build_system_prompt(user: dict, goal: dict, profile: dict, context: dict = None,
-                        weekly_workouts: list = None, today_nutrition: dict = None) -> str:
+                        weekly_workouts: list = None, today_nutrition: dict = None,
+                        today_logs: list = None) -> str:
     goal_name = goal.get('goal_name', 'your goal')
     goal_type = goal.get('goal_type', '')
     target_date = goal.get('target_date', '')
@@ -137,6 +149,23 @@ Today\'s nutrition so far:
 - Fat: {today_nutrition.get('fat', 0):.0f} g
 """
 
+    logs_context = ''
+    if today_logs:
+        lines = []
+        for wl in today_logs:
+            parts = [wl.get('sport', '?')]
+            if wl.get('duration_min'):
+                parts.append(f"{wl['duration_min']} min")
+            if wl.get('distance_km'):
+                parts.append(f"{wl['distance_km']} km")
+            if wl.get('avg_hr'):
+                parts.append(f"HR {wl['avg_hr']}")
+            if wl.get('rpe'):
+                parts.append(f"RPE {wl['rpe']}")
+            parts.append(f"[{wl.get('source', 'manual')}]")
+            lines.append('- ' + ' · '.join(parts))
+        logs_context = "\nToday\'s logged activities:\n" + '\n'.join(lines) + '\n'
+
     return f"""You are an expert endurance sports coach and nutrition advisor for training.rinosbike.com.
 You are powered by claude-sonnet-4.6 and assist a single athlete — you have no access to other users.
 
@@ -147,7 +176,7 @@ Athlete profile:
 - Fitness level: {fitness_level}
 - Weight: {weight} kg
 - Current weekly training hours: {weekly_hours}h
-{day_context}{workouts_context}{nutrition_context}
+{day_context}{workouts_context}{nutrition_context}{logs_context}
 Coaching principles:
 - Safe progressive overload: max 10% weekly volume increase
 - Polarized training: 80% Zone 1-2, 20% Zone 3-5
@@ -158,6 +187,7 @@ Coaching principles:
 You can help with:
 - Adjusting or swapping workouts in the plan (e.g. "change Thursday to rest day", "make the run 30 minutes")
 - Logging food the athlete tells you they ate (e.g. "I had 200g chicken and rice for lunch")
+- Logging, updating, or deleting workout activities (e.g. "I swam 30 min this morning", "fix my swim to 45 min", "I did a 10km run in 52 minutes with avg HR 155", "delete yesterday's cycle")
 - Explaining intensity zones and session purpose
 - Nutrition advice tailored to training load
 - Recovery strategies
@@ -167,6 +197,9 @@ IMPORTANT — When the athlete mentions food, corrections, or plan changes:
 - If they say they ate/drank something: acknowledge it and give brief nutritional feedback. The system will automatically log it.
 - If they ask to CHANGE or DELETE a past food entry (e.g. "change my milk to 600ml", "remove yesterday's pasta"): confirm what you're updating. The system will automatically apply the change.
 - If they tell you a food has WRONG per-100g values (e.g. "the app shows 61 kcal per 100g for milk but the label says 64"): confirm the correction you'll make, state the old and new values clearly, and mention that their past log entries will be recalculated. The athlete will be shown a confirmation card before the database is updated.
+- If they say they completed a workout (e.g. "I swam 30 min this morning", "just finished a 10km run in 52 min HR 155"): confirm and log it. The system will automatically link it to the planned workout for that day if one exists.
+- If they ask to fix/update an existing activity log (e.g. "my swim was actually 45 min not 20", "update my run distance to 10.5km"): confirm and apply the update.
+- If they ask to delete an activity log: confirm and delete it.
 - If they request a plan change: confirm what will be adjusted. The athlete will review before it's applied.
 - Be specific: mention amounts, dates, food names, nutrient names, old vs new values.
 - Never say you "cannot access" or "cannot modify" the database — the system handles all DB operations transparently.
@@ -214,9 +247,11 @@ def extract_actions(user_msg: str, ai_response: str, today: str) -> dict:
             'food_edits': data.get('food_edits') or [],
             'food_db_corrections': data.get('food_db_corrections') or [],
             'plan_changes': data.get('plan_changes') or [],
+            'workout_logs': data.get('workout_logs') or [],
         }
     except Exception:
-        return {'food_items': [], 'food_edits': [], 'food_db_corrections': [], 'plan_changes': []}
+        return {'food_items': [], 'food_edits': [], 'food_db_corrections': [],
+                'plan_changes': [], 'workout_logs': []}
 
 
 def chat_stream(messages: list):

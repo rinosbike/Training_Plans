@@ -130,6 +130,24 @@ def chat(session_id):
     )
     today_nutrition = dict(nutrition_row) if nutrition_row else {}
 
+    # Today's logged activities
+    log_rows = execute_query(
+        '''SELECT wl.actual_duration_min, wl.actual_distance_km, wl.avg_hr,
+                  wl.perceived_effort, wl.source, wl.log_date,
+                  w.sport, w.title
+           FROM training.workout_logs wl
+           LEFT JOIN training.workouts w ON w.id = wl.workout_id
+           WHERE wl.user_id = %s AND wl.log_date = %s''',
+        (user_id, today_str)
+    )
+    today_logs = [
+        {'sport': r['sport'], 'title': r['title'],
+         'duration_min': r['actual_duration_min'],
+         'distance_km': float(r['actual_distance_km']) if r['actual_distance_km'] else None,
+         'avg_hr': r['avg_hr'], 'rpe': r['perceived_effort'], 'source': r['source']}
+        for r in log_rows
+    ] if log_rows else []
+
     history = execute_query(
         '''SELECT role, content FROM training.ai_messages
            WHERE session_id = %s AND user_id = %s
@@ -139,7 +157,7 @@ def chat(session_id):
     history_msgs = [{'role': r['role'], 'content': r['content']} for r in reversed(list(history))]
 
     system_prompt = svc.build_system_prompt(
-        user, goal, profile, day_context, weekly_workouts, today_nutrition
+        user, goal, profile, day_context, weekly_workouts, today_nutrition, today_logs
     )
     messages = [{'role': 'system', 'content': system_prompt}] + history_msgs + \
                [{'role': 'user', 'content': message}]
@@ -197,6 +215,11 @@ def chat(session_id):
                             food_logged += _edit_food_items(user_id, actions['food_edits'])
                         if food_logged:
                             yield f'data: {json.dumps({"food_logged": food_logged})}\n\n'
+                        workout_results = []
+                        if actions.get('workout_logs'):
+                            workout_results = _handle_workout_logs(user_id, actions['workout_logs'])
+                        if workout_results:
+                            yield f'data: {json.dumps({"workout_logged": workout_results})}\n\n'
                         proposed = []
                         if actions.get('plan_changes'):
                             proposed += _resolve_plan_changes(user_id, actions['plan_changes'])
@@ -325,6 +348,102 @@ def _fuzzy_match_food(name: str) -> dict | None:
         (f'%{name.lower()}%',), fetch_one=True
     )
     return dict(row) if row else None
+
+
+def _handle_workout_logs(user_id: str, workout_logs: list) -> list:
+    """Add, update, or delete workout_log entries from AI coach instructions."""
+    results = []
+    SPORT_ALIASES = {
+        'swimming': 'swim', 'running': 'run', 'cycling': 'cycle',
+        'biking': 'cycle', 'bike': 'cycle', 'strength training': 'strength',
+        'gym': 'strength', 'weights': 'strength', 'brick': 'brick',
+        'core': 'core', 'walk': 'run',
+    }
+
+    for item in workout_logs:
+        action = item.get('action', 'add')
+        sport_raw = (item.get('sport') or '').lower()
+        sport = SPORT_ALIASES.get(sport_raw, sport_raw)
+        log_date = item.get('date')
+        if not log_date or not sport:
+            continue
+
+        if action == 'add':
+            # Find the matching planned workout (same date + sport)
+            plan_row = execute_query(
+                '''SELECT w.id, w.sport, w.title, w.duration_min
+                   FROM training.workouts w
+                   JOIN training.plan_days pd ON pd.id = w.plan_day_id
+                   WHERE w.user_id = %s AND pd.date = %s AND w.sport = %s
+                   LIMIT 1''',
+                (user_id, log_date, sport), fetch_one=True
+            )
+            workout_id = str(plan_row['id']) if plan_row else None
+
+            execute_write(
+                '''INSERT INTO training.workout_logs
+                     (user_id, workout_id, log_date, source,
+                      actual_duration_min, actual_distance_km,
+                      avg_hr, max_hr, avg_power_watts, calories_burned,
+                      perceived_effort, notes)
+                   VALUES (%s, %s, %s::date, 'manual', %s, %s, %s, %s, %s, %s, %s, %s)
+                   ON CONFLICT DO NOTHING''',
+                (user_id, workout_id, log_date,
+                 item.get('actual_duration_min'), item.get('actual_distance_km'),
+                 item.get('avg_hr'), item.get('max_hr'),
+                 item.get('avg_power_watts'), item.get('calories_burned'),
+                 item.get('perceived_effort'), item.get('notes'))
+            )
+            label = plan_row['title'] if plan_row else sport
+            log.info('AI logged workout: %s %s for user %s', sport, log_date, user_id)
+            results.append({'action': 'added', 'sport': sport, 'date': log_date,
+                            'title': label,
+                            'duration_min': item.get('actual_duration_min')})
+
+        elif action == 'update':
+            # Find existing log by date + sport (via planned workout join)
+            existing = execute_query(
+                '''SELECT wl.id FROM training.workout_logs wl
+                   LEFT JOIN training.workouts w ON w.id = wl.workout_id
+                   WHERE wl.user_id = %s AND wl.log_date = %s
+                     AND (w.sport = %s OR wl.workout_id IS NULL)
+                   ORDER BY wl.created_at DESC LIMIT 1''',
+                (user_id, log_date, sport), fetch_one=True
+            )
+            if not existing:
+                results.append({'action': 'not_found', 'sport': sport, 'date': log_date})
+                continue
+
+            updates = {k: item[k] for k in (
+                'actual_duration_min', 'actual_distance_km', 'avg_hr',
+                'max_hr', 'avg_power_watts', 'calories_burned', 'perceived_effort', 'notes'
+            ) if item.get(k) is not None}
+            if updates:
+                set_clause = ', '.join(f'{col} = %s' for col in updates)
+                execute_write(
+                    f'UPDATE training.workout_logs SET {set_clause}, updated_at = NOW() WHERE id = %s',
+                    list(updates.values()) + [existing['id']]
+                )
+            log.info('AI updated workout log %s for user %s', existing['id'], user_id)
+            results.append({'action': 'updated', 'sport': sport, 'date': log_date, **updates})
+
+        elif action == 'delete':
+            existing = execute_query(
+                '''SELECT wl.id FROM training.workout_logs wl
+                   LEFT JOIN training.workouts w ON w.id = wl.workout_id
+                   WHERE wl.user_id = %s AND wl.log_date = %s
+                     AND (w.sport = %s OR wl.workout_id IS NULL)
+                   ORDER BY wl.created_at DESC LIMIT 1''',
+                (user_id, log_date, sport), fetch_one=True
+            )
+            if existing:
+                execute_write('DELETE FROM training.workout_logs WHERE id = %s', (existing['id'],))
+                log.info('AI deleted workout log %s for user %s', existing['id'], user_id)
+                results.append({'action': 'deleted', 'sport': sport, 'date': log_date})
+            else:
+                results.append({'action': 'not_found', 'sport': sport, 'date': log_date})
+
+    return results
 
 
 def _log_food_items(user_id: str, food_items: list, log_date: str) -> list:
