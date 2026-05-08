@@ -10,3 +10,4 @@ python-dotenv==1.0.1
 cryptography==42.0.8
 PyJWT==2.8.0
 Pillow==10.4.0
+boto3==1.34.69

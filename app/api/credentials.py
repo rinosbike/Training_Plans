@@ -2,13 +2,13 @@
 Credentials API — manage training.api_credentials (Strava, Suunto, etc.)
 Admin-level: admin users can manage app credentials and upload platform icons.
 """
-import base64
 import logging
 from flask import Blueprint, request, jsonify
 from flask import abort
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.db import execute_query
 from app.services.credential_service import get_credential, set_credential, list_credentials, delete_credential
+from app.services import storage_service as storage
 
 credentials_bp = Blueprint('credentials', __name__)
 log = logging.getLogger(__name__)
@@ -148,10 +148,21 @@ def upload_platform_icon(platform):
     if len(raw) > 153600:  # 150 KB limit
         return jsonify({'error': 'Icon must be under 150 KB'}), 400
     mime = f.mimetype or 'image/png'
-    data_url = f"data:{mime};base64,{base64.b64encode(raw).decode()}"
-    set_credential(platform, 'icon_data', data_url, is_secret=False)
-    log.info('Admin uploaded icon for %s (%d bytes)', platform, len(raw))
-    return jsonify({'ok': True})
+
+    # Delete old icon from R2 if it was previously stored there
+    old_url = get_credential(platform, 'icon_data')
+    if old_url and old_url.startswith('http'):
+        storage.delete_image(old_url)
+
+    # Upload new icon to R2
+    try:
+        url = storage.upload_image(raw, 'icons', mime, filename=f'{platform}.{mime.split("/")[-1]}')
+        set_credential(platform, 'icon_data', url, is_secret=False)
+        log.info('Admin uploaded icon for %s to R2: %s', platform, url)
+        return jsonify({'ok': True, 'url': url})
+    except Exception as e:
+        log.error('R2 icon upload failed for %s: %s', platform, e)
+        return jsonify({'error': 'Upload failed — check R2 configuration'}), 500
 
 
 @credentials_bp.route('/api/admin/platform-icon/<platform>', methods=['DELETE'])

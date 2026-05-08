@@ -10,6 +10,7 @@ import base64
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from app.services import ai_coach_service as svc
+from app.services import storage_service as storage
 from app.db import execute_write
 from app.exceptions import ValidationError
 
@@ -119,6 +120,14 @@ def scan_food_label():
     if len(image_bytes) > MAX_IMAGE_BYTES:
         raise ValidationError('Image too large (max 8 MB)')
 
+    # Upload original image to R2 before sending to vision
+    image_url = None
+    try:
+        upload_bytes, upload_mime = _prepare_image(image_bytes, mime)
+        image_url = storage.upload_image(upload_bytes, 'food-labels', upload_mime)
+    except Exception as e:
+        log.warning('R2 upload failed, continuing without storing image: %s', e)
+
     try:
         parsed = _read_label_with_vision(image_bytes, mime)
     except Exception as e:
@@ -137,8 +146,10 @@ def scan_food_label():
     # Save to food_database immediately so AI coach can log it with correct macros
     if food_name and per_100g.get('calories_per_100g') is not None:
         try:
-            cols = ['name', 'source'] + list(per_100g.keys())
-            vals = [food_name, 'user'] + list(per_100g.values())
+            extra_cols = ['image_url'] if image_url else []
+            extra_vals = [image_url] if image_url else []
+            cols = ['name', 'source'] + list(per_100g.keys()) + extra_cols
+            vals = [food_name, 'user'] + list(per_100g.values()) + extra_vals
             placeholders = ', '.join(['%s'] * len(vals))
             col_names = ', '.join(cols)
             row = execute_write(
@@ -146,7 +157,8 @@ def scan_food_label():
                 vals, returning=True
             )
             food_id = row['id'] if row else None
-            log.info('Saved scanned food "%s" to food_database id=%s', food_name, food_id)
+            log.info('Saved scanned food "%s" to food_database id=%s url=%s',
+                     food_name, food_id, image_url)
         except Exception as e:
             log.warning('Could not save scanned food to DB: %s', e)
 
@@ -155,4 +167,5 @@ def scan_food_label():
         'per_100g': per_100g,
         'warnings': parsed.get('warnings', []),
         'food_id': food_id,
+        'image_url': image_url,
     })
