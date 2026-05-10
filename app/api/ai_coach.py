@@ -3,7 +3,7 @@ import logging
 from datetime import date, datetime
 from flask import Blueprint, request, jsonify, Response, stream_with_context
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.db import execute_query, execute_write
+from app.db import execute_query, execute_write, get_db
 from app.services import ai_coach_service as svc
 from app.exceptions import NotFoundError, ValidationError
 
@@ -236,6 +236,10 @@ def chat(session_id):
                             proposed += _resolve_food_db_corrections(actions['food_db_corrections'])
                         if proposed:
                             yield f'data: {json.dumps({"proposed_actions": proposed})}\n\n'
+                        if actions.get('setup_actions'):
+                            setup_result = _handle_setup_actions(user_id, actions['setup_actions'])
+                            if setup_result:
+                                yield f'data: {json.dumps({"setup_done": setup_result})}\n\n'
                     except Exception as ex:
                         log.warning('Action extraction failed: %s', ex)
 
@@ -632,6 +636,153 @@ def _resolve_food_db_corrections(corrections: list) -> list:
             'diff': diff,
         })
     return resolved
+
+
+def _handle_setup_actions(user_id: str, setup_actions: list) -> list:
+    """Handle update_profile, create_goal, and generate_plan actions from AI coach."""
+    from app.services.plan_engine import generate_plan as _gen_plan
+    results = []
+    goal_id = None
+
+    for action in setup_actions:
+        atype = action.get('type')
+
+        if atype == 'update_profile':
+            _NUMERIC = {'weight_kg', 'height_cm', 'resting_hr', 'max_hr', 'ftp_watts',
+                        'css_per_100m', 'running_threshold_pace_sec_km',
+                        'current_weekly_hours', 'vo2max_estimate'}
+            _TEXT = {'gender', 'fitness_level', 'date_of_birth'}
+            col_vals = {}
+            for k, v in action.items():
+                if k == 'type' or v is None or v == '':
+                    continue
+                if k in _NUMERIC:
+                    try:
+                        col_vals[k] = float(v)
+                    except (ValueError, TypeError):
+                        pass
+                elif k in _TEXT:
+                    col_vals[k] = str(v)
+            if not col_vals:
+                continue
+            existing = execute_query(
+                'SELECT user_id FROM training.profiles WHERE user_id = %s',
+                (user_id,), fetch_one=True
+            )
+            if existing:
+                sets = ', '.join(f'{k}=%s' for k in col_vals)
+                execute_write(
+                    f'UPDATE training.profiles SET {sets} WHERE user_id=%s',
+                    list(col_vals.values()) + [user_id]
+                )
+            else:
+                cols = ', '.join(['user_id'] + list(col_vals.keys()))
+                phs = ', '.join(['%s'] * (1 + len(col_vals)))
+                execute_write(
+                    f'INSERT INTO training.profiles ({cols}) VALUES ({phs})',
+                    [user_id] + list(col_vals.values())
+                )
+            results.append({'type': 'profile_updated', 'fields': list(col_vals.keys())})
+            log.info('AI setup: profile updated for %s: %s', user_id, list(col_vals.keys()))
+
+        elif atype == 'create_goal':
+            goal_type = action.get('goal_type', '')
+            goal_name = action.get('goal_name', goal_type.replace('_', ' ').title())
+            target_date = action.get('target_date', '')
+            if not goal_type or not target_date:
+                continue
+            # Deactivate old goals
+            execute_write(
+                "UPDATE training.goals SET status='paused' WHERE user_id=%s AND status='active'",
+                (user_id,)
+            )
+            row = execute_write(
+                '''INSERT INTO training.goals
+                     (user_id, goal_type, goal_name, target_date, event_name, status)
+                   VALUES (%s, %s, %s, %s::date, %s, 'active') RETURNING id''',
+                (user_id, goal_type, goal_name,
+                 target_date, action.get('event_name', '')),
+                returning=True
+            )
+            goal_id = str(row['id']) if row else None
+            results.append({'type': 'goal_created', 'goal_id': goal_id,
+                            'goal_type': goal_type, 'target_date': target_date})
+            log.info('AI setup: goal created for %s: %s %s', user_id, goal_type, target_date)
+
+        elif atype == 'generate_plan':
+            # Use newly created goal_id or fetch the active one
+            if not goal_id:
+                g_row = execute_query(
+                    "SELECT id FROM training.goals WHERE user_id=%s AND status='active' ORDER BY created_at DESC LIMIT 1",
+                    (user_id,), fetch_one=True
+                )
+                goal_id = str(g_row['id']) if g_row else None
+            if not goal_id:
+                results.append({'type': 'plan_error', 'reason': 'no active goal'})
+                continue
+            goal_row = execute_query(
+                'SELECT * FROM training.goals WHERE id=%s AND user_id=%s',
+                (goal_id, user_id), fetch_one=True
+            )
+            profile_row = execute_query(
+                'SELECT * FROM training.profiles WHERE user_id=%s', (user_id,), fetch_one=True
+            )
+            if not goal_row:
+                results.append({'type': 'plan_error', 'reason': 'goal not found'})
+                continue
+            # Delete existing plan for this goal
+            execute_write(
+                'DELETE FROM training.training_plans WHERE goal_id=%s AND user_id=%s',
+                (goal_id, user_id)
+            )
+            plan_data = _gen_plan(dict(goal_row), dict(profile_row) if profile_row else {})
+            plan_row = execute_write(
+                '''INSERT INTO training.training_plans (user_id, goal_id, plan_start_date, plan_end_date)
+                   VALUES (%s, %s, %s::date, %s::date) RETURNING id''',
+                (user_id, goal_id,
+                 plan_data['days'][0]['date'] if plan_data['days'] else str(goal_row['target_date']),
+                 str(goal_row['target_date'])),
+                returning=True
+            )
+            plan_id = str(plan_row['id'])
+            for w in plan_data['weeks']:
+                execute_write(
+                    '''INSERT INTO training.plan_weeks
+                         (plan_id, user_id, week_number, week_start, block_type,
+                          weekly_hours_target, weekly_tss_target)
+                       VALUES (%s, %s, %s, %s::date, %s, %s, %s)''',
+                    (plan_id, user_id, w['week_number'], w['week_start'],
+                     w['block_type'], w['weekly_hours_target'], w['weekly_tss_target'])
+                )
+            db = get_db()
+            day_id_map = {}
+            for d in plan_data['days']:
+                with db.cursor() as cur:
+                    cur.execute(
+                        '''INSERT INTO training.plan_days
+                             (plan_id, user_id, date, day_type, ai_adjusted)
+                           VALUES (%s, %s, %s::date, %s, %s) RETURNING id''',
+                        (plan_id, user_id, d['date'], d['day_type'], False)
+                    )
+                    day_id_map[d['date']] = str(cur.fetchone()['id'])
+                db.commit()
+            for wo in plan_data['workouts']:
+                workout_date = wo.pop('_workout_date', None)
+                day_id = day_id_map.get(workout_date)
+                if not day_id:
+                    continue
+                cols = ['plan_day_id', 'user_id'] + [k for k in wo if k != '_workout_date']
+                vals = [day_id, user_id] + [wo[k] for k in wo if k != '_workout_date']
+                phs = ', '.join(['%s'] * len(vals))
+                execute_write(
+                    f'INSERT INTO training.workouts ({", ".join(cols)}) VALUES ({phs})',
+                    vals
+                )
+            weeks = len(plan_data['weeks'])
+            results.append({'type': 'plan_generated', 'plan_id': plan_id, 'weeks': weeks})
+            log.info('AI setup: plan generated for %s, %d weeks', user_id, weeks)
+
+    return results
 
 
 def _resolve_plan_changes(user_id: str, plan_changes: list) -> list:

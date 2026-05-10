@@ -35,7 +35,10 @@ _ACTION_KEYWORDS = re.compile(
     r'km|kilometers?|miles?|meters?|laps?|'
     r'heart rate|avg hr|bpm|pace|watts|power|rpe|effort|'
     r'rest day|swap|modify|reschedule|move|adjust|replace|'
-    r'workout|session|training day|activity|plan)\b',
+    r'workout|session|training day|activity|plan|'
+    r'goal|marathon|ironman|triathlon|half|5k|10k|cycling event|strength|fitness|'
+    r'generate|create|set up|setup|profile|weight|height|gender|weekly hours|'
+    r'target date|race date|event|new plan|regenerate)\b',
     re.IGNORECASE,
 )
 
@@ -87,7 +90,11 @@ Rules:
 - For modify_workout: include date (YYYY-MM-DD), description, and any of: new_duration_min, new_zone (1-5).
 - For mark_rest_day: include date (YYYY-MM-DD) and description.
 - workout_logs: use when user says they completed/did a workout, wants to fix/update an existing logged activity, or wants to delete one. action must be "add", "update", or "delete". sport must be one of: swim, run, cycle, strength, core, brick. date defaults to today. Include only fields the user mentioned; all fields except action/sport/date are optional. Multiple entries of the same sport on the same day are allowed (e.g. morning swim + evening swim = two separate "add" entries). For "update" and "delete": if user mentions a duration that identifies which log they mean (e.g. "fix my 20-min swim"), set duration_hint to that value so the correct log is targeted when multiple exist.
-- If no items, return empty arrays. workout_id: leave null. Do NOT invent corrections not explicitly stated by the user.
+- setup_actions: ONLY emit when the AI has explicitly confirmed in this response that it will set up or update the athlete's profile/goal/plan.
+  - update_profile: include ONLY fields the user stated. fitness_level must be one of: beginner, intermediate, advanced, elite. gender: male/female/other. Numeric fields as numbers (not strings).
+  - create_goal: goal_type must be one of: marathon, half_marathon, 5k, 10k, ironman, half_ironman, sprint_triathlon, cycling_event, strength, general_fitness. target_date: YYYY-MM-DD.
+  - generate_plan: emit ONLY after create_goal is also in this same response, or when a goal already exists and user explicitly asks to (re)generate the plan. No extra fields needed.
+- If no items, return empty arrays. workout_id: leave null. Do NOT invent data not explicitly stated by the user.
 
 Today's date: {today}
 
@@ -167,19 +174,20 @@ Today\'s nutrition so far:
         logs_context = "\nToday\'s logged activities:\n" + '\n'.join(lines) + '\n'
 
     today_line = f'Today\'s date: {today}' if today else ''
+    no_plan_notice = '' if goal_type else '\n⚠️ This athlete has NO active goal or training plan yet. Guide them through setup: collect stats → goal type → race date → confirm → generate plan.\n'
 
     return f"""You are an expert endurance sports coach and nutrition advisor for training.rinosbike.com.
 You are powered by claude-sonnet-4.6 and assist a single athlete — you have no access to other users.
 {today_line}
 When the athlete says "today", "yesterday", "this morning", "last night" — always resolve relative to the date above. Never guess the date from context or prior messages.
-
+{no_plan_notice}
 Athlete profile:
 - Name: {user.get('name', 'Athlete')}
-- Goal: {goal_name} ({goal_type})
-- Target date: {target_date}
+- Goal: {goal_name if goal_type else 'Not set'}
+- Target date: {target_date if target_date else 'Not set'}
 - Fitness level: {fitness_level}
-- Weight: {weight} kg
-- Current weekly training hours: {weekly_hours}h
+- Weight: {weight if weight else 'Not set'} kg
+- Current weekly training hours: {weekly_hours if weekly_hours else 'Not set'}h
 {day_context}{workouts_context}{nutrition_context}{logs_context}
 Coaching principles:
 - Safe progressive overload: max 10% weekly volume increase
@@ -189,6 +197,7 @@ Coaching principles:
 - Multi-sport balance for triathlon goals
 
 You can help with:
+- Setting up a new athlete: collecting their profile stats (weight, height, gender, fitness level, weekly hours), choosing a goal type and race date, then generating a full periodized training plan
 - Adjusting or swapping workouts in the plan (e.g. "change Thursday to rest day", "make the run 30 minutes")
 - Logging food the athlete tells you they ate (e.g. "I had 200g chicken and rice for lunch")
 - Logging, updating, or deleting workout activities (e.g. "I swam 30 min this morning", "fix my swim to 45 min", "I did a 10km run in 52 minutes with avg HR 155", "delete yesterday's cycle")
@@ -197,7 +206,7 @@ You can help with:
 - Recovery strategies
 - Questions about the athlete's goal
 
-IMPORTANT — When the athlete mentions food, corrections, or plan changes:
+IMPORTANT — When the athlete mentions food, corrections, plan changes, or setup:
 - If they say they ate/drank something: acknowledge it and give brief nutritional feedback. The system will automatically log it.
 - If they ask to CHANGE or DELETE a past food entry (e.g. "change my milk to 600ml", "remove yesterday's pasta"): confirm what you're updating. The system will automatically apply the change.
 - If they tell you a food has WRONG per-100g values (e.g. "the app shows 61 kcal per 100g for milk but the label says 64"): confirm the correction you'll make, state the old and new values clearly, and mention that their past log entries will be recalculated. The athlete will be shown a confirmation card before the database is updated.
@@ -205,6 +214,12 @@ IMPORTANT — When the athlete mentions food, corrections, or plan changes:
 - If they ask to fix/update an existing activity log (e.g. "my swim was actually 45 min not 20", "update my run distance to 10.5km"): confirm and apply the update.
 - If they ask to delete an activity log: confirm and delete it.
 - If they request a plan change: confirm what will be adjusted. The athlete will review before it's applied.
+- NEW ATHLETE SETUP: If the athlete has no goal or plan yet, guide them through setup conversationally:
+  1. Ask for their stats if missing: weight, height, gender, fitness level (beginner/intermediate/advanced/elite), average weekly training hours
+  2. Ask what goal they're training for and the target race date
+  3. Confirm all details, then tell them you're generating their personalised training plan
+  4. The system will save their profile, create the goal, and generate the full plan automatically
+  5. Valid goal types: marathon, half_marathon, 5k, 10k, ironman, half_ironman, sprint_triathlon, cycling_event, strength, general_fitness
 - Be specific: mention amounts, dates, food names, nutrient names, old vs new values.
 - Never say you "cannot access" or "cannot modify" the database — the system handles all DB operations transparently.
 
@@ -239,7 +254,7 @@ def extract_actions(user_msg: str, ai_response: str, today: str) -> dict:
     try:
         content, _ = chat_complete(
             [{'role': 'user', 'content': prompt}],
-            max_tokens=700,
+            max_tokens=900,
         )
         content = content.strip()
         if content.startswith('```'):
@@ -252,10 +267,11 @@ def extract_actions(user_msg: str, ai_response: str, today: str) -> dict:
             'food_db_corrections': data.get('food_db_corrections') or [],
             'plan_changes': data.get('plan_changes') or [],
             'workout_logs': data.get('workout_logs') or [],
+            'setup_actions': data.get('setup_actions') or [],
         }
     except Exception:
         return {'food_items': [], 'food_edits': [], 'food_db_corrections': [],
-                'plan_changes': [], 'workout_logs': []}
+                'plan_changes': [], 'workout_logs': [], 'setup_actions': []}
 
 
 def chat_stream(messages: list):
