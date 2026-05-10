@@ -76,6 +76,15 @@ def chat(session_id):
 
     day_context = data.get('day_context')
 
+    # Use client-supplied date (respects user's local timezone) with strict validation.
+    # Fallback to UTC server date only if missing/malformed.
+    raw_client_date = data.get('client_date', '')
+    try:
+        parsed = date.fromisoformat(raw_client_date)
+        today_str = parsed.isoformat()
+    except (ValueError, TypeError):
+        today_str = date.today().isoformat()
+
     session = execute_query(
         'SELECT * FROM training.ai_sessions WHERE id = %s AND user_id = %s',
         (session_id, user_id), fetch_one=True
@@ -102,7 +111,6 @@ def chat(session_id):
     user = dict(user_row) if user_row else {}
 
     # Load upcoming workouts for plan-change context
-    today_str = date.today().isoformat()
     workout_rows = execute_query(
         '''SELECT w.id, w.sport, w.title, w.duration_min, w.intensity_zone, pd.date, pd.day_type
            FROM training.workouts w
@@ -157,7 +165,8 @@ def chat(session_id):
     history_msgs = [{'role': r['role'], 'content': r['content']} for r in reversed(list(history))]
 
     system_prompt = svc.build_system_prompt(
-        user, goal, profile, day_context, weekly_workouts, today_nutrition, today_logs
+        user, goal, profile, day_context, weekly_workouts, today_nutrition, today_logs,
+        today=today_str
     )
     messages = [{'role': 'system', 'content': system_prompt}] + history_msgs + \
                [{'role': 'user', 'content': message}]

@@ -117,7 +117,7 @@ def validate_message(message: str) -> str:
 
 def build_system_prompt(user: dict, goal: dict, profile: dict, context: dict = None,
                         weekly_workouts: list = None, today_nutrition: dict = None,
-                        today_logs: list = None) -> str:
+                        today_logs: list = None, today: str = None) -> str:
     goal_name = goal.get('goal_name', 'your goal')
     goal_type = goal.get('goal_type', '')
     target_date = goal.get('target_date', '')
@@ -166,8 +166,12 @@ Today\'s nutrition so far:
             lines.append('- ' + ' · '.join(parts))
         logs_context = "\nToday\'s logged activities:\n" + '\n'.join(lines) + '\n'
 
+    today_line = f'Today\'s date: {today}' if today else ''
+
     return f"""You are an expert endurance sports coach and nutrition advisor for training.rinosbike.com.
 You are powered by claude-sonnet-4.6 and assist a single athlete — you have no access to other users.
+{today_line}
+When the athlete says "today", "yesterday", "this morning", "last night" — always resolve relative to the date above. Never guess the date from context or prior messages.
 
 Athlete profile:
 - Name: {user.get('name', 'Athlete')}

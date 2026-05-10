@@ -314,7 +314,10 @@ export default function AICoach() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('access_token')}`,
         },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({
+          message: text,
+          client_date: new Date().toLocaleDateString('en-CA'), // YYYY-MM-DD in user's local timezone
+        }),
       })
 
       let assistantText = ''
