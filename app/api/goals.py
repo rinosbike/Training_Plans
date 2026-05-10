@@ -124,14 +124,29 @@ def get_profile():
 @jwt_required()
 def upsert_profile():
     user_id = get_jwt_identity()
-    data = request.get_json()
+    data = request.get_json() or {}
 
+    _NUMERIC = {'weight_kg', 'height_cm', 'resting_hr', 'max_hr', 'ftp_watts',
+                'css_per_100m', 'running_threshold_pace_sec_km',
+                'current_weekly_hours', 'vo2max_estimate'}
     fields = [
         'date_of_birth', 'gender', 'weight_kg', 'height_cm', 'resting_hr', 'max_hr',
         'ftp_watts', 'css_per_100m', 'running_threshold_pace_sec_km',
         'current_weekly_hours', 'fitness_level', 'vo2max_estimate'
     ]
-    col_vals = {f: data[f] for f in fields if f in data}
+
+    col_vals = {}
+    for f in fields:
+        v = data.get(f)
+        if v is None or v == '':
+            continue
+        if f in _NUMERIC:
+            try:
+                col_vals[f] = float(v)
+            except (ValueError, TypeError):
+                pass
+        else:
+            col_vals[f] = v
 
     existing = execute_query(
         'SELECT user_id FROM training.profiles WHERE user_id = %s', (user_id,), fetch_one=True
@@ -151,4 +166,4 @@ def upsert_profile():
             f'INSERT INTO training.profiles ({cols}) VALUES ({placeholders}) RETURNING *',
             [user_id] + list(col_vals.values()), returning=True
         )
-    return jsonify(dict(row))
+    return jsonify(dict(row) if row else {})
