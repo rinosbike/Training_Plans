@@ -22,7 +22,7 @@
     "perceivedEffort": "主观努力程度（1–10）",
     "notesPlaceholder": "感觉如何？"
   },
-  "vsplan": "对比计划",
+  "vsplan": "{{diff}} min 对比计划",
   "zones": {
     "1": {
       "name": "恢复",
@@ -60,6 +60,29 @@
     "strength": "力量训练",
     "core": "核心训练",
     "brick": "砖块训练"
+  },
+  "titles": {
+    "easy_run": "轻松跑",
+    "easy_cycle": "轻松骑行",
+    "easy_swim": "轻松游泳",
+    "tempo_run": "节奏跑",
+    "tempo_cycle": "节奏骑行",
+    "interval_run": "间歇跑",
+    "interval_cycle": "间歇骑行",
+    "long_run": "长距离跑",
+    "long_cycle": "长距离骑行",
+    "strength": "力量训练",
+    "core": "核心与灵活性",
+    "brick": "砖块训练（骑行+跑步）",
+    "aerobic_swim": "有氧游泳",
+    "aerobic_run": "有氧跑",
+    "aerobic_cycle": "有氧骑行",
+    "swim_aerobic_base": "游泳 — 有氧基础",
+    "swim_threshold": "游泳 — 阈值训练",
+    "swim_race_pace": "游泳 — 比赛配速",
+    "race_swim": "比赛游泳",
+    "race_bike": "比赛骑行",
+    "race_run": "比赛跑步"
   },
   "strava": {
     "analysis": "Strava分析",

@@ -1,6 +1,13 @@
 {
   "title": "Trainingsplan",
-  "blockLabel": "Block",
+  "blockLabel": "{{block}}-Block",
+  "blockTypes": {
+    "base": "Grundlagen",
+    "build": "Aufbau",
+    "peak": "Spitze",
+    "taper": "Taper",
+    "race": "Wettkampf"
+  },
   "week": "Woche",
   "month": "Monat",
   "restDay": "Ruhetag — Erholen und Auftanken",

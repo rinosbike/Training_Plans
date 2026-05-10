@@ -22,7 +22,7 @@
     "perceivedEffort": "Wahrgenommene Anstrengung (1–10)",
     "notesPlaceholder": "Wie hat es sich angefühlt?"
   },
-  "vsplan": "vs. Plan",
+  "vsplan": "{{diff}} min vs. Plan",
   "zones": {
     "1": {
       "name": "Regeneration",
@@ -60,6 +60,29 @@
     "strength": "Krafttraining",
     "core": "Core",
     "brick": "Brick"
+  },
+  "titles": {
+    "easy_run": "Lockeres Laufen",
+    "easy_cycle": "Lockere Ausfahrt",
+    "easy_swim": "Lockeres Schwimmen",
+    "tempo_run": "Tempolauf",
+    "tempo_cycle": "Tempofahrt",
+    "interval_run": "Intervall Laufen",
+    "interval_cycle": "Intervall Radfahren",
+    "long_run": "Langer Lauf",
+    "long_cycle": "Lange Ausfahrt",
+    "strength": "Krafttraining",
+    "core": "Core & Mobilität",
+    "brick": "Brick (Rad+Lauf)",
+    "aerobic_swim": "Aerob Schwimmen",
+    "aerobic_run": "Aerob Laufen",
+    "aerobic_cycle": "Aerobe Ausfahrt",
+    "swim_aerobic_base": "Schwimmen — Aerobe Basis",
+    "swim_threshold": "Schwimmen — Schwellensatz",
+    "swim_race_pace": "Schwimmen — Wettkampftempo",
+    "race_swim": "Wettkampf Schwimmen",
+    "race_bike": "Wettkampf Radfahren",
+    "race_run": "Wettkampf Laufen"
   },
   "strava": {
     "analysis": "Strava-Analyse",

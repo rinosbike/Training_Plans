@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { SportBadge } from './SportIcon'
 
 const zoneColors = ['', 'bg-green-200 text-green-800', 'bg-green-400 text-white',
@@ -19,6 +20,7 @@ function StatPill({ label, value, unit, highlight }) {
 }
 
 function ActivityLog({ log, plannedMin }) {
+  const { t } = useTranslation('workouts')
   if (!log) return null
   const src = log.source || 'manual'
   const durationDiff = plannedMin && log.actual_duration_min
@@ -27,58 +29,29 @@ function ActivityLog({ log, plannedMin }) {
 
   return (
     <div className="mt-3 pt-3 border-t border-green-200">
-      {/* Header */}
       <div className="flex items-center gap-2 mb-2">
         <span className="text-base">{SOURCE_ICON[src] || '📊'}</span>
         <span className="text-xs font-semibold text-green-700 uppercase tracking-wide">
-          {src === 'strava' ? 'Strava Activity' : src === 'suunto' ? 'Suunto Activity' : 'Logged'}
+          {t(`source.${src}`, src)}
         </span>
         {log.notes && (
           <span className="text-xs text-gray-400 truncate flex-1">— {log.notes}</span>
         )}
       </div>
 
-      {/* Stats grid */}
       <div className="grid grid-cols-3 gap-2">
-        <StatPill
-          label="Duration"
-          value={log.actual_duration_min ? `${Math.round(log.actual_duration_min)}` : null}
-          unit="min"
-          highlight
-        />
-        <StatPill
-          label="Distance"
-          value={log.actual_distance_km ? `${log.actual_distance_km}` : null}
-          unit="km"
-        />
-        <StatPill
-          label="Avg HR"
-          value={log.avg_hr}
-          unit="bpm"
-        />
-        <StatPill
-          label="Max HR"
-          value={log.max_hr}
-          unit="bpm"
-        />
-        <StatPill
-          label="Power"
-          value={log.avg_power_watts}
-          unit="W"
-          highlight={!!log.avg_power_watts}
-        />
-        <StatPill
-          label="Calories"
-          value={log.calories_burned}
-          unit="kcal"
-        />
+        <StatPill label={t('fields.duration')} value={log.actual_duration_min ? `${Math.round(log.actual_duration_min)}` : null} unit="min" highlight />
+        <StatPill label={t('fields.distance')} value={log.actual_distance_km ? `${log.actual_distance_km}` : null} unit="km" />
+        <StatPill label={t('fields.avgHr')} value={log.avg_hr} unit="bpm" />
+        <StatPill label={t('fields.maxHr')} value={log.max_hr} unit="bpm" />
+        <StatPill label={t('fields.power')} value={log.avg_power_watts} unit="W" highlight={!!log.avg_power_watts} />
+        <StatPill label={t('fields.calories')} value={log.calories_burned} unit="kcal" />
       </div>
 
-      {/* vs plan */}
       {durationDiff !== null && (
         <p className={`text-xs mt-2 font-medium ${durationDiff >= 0 ? 'text-green-600' : 'text-amber-600'}`}>
-          {durationDiff >= 0 ? `+${durationDiff}` : durationDiff} min vs plan
-          {log.perceived_effort && ` · RPE ${log.perceived_effort}/10`}
+          {t('vsplan', { diff: durationDiff >= 0 ? `+${durationDiff}` : durationDiff })}
+          {log.perceived_effort && ` · ${t('fields.rpe')} ${log.perceived_effort}/10`}
         </p>
       )}
     </div>
@@ -87,6 +60,7 @@ function ActivityLog({ log, plannedMin }) {
 
 export default function WorkoutCard({ workout, compact = false }) {
   const navigate = useNavigate()
+  const { t } = useTranslation('workouts')
   const logged = !!workout.log
 
   if (compact) return (
@@ -96,8 +70,10 @@ export default function WorkoutCard({ workout, compact = false }) {
     >
       <SportBadge sport={workout.sport} size="sm" />
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-gray-800 truncate">{workout.title}</p>
-        <p className="text-xs text-gray-500">{workout.duration_min}min · Z{workout.intensity_zone}</p>
+        <p className="text-xs font-medium text-gray-800 truncate">
+          {workout.title_key ? t(`titles.${workout.title_key}`, workout.title) : workout.title}
+        </p>
+        <p className="text-xs text-gray-500">{workout.duration_min}min · Z{workout.intensity_zone} {t(`zones.${workout.intensity_zone}.name`, '')}</p>
       </div>
       {logged && <span className="text-green-500 text-xs">✓</span>}
     </button>
@@ -118,7 +94,9 @@ export default function WorkoutCard({ workout, compact = false }) {
           <SportBadge sport={workout.sport} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-semibold text-gray-900 truncate">{workout.title}</h3>
+              <h3 className="font-semibold text-gray-900 truncate">
+                {workout.title_key ? t(`titles.${workout.title_key}`, workout.title) : workout.title}
+              </h3>
               {logged && <span className="text-green-600 text-sm">✓</span>}
             </div>
             <div className="flex flex-wrap gap-2">
@@ -127,7 +105,7 @@ export default function WorkoutCard({ workout, compact = false }) {
                 <span className="text-sm text-gray-600">{workout.distance_km} km</span>
               )}
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${zoneColors[workout.intensity_zone] || ''}`}>
-                Zone {workout.intensity_zone}
+                Z{workout.intensity_zone} · {t(`zones.${workout.intensity_zone}.name`, `Zone ${workout.intensity_zone}`)}
               </span>
             </div>
             {workout.description && (

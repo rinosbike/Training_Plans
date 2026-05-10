@@ -81,11 +81,11 @@ def generate():
             continue
         execute_write(
             '''INSERT INTO training.workouts
-                 (plan_day_id, user_id, sport, title, duration_min, distance_km,
+                 (plan_day_id, user_id, sport, title, title_key, duration_min, distance_km,
                   intensity_zone, tss, description, structure)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
-            (plan_day_id, user_id, wo['sport'], wo['title'], wo['duration_min'],
-             wo.get('distance_km'), wo['intensity_zone'], wo.get('tss'),
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
+            (plan_day_id, user_id, wo['sport'], wo['title'], wo.get('title_key'),
+             wo['duration_min'], wo.get('distance_km'), wo['intensity_zone'], wo.get('tss'),
              wo.get('description'), wo.get('structure'))
         )
 
@@ -141,6 +141,7 @@ def get_plan_days():
                    'id', w.id,
                    'sport', w.sport,
                    'title', w.title,
+                   'title_key', w.title_key,
                    'duration_min', w.duration_min,
                    'distance_km', w.distance_km,
                    'intensity_zone', w.intensity_zone,

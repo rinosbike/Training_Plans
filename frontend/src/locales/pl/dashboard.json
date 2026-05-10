@@ -1,6 +1,13 @@
 {
   "title": "Plan Treningowy",
-  "blockLabel": "Blok",
+  "blockLabel": "Blok {{block}}",
+  "blockTypes": {
+    "base": "Bazowy",
+    "build": "Budowania",
+    "peak": "Szczytowy",
+    "taper": "Taper",
+    "race": "Zawodów"
+  },
   "week": "Tydzień",
   "month": "Miesiąc",
   "restDay": "Dzień odpoczynku — zrelaksuj się i naładuj baterie",

@@ -1,6 +1,13 @@
 {
   "title": "训练计划",
-  "blockLabel": "训练块",
+  "blockLabel": "{{block}}阶段",
+  "blockTypes": {
+    "base": "基础",
+    "build": "积累",
+    "peak": "巅峰",
+    "taper": "减量",
+    "race": "比赛"
+  },
   "week": "周",
   "month": "月",
   "restDay": "休息日 — 恢复体力，补充能量",

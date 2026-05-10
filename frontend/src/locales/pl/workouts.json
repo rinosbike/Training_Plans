@@ -22,7 +22,7 @@
     "perceivedEffort": "Odczuwany wysiłek (1–10)",
     "notesPlaceholder": "Jak się czułeś/aś?"
   },
-  "vsplan": "vs. plan",
+  "vsplan": "{{diff}} min vs. plan",
   "zones": {
     "1": {
       "name": "Regeneracja",
@@ -60,6 +60,29 @@
     "strength": "Siłownia",
     "core": "Core",
     "brick": "Brick"
+  },
+  "titles": {
+    "easy_run": "Łatwy bieg",
+    "easy_cycle": "Łatwa jazda",
+    "easy_swim": "Łatwe pływanie",
+    "tempo_run": "Bieg tempowy",
+    "tempo_cycle": "Jazda tempowa",
+    "interval_run": "Interwały biegowe",
+    "interval_cycle": "Interwały kolarskie",
+    "long_run": "Długi bieg",
+    "long_cycle": "Długa jazda",
+    "strength": "Trening siłowy",
+    "core": "Core i mobilność",
+    "brick": "Brick (Rower+Bieg)",
+    "aerobic_swim": "Pływanie aerobowe",
+    "aerobic_run": "Aerobowe bieganie",
+    "aerobic_cycle": "Jazda aerobowa",
+    "swim_aerobic_base": "Pływanie — Baza tlenowa",
+    "swim_threshold": "Pływanie — Zestaw progowy",
+    "swim_race_pace": "Pływanie — Tempo zawodów",
+    "race_swim": "Wyścig — Pływanie",
+    "race_bike": "Wyścig — Rower",
+    "race_run": "Wyścig — Bieg"
   },
   "strava": {
     "analysis": "Analiza Strava",

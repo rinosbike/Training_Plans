@@ -1,6 +1,13 @@
 {
   "title": "Plan de Entrenamiento",
-  "blockLabel": "Bloque",
+  "blockLabel": "Bloque {{block}}",
+  "blockTypes": {
+    "base": "Base",
+    "build": "Acumulación",
+    "peak": "Pico",
+    "taper": "Taper",
+    "race": "Competición"
+  },
   "week": "Semana",
   "month": "Mes",
   "restDay": "Día de descanso — Recupera y recarga energías",

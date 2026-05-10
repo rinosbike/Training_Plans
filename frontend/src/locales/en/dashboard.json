@@ -1,6 +1,13 @@
 {
   "title": "Training Plan",
   "blockLabel": "{{block}} Block",
+  "blockTypes": {
+    "base": "Base",
+    "build": "Build",
+    "peak": "Peak",
+    "taper": "Taper",
+    "race": "Race"
+  },
   "week": "Week",
   "month": "Month",
   "restDay": "Rest day — recover and recharge",

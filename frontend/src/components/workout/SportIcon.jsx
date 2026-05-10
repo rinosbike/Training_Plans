@@ -1,11 +1,13 @@
+import { useTranslation } from 'react-i18next'
+
 const icons = {
-  run:      { emoji: '🏃', color: 'bg-orange-500', label: 'Run' },
-  cycle:    { emoji: '🚴', color: 'bg-blue-500',   label: 'Ride' },
-  swim:     { emoji: '🏊', color: 'bg-cyan-500',   label: 'Swim' },
-  strength: { emoji: '🏋️', color: 'bg-purple-500', label: 'Strength' },
-  core:     { emoji: '🧘', color: 'bg-pink-500',   label: 'Core' },
-  brick:    { emoji: '🔥', color: 'bg-amber-500',  label: 'Brick' },
-  rest:     { emoji: '💤', color: 'bg-gray-300',   label: 'Rest' },
+  run:      { emoji: '🏃', color: 'bg-orange-500' },
+  cycle:    { emoji: '🚴', color: 'bg-blue-500'   },
+  swim:     { emoji: '🏊', color: 'bg-cyan-500'   },
+  strength: { emoji: '🏋️', color: 'bg-purple-500' },
+  core:     { emoji: '🧘', color: 'bg-pink-500'   },
+  brick:    { emoji: '🔥', color: 'bg-amber-500'  },
+  rest:     { emoji: '💤', color: 'bg-gray-300'   },
 }
 
 export function SportBadge({ sport, size = 'md' }) {
@@ -19,7 +21,8 @@ export function SportBadge({ sport, size = 'md' }) {
 }
 
 export function SportLabel({ sport }) {
-  return <span>{(icons[sport] || icons.rest).label}</span>
+  const { t } = useTranslation('workouts')
+  return <span>{t(`sports.${sport}`, sport)}</span>
 }
 
 export default icons

@@ -22,7 +22,7 @@
     "perceivedEffort": "Esfuerzo percibido (1–10)",
     "notesPlaceholder": "¿Cómo te has sentido?"
   },
-  "vsplan": "vs. plan",
+  "vsplan": "{{diff}} min vs. plan",
   "zones": {
     "1": {
       "name": "Recuperación",
@@ -60,6 +60,29 @@
     "strength": "Fuerza",
     "core": "Core",
     "brick": "Brick"
+  },
+  "titles": {
+    "easy_run": "Carrera suave",
+    "easy_cycle": "Rodaje suave",
+    "easy_swim": "Natación suave",
+    "tempo_run": "Carrera a tempo",
+    "tempo_cycle": "Rodaje a tempo",
+    "interval_run": "Intervalos de carrera",
+    "interval_cycle": "Intervalos en bici",
+    "long_run": "Carrera larga",
+    "long_cycle": "Rodaje largo",
+    "strength": "Entrenamiento de fuerza",
+    "core": "Core y movilidad",
+    "brick": "Brick (Bici+Carrera)",
+    "aerobic_swim": "Natación aeróbica",
+    "aerobic_run": "Carrera aeróbica",
+    "aerobic_cycle": "Rodaje aeróbico",
+    "swim_aerobic_base": "Natación — Base aeróbica",
+    "swim_threshold": "Natación — Serie de umbral",
+    "swim_race_pace": "Natación — Ritmo de competición",
+    "race_swim": "Carrera — Natación",
+    "race_bike": "Carrera — Ciclismo",
+    "race_run": "Carrera — Running"
   },
   "strava": {
     "analysis": "Análisis de Strava",

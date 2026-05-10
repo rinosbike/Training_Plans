@@ -347,6 +347,7 @@ export default function WorkoutDetail() {
   const qc = useQueryClient()
   const { t } = useTranslation('workouts')
   const { t: tc } = useTranslation('common')
+  const { t: td } = useTranslation('dashboard')
   const [logging, setLogging] = useState(false)
   const [logData, setLogData] = useState({
     actual_duration_min: '', actual_distance_km: '',
@@ -391,9 +392,11 @@ export default function WorkoutDetail() {
         <div className="flex items-center gap-3">
           <SportBadge sport={workout.sport} size="lg" />
           <div>
-            <h1 className="text-xl font-bold text-gray-900">{workout.title}</h1>
-            <p className="text-gray-500 text-sm capitalize">
-              {workout.day_type} · {new Date(workout.date+'T00:00:00').toLocaleDateString(undefined, {weekday:'long',month:'short',day:'numeric'})}
+            <h1 className="text-xl font-bold text-gray-900">
+              {workout.title_key ? t(`titles.${workout.title_key}`, workout.title) : workout.title}
+            </h1>
+            <p className="text-gray-500 text-sm">
+              {td(`dayTypes.${workout.day_type}`, workout.day_type)} · {new Date(workout.date+'T00:00:00').toLocaleDateString(undefined, {weekday:'long',month:'short',day:'numeric'})}
             </p>
           </div>
           {isLogged && (

@@ -100,8 +100,8 @@ def generate_plan(goal: dict, profile: dict) -> dict:
         workouts_data.extend(_triathlon_race_workouts(target_date, goal_type, profile or {}))
     elif goal_type in IS_RUNNING:
         workouts_data.append({
-            'sport': 'run', 'title': 'Race', 'duration_min': None,
-            'distance_km': None, 'intensity_zone': 5, 'tss': 150,
+            'sport': 'run', 'title': 'Race', 'title_key': 'race_run',
+            'duration_min': None, 'distance_km': None, 'intensity_zone': 5, 'tss': 150,
             'description': 'Race day. Trust your training. Run YOUR race.',
             'structure': None, '_workout_date': target_date.isoformat()
         })
@@ -200,9 +200,10 @@ def _triathlon_week(goal_type, block_type, week_num, week_start, total_hours, is
     else:
         # Swim + optional easy run double (Build/Peak)
         swim_dur = _hm(sw * 0.48)
-        swim_title, swim_desc = _swim_session(swim_dur, block_type, 'am', css=css)
+        swim_title, swim_title_key, swim_desc = _swim_session(swim_dur, block_type, 'am', css=css)
         wos = [_w('swim', swim_title, swim_dur,
-                  3 if block_type != 'base' else 2, swim_desc, week_start + timedelta(1))]
+                  3 if block_type != 'base' else 2, swim_desc, week_start + timedelta(1),
+                  title_key=swim_title_key)]
         if block_type != 'base' and rn > 0:
             run_dur = _hm(rn * 0.20)
             wos.append(_w('run', 'Easy Run (PM)',
@@ -272,10 +273,10 @@ def _triathlon_week(goal_type, block_type, week_num, week_start, total_hours, is
         days.append(_rest_day(week_start, 4))
     else:
         dur = _hm(sw * 0.52)
-        swim_title, swim_desc = _swim_session(dur, block_type, 'main', css=css)
+        swim_title, swim_title_key, swim_desc = _swim_session(dur, block_type, 'main', css=css)
         days.append(_single(week_start, 4, 'swim', 'swim', dur,
                             2 if block_type == 'base' else 3,
-                            swim_title, swim_desc))
+                            swim_title, swim_desc, title_key=swim_title_key))
 
     # --- Saturday: Long Ride (+ brick run in Build/Peak) ---
     if is_recovery:
@@ -352,6 +353,7 @@ def _swim_session(duration_min, block_type, slot, css=None):
         main_m = n200 * 200
         cd = dist - wu - main_m
         title = 'Swim — Aerobic Base'
+        title_key = 'swim_aerobic_base'
         desc = (f'{dist} m total. '
                 f'WU: {wu} m easy catch-up drill. '
                 f'Main: {n200} × 200 m at steady Z2 pace{css_str} with 20 s rest. '
@@ -370,6 +372,7 @@ def _swim_session(duration_min, block_type, slot, css=None):
             n50 = max(2, n50 - 2)
             cd = dist - wu - main_m - n50 * 50
         title = 'Swim — Threshold Set'
+        title_key = 'swim_threshold'
         desc = (f'{dist} m total. '
                 f'WU: 400 m easy + 4 × 50 m build. '
                 f'Main: {n400} × 400 m at Z3 (strong but controlled){css_str} with 30 s rest '
@@ -389,6 +392,7 @@ def _swim_session(duration_min, block_type, slot, css=None):
             n100 = max(2, n100 - 2)
             cd = dist - wu - main_m - n100 * 100
         title = 'Swim — Race Pace'
+        title_key = 'swim_race_pace'
         desc = (f'{dist} m total. '
                 f'WU: {wu} m easy including drills. '
                 f'Main: {n800} × 800 m at race pace (Z3-Z4){css_str} with 1 min rest '
@@ -396,7 +400,7 @@ def _swim_session(duration_min, block_type, slot, css=None):
                 f'CD: {cd} m easy. '
                 'Simulate open-water race start: first 100 m hard, settle in.')
 
-    return title, desc
+    return title, title_key, desc
 
 
 def _dist_swim(duration_min):
@@ -505,6 +509,17 @@ def _make_generic_workout(workout_date, sport, day_type, duration_min, zone, goa
     _hr3  = f' (target {_hr_zone(rhr, max_hr, 3)})' if max_hr else ''
 
     labels = {'run': 'Run', 'cycle': 'Ride', 'swim': 'Swim', 'strength': 'Strength', 'core': 'Core'}
+    title_keys = {
+        'easy':     f'easy_{sport}',
+        'tempo':    f'tempo_{sport}',
+        'interval': f'interval_{sport}',
+        'long':     f'long_{sport}',
+        'strength': 'strength',
+        'core':     'core',
+        'brick':    'brick',
+        'swim':     'aerobic_swim',
+        'cycle':    'aerobic_ride',
+    }
     titles = {
         'easy':     f'Easy {labels.get(sport, sport.title())}',
         'tempo':    f'Tempo {labels.get(sport, sport.title())}',
@@ -529,6 +544,7 @@ def _make_generic_workout(workout_date, sport, day_type, duration_min, zone, goa
     return {
         'sport': sport,
         'title': titles.get(day_type, f'{labels.get(sport, sport.title())} Workout'),
+        'title_key': title_keys.get(day_type, f'{sport}_workout'),
         'duration_min': duration_min,
         'distance_km': _estimate_distance(sport, duration_min, zone),
         'intensity_zone': zone,
@@ -559,7 +575,7 @@ def _triathlon_race_workouts(race_date, goal_type, profile=None):
     css_str    = f' (target {_fmt_css(css)})' if css else ''
     return [
         {
-            'sport': 'swim', 'title': f'Race Swim — {swim_km} km',
+            'sport': 'swim', 'title': f'Race Swim — {swim_km} km', 'title_key': 'race_swim',
             'duration_min': int(swim_km * 22), 'distance_km': swim_km,
             'intensity_zone': 4, 'tss': 60,
             'description': (
@@ -570,7 +586,7 @@ def _triathlon_race_workouts(race_date, goal_type, profile=None):
             'structure': None, '_workout_date': race_date.isoformat()
         },
         {
-            'sport': 'cycle', 'title': f'Race Bike — {bike_km} km',
+            'sport': 'cycle', 'title': f'Race Bike — {bike_km} km', 'title_key': 'race_bike',
             'duration_min': int(bike_km * 2.8), 'distance_km': bike_km,
             'intensity_zone': 3, 'tss': 250,
             'description': (
@@ -581,7 +597,7 @@ def _triathlon_race_workouts(race_date, goal_type, profile=None):
             'structure': None, '_workout_date': race_date.isoformat()
         },
         {
-            'sport': 'run', 'title': f'Race Run — {run_km} km',
+            'sport': 'run', 'title': f'Race Run — {run_km} km', 'title_key': 'race_run',
             'duration_min': int(run_km * 5.8), 'distance_km': run_km,
             'intensity_zone': 3, 'tss': 180,
             'description': (
@@ -610,18 +626,28 @@ def _day(week_start, offset, day_type, workouts):
             'workouts': workouts}
 
 
-def _single(week_start, offset, day_type, sport, duration_min, zone, title, description):
+def _single(week_start, offset, day_type, sport, duration_min, zone, title, description, title_key=None):
     d = week_start + timedelta(days=offset)
+    if title_key is None:
+        if day_type in ('core', 'strength', 'brick'):
+            title_key = day_type
+        elif day_type == sport:
+            title_key = f'aerobic_{sport}'
+        else:
+            title_key = f'{day_type}_{sport}'
     return {
         'day': {'date': d.isoformat(), 'day_type': day_type, 'ai_adjusted': False, 'notes': None},
-        'workouts': [_w(sport, title, duration_min, zone, description, d)]
+        'workouts': [_w(sport, title, duration_min, zone, description, d, title_key=title_key)]
     }
 
 
-def _w(sport, title, duration_min, zone, description, workout_date):
+def _w(sport, title, duration_min, zone, description, workout_date, title_key=None):
+    if title_key is None:
+        title_key = f'{sport}_workout'
     return {
         'sport': sport,
         'title': title,
+        'title_key': title_key,
         'duration_min': duration_min,
         'distance_km': _estimate_distance(sport, duration_min, zone),
         'intensity_zone': zone,

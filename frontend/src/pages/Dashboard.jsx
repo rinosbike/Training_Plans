@@ -144,7 +144,7 @@ export default function Dashboard() {
           <div>
             <h1 className="text-xl font-bold">{t('title')}</h1>
             {selectedDay.block_type && (
-              <p className="text-primary-200 text-sm">{t('blockLabel', { block: selectedDay.block_type })}</p>
+              <p className="text-primary-200 text-sm">{t('blockLabel', { block: t(`blockTypes.${selectedDay.block_type}`, selectedDay.block_type) })}</p>
             )}
           </div>
           {/* Week / Month toggle */}
