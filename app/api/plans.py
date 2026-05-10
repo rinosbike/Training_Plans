@@ -147,6 +147,7 @@ def get_plan_days():
                    'intensity_zone', w.intensity_zone,
                    'tss', w.tss,
                    'description', w.description,
+                   'description_translations', w.description_translations,
                    'log', CASE WHEN wl.id IS NOT NULL THEN json_build_object(
                      'id', wl.id,
                      'source', wl.source,

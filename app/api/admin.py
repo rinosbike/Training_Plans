@@ -1,11 +1,13 @@
 """
-Admin API — user list and role management.
-- GET  /api/admin/users           → admin + super_admin
-- PUT  /api/admin/users/<id>/role → super_admin only
+Admin API — user list, role management, and maintenance tasks.
+- GET  /api/admin/users                      → admin + super_admin
+- PUT  /api/admin/users/<id>/role            → super_admin only
+- POST /api/admin/translate-descriptions     → super_admin only
 """
+import json
 from flask import Blueprint, request, jsonify, abort
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.db import execute_query, execute_write
+from app.db import execute_query, execute_write, get_db
 from app.exceptions import NotFoundError, ValidationError
 
 admin_bp = Blueprint('admin', __name__)
@@ -73,3 +75,80 @@ def set_user_role(target_id):
         'UPDATE training.users SET role = %s WHERE id = %s', (new_role, target_id)
     )
     return jsonify({'id': target_id, 'role': new_role})
+
+
+@admin_bp.route('/api/admin/translate-descriptions', methods=['POST'])
+@jwt_required()
+def translate_descriptions():
+    """Translate all workout descriptions to DE/ZH/PL/ES using Copilot API."""
+    caller_role = _get_role(get_jwt_identity())
+    if caller_role != 'super_admin':
+        abort(403)
+
+    from app.services.ai_coach_service import chat_complete
+
+    LANGS = ['de', 'zh', 'pl', 'es']
+    BATCH = 8  # descriptions per API call
+
+    rows = execute_query(
+        """SELECT id, description FROM training.workouts
+           WHERE description IS NOT NULL AND description != ''
+             AND (description_translations IS NULL OR description_translations = '{}'::jsonb)
+           ORDER BY id""",
+        ()
+    )
+    if not rows:
+        return jsonify({'translated': 0, 'message': 'Nothing to translate'})
+
+    total = 0
+    errors = []
+    batch = list(rows)
+
+    for i in range(0, len(batch), BATCH):
+        chunk = batch[i:i + BATCH]
+        desc_map = {str(j): row['description'] for j, row in enumerate(chunk)}
+
+        prompt = (
+            'You are a sports training translator. Translate each numbered description to '
+            'German (de), Chinese Simplified (zh), Polish (pl), and Spanish (es). '
+            'Preserve all numbers, pace values (e.g. 5:30/km), watt values, distances, '
+            'and technical terms exactly. Return ONLY valid JSON, no explanation.\n\n'
+            'Format: {"0": {"de": "...", "zh": "...", "pl": "...", "es": "..."}, "1": {...}}\n\n'
+            'Descriptions:\n' +
+            '\n'.join(f'{j}: {json.dumps(d)}' for j, d in desc_map.items())
+        )
+
+        try:
+            content, _ = chat_complete(
+                [{'role': 'user', 'content': prompt}],
+                max_tokens=4000
+            )
+            # Strip markdown code fences if present
+            content = content.strip()
+            if content.startswith('```'):
+                content = content.split('\n', 1)[1].rsplit('```', 1)[0]
+            translations = json.loads(content)
+        except Exception as e:
+            errors.append(f'Batch {i//BATCH}: {str(e)[:100]}')
+            continue
+
+        db = get_db()
+        for j, row in enumerate(chunk):
+            t = translations.get(str(j), {})
+            if not t:
+                continue
+            # Merge with any existing translations
+            full = {'de': t.get('de', ''), 'zh': t.get('zh', ''),
+                    'pl': t.get('pl', ''), 'es': t.get('es', '')}
+            try:
+                with db.cursor() as cur:
+                    cur.execute(
+                        'UPDATE training.workouts SET description_translations = %s WHERE id = %s',
+                        (json.dumps(full), str(row['id']))
+                    )
+                db.commit()
+                total += 1
+            except Exception as e:
+                errors.append(f'Row {row["id"]}: {str(e)[:100]}')
+
+    return jsonify({'translated': total, 'errors': errors})

@@ -345,7 +345,7 @@ export default function WorkoutDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const qc = useQueryClient()
-  const { t } = useTranslation('workouts')
+  const { t, i18n } = useTranslation('workouts')
   const { t: tc } = useTranslation('common')
   const { t: td } = useTranslation('dashboard')
   const [logging, setLogging] = useState(false)
@@ -419,7 +419,11 @@ export default function WorkoutDetail() {
           <div className={`mt-3 px-3 py-2 rounded-xl text-sm font-medium ${zoneColor}`}>
             Z{zoneNum} — {t(`zones.${zoneNum}.name`)} — {t(`zones.${zoneNum}.desc`)}
           </div>
-          {workout.description && <p className="mt-3 text-sm text-gray-600">{workout.description}</p>}
+          {workout.description && (
+            <p className="mt-3 text-sm text-gray-600">
+              {(workout.description_translations?.[i18n.language]) || workout.description}
+            </p>
+          )}
           <HRZones maxHr={profile?.max_hr} activeZone={workout.intensity_zone} />
         </div>
 

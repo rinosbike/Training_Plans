@@ -58,9 +58,15 @@ function ActivityLog({ log, plannedMin }) {
   )
 }
 
+function localDesc(workout, lang) {
+  const t = workout.description_translations
+  if (t && lang !== 'en') return t[lang] || workout.description
+  return workout.description
+}
+
 export default function WorkoutCard({ workout, compact = false }) {
   const navigate = useNavigate()
-  const { t } = useTranslation('workouts')
+  const { t, i18n } = useTranslation('workouts')
   const logged = !!workout.log
 
   if (compact) return (
@@ -109,7 +115,7 @@ export default function WorkoutCard({ workout, compact = false }) {
               </span>
             </div>
             {workout.description && (
-              <p className="text-sm text-gray-500 mt-1 line-clamp-2">{workout.description}</p>
+              <p className="text-sm text-gray-500 mt-1 line-clamp-2">{localDesc(workout, i18n.language)}</p>
             )}
           </div>
         </div>
