@@ -37,5 +37,35 @@
   "tsbTitle": "TSB — Training Stress Balance (Forma)",
   "tsbDesc": "TSB = CTL − ATL. Gdy chroniczna sprawność przewyższa ostre zmęczenie, jesteś 'w formie'. Celem jest TSB między +5 a +25 w dniu zawodów.",
   "noData": "Brak danych treningowych",
-  "noDataDesc": "Rejestruj treningi, aby zobaczyć trendy obciążenia."
+  "noDataDesc": "Rejestruj treningi, aby zobaczyć trendy obciążenia.",
+
+  "interpTitle": "Co Twoje liczby oznaczają dla Ciebie",
+  "interpSubtitle": "Względem Twojej własnej bazy — nie globalnych średnich",
+  "watchFor": "Obserwuj:",
+  "askCoachLoad": "Zapytaj trenera o moje obciążenie",
+
+  "ctlTier1": "Początkujący — bardzo niska baza treningowa",
+  "ctlTier2": "Budowanie podstaw — obciążenie początkujących",
+  "ctlTier3": "Solidna baza — rekreacyjny zawodnik wytrzymałościowy",
+  "ctlTier4": "Dobrze wytrenowany — poziom zawodowy",
+  "ctlTier5": "Wysoka wydajność — poważny zawodnik",
+  "ctlTier6": "Poziom elity — bardzo wysokie chroniczne obciążenie",
+
+  "atlNoBase": "Brak bazy — zarejestruj więcej treningów",
+  "atlUnder": "{{pct}}% poniżej sprawności — ryzyko detreningu",
+  "atlLight": "Lekkie obciążenie — regeneracja lub taper",
+  "atlBalanced": "Zrównoważone — produktywna adaptacja",
+  "atlBuild": "{{pct}}% powyżej sprawności — normalny etap budowania",
+  "atlHigh": "{{pct}}% powyżej sprawności — wysokie obciążenie, monitoruj",
+  "atlRisk": "{{pct}}% powyżej sprawności — ryzyko przetrenowania!",
+
+  "summaryRed": "Twoje zmęczenie znacznie przekracza bazę sprawności. To strefa przetrenowania — ryzyko kontuzji i choroby jest podwyższone. Weź 2–4 lekkie dni przed wznowieniem ciężkiego treningu.",
+  "summaryOrange": "Kumulujesz znaczne zmęczenie. Jest to normalne w fazie budowania, ale wymaga monitorowania. Zaplanuj 1–2 sesje regeneracyjne przed następnym ciężkim blokiem.",
+  "summaryYellow": "Solidne obciążenie z umiarkowaną akumulacją zmęczenia. Twoja baza sprawności dobrze absorbuje stres. Priorytetyzuj sen i odżywianie dla maksymalnej adaptacji.",
+  "summaryBlue": "Jesteś bardzo świeży — dobrze na zawody, ale jeśli nie kończysz taperu, rozważ sesję bodźcową. Przedłużona świeżość może odwrócić postęp.",
+  "summaryFresh": "Doskonała forma. Twój organizm przyswoił ostatnie treningi i jesteś gotowy na wyniki. Idealne okno na kluczowy trening, symulację wyścigu lub zawody.",
+  "summaryNormal": "Normalne produktywne obciążenie treningowe. Sprawność i zmęczenie są w równowadze — idealna strefa konsekwentnej adaptacji. Utrzymuj wzorzec, szanuj dni odpoczynku.",
+
+  "warningRed": "utrzymujące się bóle, podwyższone tętno spoczynkowe, zły sen, niska motywacja",
+  "warningOrange": "niezwykłe bóle mięśni, ciężkie nogi, zakłócony sen"
 }

@@ -37,5 +37,35 @@
   "tsbTitle": "TSB — Training Stress Balance (Form)",
   "tsbDesc": "TSB = CTL − ATL. When chronic fitness outweighs acute fatigue you are 'in form'. The goal is to peak with TSB between +5 and +25 on race day.",
   "noData": "No training data yet",
-  "noDataDesc": "Log some workouts to see your load trends."
+  "noDataDesc": "Log some workouts to see your load trends.",
+
+  "interpTitle": "What your numbers mean for you",
+  "interpSubtitle": "Relative to your own baseline — not global averages",
+  "watchFor": "Watch for:",
+  "askCoachLoad": "Ask Coach About My Load",
+
+  "ctlTier1": "Just starting — very low training base",
+  "ctlTier2": "Building foundation — beginner load",
+  "ctlTier3": "Solid base — recreational endurance",
+  "ctlTier4": "Well-trained — competitive level",
+  "ctlTier5": "High performance — serious competitor",
+  "ctlTier6": "Elite level — very high chronic load",
+
+  "atlNoBase": "No baseline yet — log more workouts",
+  "atlUnder": "{{pct}}% below fitness — undertraining risk",
+  "atlLight": "Light load — recovery or taper",
+  "atlBalanced": "Balanced — productive adaptation",
+  "atlBuild": "{{pct}}% above fitness — normal build phase",
+  "atlHigh": "{{pct}}% above fitness — high load, monitor closely",
+  "atlRisk": "{{pct}}% above fitness — overreaching risk!",
+
+  "summaryRed": "Your fatigue is far exceeding your fitness base. This is the overreaching zone — injury and illness risk is elevated. Take 2–4 easy days before resuming hard training.",
+  "summaryOrange": "You are accumulating meaningful fatigue. This is expected during a build phase but requires monitoring. Plan 1–2 recovery sessions before your next hard block.",
+  "summaryYellow": "Solid training load with moderate fatigue accumulation. Your fitness base is absorbing the stress well. Prioritise sleep and nutrition to maximise adaptation.",
+  "summaryBlue": "You are very fresh — good for race day but if you are not tapering, consider adding a stimulus session. Prolonged freshness can reverse fitness gains.",
+  "summaryFresh": "Excellent form. Your body has absorbed recent training and you are primed for performance. Ideal window for a key workout, race simulation, or event.",
+  "summaryNormal": "Normal productive training load. Your fitness and fatigue are in balance — the ideal zone for consistent adaptation. Keep the pattern, respect your rest days.",
+
+  "warningRed": "persistent soreness, elevated resting HR, poor sleep, low motivation",
+  "warningOrange": "unusual muscle soreness, heavier than normal legs, disrupted sleep"
 }

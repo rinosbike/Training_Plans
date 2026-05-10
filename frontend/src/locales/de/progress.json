@@ -37,5 +37,35 @@
   "tsbTitle": "TSB — Training Stress Balance (Form)",
   "tsbDesc": "TSB = CTL − ATL. Wenn die chronische Fitness die akute Ermüdung überwiegt, bist du 'in Form'. Ziel ist ein TSB zwischen +5 und +25 am Wettkampftag.",
   "noData": "Noch keine Trainingsdaten",
-  "noDataDesc": "Erfasse Einheiten, um deine Belastungstrends zu sehen."
+  "noDataDesc": "Erfasse Einheiten, um deine Belastungstrends zu sehen.",
+
+  "interpTitle": "Was deine Zahlen für dich bedeuten",
+  "interpSubtitle": "Relativ zu deiner eigenen Basis — nicht zu globalen Durchschnittswerten",
+  "watchFor": "Achte auf:",
+  "askCoachLoad": "Coach zu meiner Belastung befragen",
+
+  "ctlTier1": "Anfänger — sehr geringe Trainingsbasis",
+  "ctlTier2": "Grundlage aufbauen — Anfänger-Belastung",
+  "ctlTier3": "Solide Basis — Freizeit-Ausdauersportler",
+  "ctlTier4": "Gut trainiert — Wettkampfniveau",
+  "ctlTier5": "Hochleistung — ernsthafter Wettkämpfer",
+  "ctlTier6": "Elitestufe — sehr hohe chronische Belastung",
+
+  "atlNoBase": "Noch keine Basis — mehr Einheiten aufzeichnen",
+  "atlUnder": "{{pct}}% unter Fitness — Untertraining-Risiko",
+  "atlLight": "Leichte Belastung — Erholung oder Taper",
+  "atlBalanced": "Ausgewogen — produktive Anpassung",
+  "atlBuild": "{{pct}}% über Fitness — normaler Aufbau",
+  "atlHigh": "{{pct}}% über Fitness — hohe Belastung, überwachen",
+  "atlRisk": "{{pct}}% über Fitness — Übertraining-Risiko!",
+
+  "summaryRed": "Deine Ermüdung übersteigt die Fitness deutlich. Dies ist die Übertraining-Zone — Verletzungs- und Krankheitsrisiko erhöht. Nimm dir 2–4 leichte Tage, bevor du hartes Training wieder aufnimmst.",
+  "summaryOrange": "Du sammelst erhebliche Ermüdung an. Das ist in der Aufbauphase normal, erfordert aber Überwachung. Plane 1–2 Erholungseinheiten vor dem nächsten harten Block.",
+  "summaryYellow": "Solide Trainingsbelastung mit moderater Ermüdung. Deine Fitnessbasis absorbiert den Stress gut. Priorisiere Schlaf und Ernährung für maximale Anpassung.",
+  "summaryBlue": "Du bist sehr frisch — gut für den Wettkampf, aber falls du nicht taperst, erwäge eine Reizeinheit. Anhaltende Frische kann Fitnessgewinne umkehren.",
+  "summaryFresh": "Ausgezeichnete Form. Dein Körper hat das jüngste Training verarbeitet und du bist bereit für Leistung. Ideales Fenster für eine Schlüsseleinheit, ein Rennrennen oder einen Wettkampf.",
+  "summaryNormal": "Normale produktive Trainingsbelastung. Fitness und Ermüdung sind ausgewogen — die ideale Zone für konsistente Anpassung. Halte das Muster bei, respektiere deine Ruhetage.",
+
+  "warningRed": "anhaltende Schmerzen, erhöhte Ruheherzfrequenz, schlechter Schlaf, geringe Motivation",
+  "warningOrange": "ungewöhnliche Muskelschmerzen, schwere Beine, gestörter Schlaf"
 }

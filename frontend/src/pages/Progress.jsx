@@ -102,65 +102,77 @@ function LoadExplainer() {
 }
 
 // ---------------------------------------------------------------------------
-// Load interpretation helpers
+// Load interpretation helpers — all labels come from i18n
 // ---------------------------------------------------------------------------
 
-function ctlTier(ctl) {
-  if (ctl < 15) return { label: 'Just starting — very low training base',      color: 'text-gray-600',   bg: 'bg-gray-50'   }
-  if (ctl < 30) return { label: 'Building foundation — beginner training load', color: 'text-sky-600',    bg: 'bg-sky-50'    }
-  if (ctl < 50) return { label: 'Solid base — recreational endurance athlete',  color: 'text-blue-600',   bg: 'bg-blue-50'   }
-  if (ctl < 70) return { label: 'Well-trained — strong competitive level',      color: 'text-indigo-600', bg: 'bg-indigo-50' }
-  if (ctl < 90) return { label: 'High performance — serious competitor',        color: 'text-purple-600', bg: 'bg-purple-50' }
-  return         { label: 'Elite level — very high chronic load',               color: 'text-purple-800', bg: 'bg-purple-100'}
+// Visual style for each severity band
+const S = {
+  gray:   { color: 'text-gray-700',   border: 'border-gray-300',   bg: 'bg-gray-50',   pill: 'bg-gray-100 text-gray-700',     dot: 'bg-gray-400'   },
+  sky:    { color: 'text-sky-700',    border: 'border-sky-400',    bg: 'bg-sky-50',    pill: 'bg-sky-100 text-sky-800',       dot: 'bg-sky-500'    },
+  green:  { color: 'text-green-700',  border: 'border-green-400',  bg: 'bg-green-50',  pill: 'bg-green-100 text-green-800',   dot: 'bg-green-500'  },
+  blue:   { color: 'text-blue-700',   border: 'border-blue-400',   bg: 'bg-blue-50',   pill: 'bg-blue-100 text-blue-800',     dot: 'bg-blue-500'   },
+  indigo: { color: 'text-indigo-700', border: 'border-indigo-400', bg: 'bg-indigo-50', pill: 'bg-indigo-100 text-indigo-800', dot: 'bg-indigo-500' },
+  purple: { color: 'text-purple-700', border: 'border-purple-500', bg: 'bg-purple-50', pill: 'bg-purple-100 text-purple-800', dot: 'bg-purple-500' },
+  yellow: { color: 'text-yellow-800', border: 'border-yellow-400', bg: 'bg-yellow-50', pill: 'bg-yellow-100 text-yellow-800', dot: 'bg-yellow-500' },
+  orange: { color: 'text-orange-700', border: 'border-orange-400', bg: 'bg-orange-50', pill: 'bg-orange-100 text-orange-800', dot: 'bg-orange-500' },
+  red:    { color: 'text-red-700',    border: 'border-red-500',    bg: 'bg-red-50',    pill: 'bg-red-100 text-red-800',       dot: 'bg-red-600'    },
 }
 
-function atlTier(atl, ctl) {
-  if (!ctl || ctl === 0) return { label: 'No fitness baseline yet — log more workouts', color: 'text-gray-500', bg: 'bg-gray-50' }
+function ctlTier(ctl, t) {
+  if (ctl < 15) return { ...S.gray,   label: t('ctlTier1') }
+  if (ctl < 30) return { ...S.sky,    label: t('ctlTier2') }
+  if (ctl < 50) return { ...S.blue,   label: t('ctlTier3') }
+  if (ctl < 70) return { ...S.indigo, label: t('ctlTier4') }
+  if (ctl < 90) return { ...S.purple, label: t('ctlTier5') }
+  return         { ...S.purple, label: t('ctlTier6'), pill: 'bg-purple-200 text-purple-900', dot: 'bg-purple-700' }
+}
+
+function atlTier(atl, ctl, t) {
+  if (!ctl || ctl === 0) return { ...S.gray, label: t('atlNoBase') }
   const ratio = atl / ctl
   const pct   = Math.round(Math.abs(ratio - 1) * 100)
-  if (ratio < 0.70) return { label: `${pct}% below fitness — undertraining / detraining risk`,   color: 'text-sky-600',    bg: 'bg-sky-50'    }
-  if (ratio < 0.90) return { label: 'Light load — recovery or taper mode',                        color: 'text-green-600',  bg: 'bg-green-50'  }
-  if (ratio < 1.10) return { label: 'Balanced — productive adaptation zone',                      color: 'text-green-600',  bg: 'bg-green-50'  }
-  if (ratio < 1.30) return { label: `${pct}% above fitness — normal build phase`,                 color: 'text-yellow-700', bg: 'bg-yellow-50' }
-  if (ratio < 1.55) return { label: `${pct}% above fitness — high load, monitor closely`,         color: 'text-orange-600', bg: 'bg-orange-50' }
-  return              { label: `${pct}% above fitness — overreaching risk, reduce load now`,       color: 'text-red-600',    bg: 'bg-red-50'    }
+  if (ratio < 0.70) return { ...S.sky,    label: t('atlUnder',    { pct }) }
+  if (ratio < 0.90) return { ...S.green,  label: t('atlLight')              }
+  if (ratio < 1.10) return { ...S.green,  label: t('atlBalanced')           }
+  if (ratio < 1.30) return { ...S.yellow, label: t('atlBuild',    { pct }) }
+  if (ratio < 1.55) return { ...S.orange, label: t('atlHigh',     { pct }) }
+  return              { ...S.red,    label: t('atlRisk',     { pct }) }
 }
 
-function tsbTier(tsb) {
-  if (tsb >  25) return { label: 'Very fresh — fitness may decondition if prolonged', color: 'text-sky-600',    bg: 'bg-sky-50'    }
-  if (tsb >   5) return { label: 'Race-ready — optimal performance window',           color: 'text-green-600',  bg: 'bg-green-50'  }
-  if (tsb >  -10) return { label: 'Productive fatigue — normal adaptation',           color: 'text-gray-600',   bg: 'bg-gray-50'   }
-  if (tsb > -20) return { label: 'Accumulated fatigue — plan a recovery day soon',   color: 'text-orange-600', bg: 'bg-orange-50' }
-  return          { label: 'Overreaching risk — reduce training load immediately',    color: 'text-red-600',    bg: 'bg-red-50'    }
+function tsbTier(tsb, t) {
+  if (tsb >  25) return { ...S.sky,    label: t('tsbVeryFresh') }
+  if (tsb >   5) return { ...S.green,  label: t('tsbFresh')     }
+  if (tsb > -10) return { ...S.gray,   label: t('tsbNormal')    }
+  if (tsb > -20) return { ...S.orange, label: t('tsbTired')     }
+  return          { ...S.red,    label: t('tsbRisk')      }
 }
 
-function loadSummary(ctl, atl, tsb) {
+function loadSummary(ctl, atl, tsb, t) {
   const ratio = ctl > 0 ? atl / ctl : null
-  if (tsb < -20)
-    return { text: 'Your fatigue is far exceeding your fitness base. This is the overreaching zone — injury and illness risk is elevated. Take 2–4 easy days before resuming hard training.', warnings: 'persistent soreness, elevated resting HR, poor sleep, low motivation', urgency: 'red' }
+  if (tsb < -20)          return { text: t('summaryRed'),    warnings: t('warningRed'),    urgency: 'red'    }
   if (tsb < -10 && ratio > 1.3)
-    return { text: 'You are accumulating meaningful fatigue. This is expected during a build phase but requires monitoring. Plan 1–2 recovery sessions before your next hard block.', warnings: 'unusual muscle soreness, heavier than normal legs, disrupted sleep', urgency: 'orange' }
-  if (tsb < -10)
-    return { text: 'Solid training load with moderate fatigue accumulation. Your fitness base is absorbing the stress well. Prioritise sleep and nutrition to maximise adaptation.', warnings: null, urgency: 'yellow' }
-  if (tsb > 25)
-    return { text: 'You are very fresh — good for race day but if you are not tapering, consider adding a stimulus session. Prolonged freshness can reverse fitness gains.', warnings: null, urgency: 'blue' }
-  if (tsb > 5)
-    return { text: 'Excellent form. Your body has absorbed recent training and you are primed for performance. Ideal window for a key workout, race simulation, or event.', warnings: null, urgency: 'green' }
-  return { text: 'Normal productive training load. Your fitness and fatigue are in balance — the ideal zone for consistent adaptation. Keep the pattern, respect your rest days.', warnings: null, urgency: 'green' }
+                           return { text: t('summaryOrange'), warnings: t('warningOrange'), urgency: 'orange' }
+  if (tsb < -10)           return { text: t('summaryYellow'), warnings: null,               urgency: 'yellow' }
+  if (tsb > 25)            return { text: t('summaryBlue'),   warnings: null,               urgency: 'blue'   }
+  if (tsb > 5)             return { text: t('summaryFresh'),  warnings: null,               urgency: 'green'  }
+  return                          { text: t('summaryNormal'), warnings: null,               urgency: 'green'  }
 }
 
 function LoadInterpretation({ ctl, atl, tsb }) {
+  const { t } = useTranslation('progress')
   const navigate = useNavigate()
-  const c = ctlTier(ctl)
-  const a = atlTier(atl, ctl)
-  const f = tsbTier(tsb)
-  const s = loadSummary(ctl, atl, tsb)
+  const c = ctlTier(ctl, t)
+  const a = atlTier(atl, ctl, t)
+  const f = tsbTier(tsb, t)
+  const s = loadSummary(ctl, atl, tsb, t)
 
-  const urgencyBorder = {
-    red: 'border-red-200 bg-red-50', orange: 'border-orange-200 bg-orange-50',
-    yellow: 'border-yellow-200 bg-yellow-50', blue: 'border-sky-200 bg-sky-50',
-    green: 'border-green-200 bg-green-50',
-  }[s.urgency] || 'border-gray-100 bg-gray-50'
+  const urgencyStyle = {
+    red:    'border-red-300 bg-red-50',
+    orange: 'border-orange-300 bg-orange-50',
+    yellow: 'border-yellow-300 bg-yellow-50',
+    blue:   'border-sky-300 bg-sky-50',
+    green:  'border-green-300 bg-green-50',
+  }[s.urgency] || 'border-gray-200 bg-gray-50'
 
   function askCoach() {
     const ratio = ctl > 0 ? (atl / ctl).toFixed(2) : 'N/A'
@@ -171,36 +183,37 @@ function LoadInterpretation({ ctl, atl, tsb }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
       <div className="px-4 py-3 border-b border-gray-100">
-        <h3 className="font-semibold text-gray-900 text-sm">What your numbers mean for you</h3>
-        <p className="text-[11px] text-gray-400 mt-0.5">Interpretation is relative to your own baseline — not global averages</p>
+        <h3 className="font-semibold text-gray-900 text-sm">{t('interpTitle')}</h3>
+        <p className="text-[11px] text-gray-400 mt-0.5">{t('interpSubtitle')}</p>
       </div>
 
-      {/* Metric rows */}
-      <div className="divide-y divide-gray-50">
+      {/* Colour-coded metric rows */}
+      <div className="divide-y divide-white">
         {[
-          { metric: 'Fitness (CTL)', value: Math.round(ctl), tier: c, hint: '42-day avg load' },
-          { metric: 'Fatigue (ATL)', value: Math.round(atl), tier: a, hint: '7-day avg load' },
-          { metric: 'Form (TSB)',    value: Math.round(tsb), tier: f, hint: 'CTL minus ATL'   },
+          { metric: t('fitness'), value: Math.round(ctl), tier: c, hint: t('fitnessDesc') },
+          { metric: t('fatigue'), value: Math.round(atl), tier: a, hint: t('fatigueDesc') },
+          { metric: t('form'),    value: Math.round(tsb), tier: f, hint: t('formDesc')    },
         ].map(({ metric, value, tier, hint }) => (
-          <div key={metric} className="flex items-center gap-3 px-4 py-3">
-            <div className="w-28 shrink-0">
-              <p className="text-xs font-semibold text-gray-700">{metric}</p>
-              <p className="text-[10px] text-gray-400">{hint}</p>
+          <div key={metric} className={`flex items-center gap-3 pl-0 pr-4 py-3 border-l-4 ${tier.border} ${tier.bg}`}>
+            <div className="w-28 shrink-0 pl-4">
+              <p className="text-xs font-semibold text-gray-800">{metric}</p>
+              <p className="text-[10px] text-gray-500">{hint}</p>
             </div>
-            <div className={`text-lg font-bold ${tier.color} w-12 shrink-0 text-center`}>{value}</div>
-            <div className={`flex-1 text-xs px-2.5 py-1.5 rounded-xl leading-snug ${tier.color} ${tier.bg}`}>
+            <div className={`text-xl font-bold ${tier.color} w-10 shrink-0 text-center tabular-nums`}>{value}</div>
+            <div className={`flex-1 flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg leading-snug font-medium ${tier.pill}`}>
+              <span className={`w-2 h-2 rounded-full shrink-0 ${tier.dot}`} />
               {tier.label}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Summary */}
-      <div className={`mx-4 mb-3 mt-1 rounded-xl border px-3 py-2.5 ${urgencyBorder}`}>
+      {/* Contextual advice */}
+      <div className={`mx-4 mb-3 mt-3 rounded-xl border px-3 py-2.5 ${urgencyStyle}`}>
         <p className="text-xs text-gray-700 leading-relaxed">{s.text}</p>
         {s.warnings && (
           <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed">
-            <span className="font-semibold">Watch for: </span>{s.warnings}
+            <span className="font-semibold">{t('watchFor')} </span>{s.warnings}
           </p>
         )}
       </div>
@@ -212,7 +225,7 @@ function LoadInterpretation({ ctl, atl, tsb }) {
           className="w-full flex items-center justify-center gap-2 bg-primary-600 text-white rounded-xl py-2.5 text-sm font-semibold active:bg-primary-700 transition-colors"
         >
           <span>🤖</span>
-          Ask Coach About My Load
+          {t('askCoachLoad')}
         </button>
       </div>
     </div>

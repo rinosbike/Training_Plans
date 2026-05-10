@@ -37,5 +37,35 @@
   "tsbTitle": "TSB — Balance de Estrés de Entrenamiento (Forma)",
   "tsbDesc": "TSB = CTL − ATL. Cuando el fitness crónico supera la fatiga aguda estás 'en forma'. El objetivo es un TSB entre +5 y +25 el día de competición.",
   "noData": "Sin datos de entrenamiento aún",
-  "noDataDesc": "Registra entrenos para ver tus tendencias de carga."
+  "noDataDesc": "Registra entrenos para ver tus tendencias de carga.",
+
+  "interpTitle": "Lo que significan tus números para ti",
+  "interpSubtitle": "Interpretación relativa a tu propia línea base — no a promedios globales",
+  "watchFor": "Atención a:",
+  "askCoachLoad": "Preguntar al coach sobre mi carga",
+
+  "ctlTier1": "Empezando — base de entrenamiento muy baja",
+  "ctlTier2": "Construyendo base — carga de principiante",
+  "ctlTier3": "Base sólida — deportista de resistencia recreacional",
+  "ctlTier4": "Bien entrenado — nivel competitivo",
+  "ctlTier5": "Alto rendimiento — competidor serio",
+  "ctlTier6": "Nivel élite — carga crónica muy alta",
+
+  "atlNoBase": "Sin base aún — registra más entrenos",
+  "atlUnder": "{{pct}}% por debajo del fitness — riesgo de desentrenamiento",
+  "atlLight": "Carga ligera — recuperación o taper",
+  "atlBalanced": "Equilibrado — adaptación productiva",
+  "atlBuild": "{{pct}}% sobre el fitness — fase de acumulación normal",
+  "atlHigh": "{{pct}}% sobre el fitness — carga alta, monitorizar",
+  "atlRisk": "{{pct}}% sobre el fitness — ¡riesgo de sobreentrenamiento!",
+
+  "summaryRed": "Tu fatiga excede ampliamente tu base de fitness. Esta es la zona de sobreentrenamiento — el riesgo de lesión y enfermedad está elevado. Toma 2–4 días suaves antes de reanudar el entrenamiento duro.",
+  "summaryOrange": "Estás acumulando fatiga significativa. Es esperable en una fase de acumulación pero requiere seguimiento. Planifica 1–2 sesiones de recuperación antes de tu próximo bloque duro.",
+  "summaryYellow": "Carga de entrenamiento sólida con acumulación moderada de fatiga. Tu base de fitness está absorbiendo bien el estrés. Prioriza el sueño y la nutrición para maximizar la adaptación.",
+  "summaryBlue": "Estás muy fresco — ideal para el día de competición pero si no estás en taper, considera añadir una sesión de estímulo. La frescura prolongada puede revertir las ganancias de fitness.",
+  "summaryFresh": "Forma excelente. Tu cuerpo ha asimilado el entrenamiento reciente y estás preparado para rendir. Ventana ideal para una sesión clave, simulación de carrera o competición.",
+  "summaryNormal": "Carga de entrenamiento normal y productiva. Tu fitness y fatiga están en equilibrio — la zona ideal para una adaptación consistente. Mantén el patrón, respeta tus días de descanso.",
+
+  "warningRed": "dolor persistente, FC en reposo elevada, sueño deficiente, baja motivación",
+  "warningOrange": "dolor muscular inusual, piernas pesadas, sueño alterado"
 }
