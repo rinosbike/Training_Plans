@@ -522,7 +522,6 @@ export default function AICoach() {
               ref={fileRef}
               type="file"
               accept="image/*"
-              capture="environment"
               className="hidden"
               onChange={handleAttachment}
             />

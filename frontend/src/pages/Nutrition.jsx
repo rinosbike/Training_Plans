@@ -220,7 +220,7 @@ function LabelScanner({ onApplyCorrection, t }) {
           {scanning ? <span className="animate-spin">⟳</span> : '📷'}
           {scanning ? t('ocrScanning') : t('ocrScan')}
         </button>
-        <input ref={fileRef} type="file" accept="image/*" capture="environment"
+        <input ref={fileRef} type="file" accept="image/*"
           className="hidden" onChange={e => handleFile(e.target.files[0])} />
       </div>
       <p className="text-xs text-primary-600">{t('ocrHint')}</p>
