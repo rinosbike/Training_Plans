@@ -638,13 +638,38 @@ def _resolve_food_db_corrections(corrections: list) -> list:
     return resolved
 
 
-def _handle_setup_actions(user_id: str, setup_actions: list) -> list:
-    """Handle update_profile, create_goal, and generate_plan actions from AI coach."""
+def _handle_setup_actions(user_id: str, setup_actions) -> list:
+    """Handle update_profile, create_goal, and generate_plan actions from AI coach.
+    Accepts either a list of {type, ...} objects or a dict keyed by action type.
+    """
     from app.services.plan_engine import generate_plan as _gen_plan
+
+    # Normalise: model sometimes returns a dict instead of a list
+    if isinstance(setup_actions, dict):
+        normalised = []
+        for atype, fields in setup_actions.items():
+            if isinstance(fields, dict):
+                normalised.append({'type': atype, **fields})
+            else:
+                normalised.append({'type': atype})
+        setup_actions = normalised
+
+    # Field aliases the model may use → canonical DB column names
+    _ALIASES = {
+        'available_hours_per_week': 'current_weekly_hours',
+        'weekly_hours': 'current_weekly_hours',
+        'weekly_training_hours': 'current_weekly_hours',
+        'resting_heart_rate': 'resting_hr',
+        'max_heart_rate': 'max_hr',
+    }
+
     results = []
     goal_id = None
 
     for action in setup_actions:
+        # Apply aliases
+        action = {_ALIASES.get(k, k): v for k, v in action.items()}
+        atype = action.get('type')
         atype = action.get('type')
 
         if atype == 'update_profile':
