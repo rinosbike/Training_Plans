@@ -219,6 +219,10 @@ export default function AICoach() {
       if (date && dayType) {
         setInput(t('dayPrompt', { dayType, date }))
       }
+      const prompt = params.get('prompt')
+      if (prompt) {
+        setInput(prompt)
+      }
     }
     init()
   }, [sessionsLoaded])

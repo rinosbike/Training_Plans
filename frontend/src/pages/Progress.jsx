@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts'
@@ -100,6 +101,124 @@ function LoadExplainer() {
   )
 }
 
+// ---------------------------------------------------------------------------
+// Load interpretation helpers
+// ---------------------------------------------------------------------------
+
+function ctlTier(ctl) {
+  if (ctl < 15) return { label: 'Just starting — very low training base',      color: 'text-gray-600',   bg: 'bg-gray-50'   }
+  if (ctl < 30) return { label: 'Building foundation — beginner training load', color: 'text-sky-600',    bg: 'bg-sky-50'    }
+  if (ctl < 50) return { label: 'Solid base — recreational endurance athlete',  color: 'text-blue-600',   bg: 'bg-blue-50'   }
+  if (ctl < 70) return { label: 'Well-trained — strong competitive level',      color: 'text-indigo-600', bg: 'bg-indigo-50' }
+  if (ctl < 90) return { label: 'High performance — serious competitor',        color: 'text-purple-600', bg: 'bg-purple-50' }
+  return         { label: 'Elite level — very high chronic load',               color: 'text-purple-800', bg: 'bg-purple-100'}
+}
+
+function atlTier(atl, ctl) {
+  if (!ctl || ctl === 0) return { label: 'No fitness baseline yet — log more workouts', color: 'text-gray-500', bg: 'bg-gray-50' }
+  const ratio = atl / ctl
+  const pct   = Math.round(Math.abs(ratio - 1) * 100)
+  if (ratio < 0.70) return { label: `${pct}% below fitness — undertraining / detraining risk`,   color: 'text-sky-600',    bg: 'bg-sky-50'    }
+  if (ratio < 0.90) return { label: 'Light load — recovery or taper mode',                        color: 'text-green-600',  bg: 'bg-green-50'  }
+  if (ratio < 1.10) return { label: 'Balanced — productive adaptation zone',                      color: 'text-green-600',  bg: 'bg-green-50'  }
+  if (ratio < 1.30) return { label: `${pct}% above fitness — normal build phase`,                 color: 'text-yellow-700', bg: 'bg-yellow-50' }
+  if (ratio < 1.55) return { label: `${pct}% above fitness — high load, monitor closely`,         color: 'text-orange-600', bg: 'bg-orange-50' }
+  return              { label: `${pct}% above fitness — overreaching risk, reduce load now`,       color: 'text-red-600',    bg: 'bg-red-50'    }
+}
+
+function tsbTier(tsb) {
+  if (tsb >  25) return { label: 'Very fresh — fitness may decondition if prolonged', color: 'text-sky-600',    bg: 'bg-sky-50'    }
+  if (tsb >   5) return { label: 'Race-ready — optimal performance window',           color: 'text-green-600',  bg: 'bg-green-50'  }
+  if (tsb >  -10) return { label: 'Productive fatigue — normal adaptation',           color: 'text-gray-600',   bg: 'bg-gray-50'   }
+  if (tsb > -20) return { label: 'Accumulated fatigue — plan a recovery day soon',   color: 'text-orange-600', bg: 'bg-orange-50' }
+  return          { label: 'Overreaching risk — reduce training load immediately',    color: 'text-red-600',    bg: 'bg-red-50'    }
+}
+
+function loadSummary(ctl, atl, tsb) {
+  const ratio = ctl > 0 ? atl / ctl : null
+  if (tsb < -20)
+    return { text: 'Your fatigue is far exceeding your fitness base. This is the overreaching zone — injury and illness risk is elevated. Take 2–4 easy days before resuming hard training.', warnings: 'persistent soreness, elevated resting HR, poor sleep, low motivation', urgency: 'red' }
+  if (tsb < -10 && ratio > 1.3)
+    return { text: 'You are accumulating meaningful fatigue. This is expected during a build phase but requires monitoring. Plan 1–2 recovery sessions before your next hard block.', warnings: 'unusual muscle soreness, heavier than normal legs, disrupted sleep', urgency: 'orange' }
+  if (tsb < -10)
+    return { text: 'Solid training load with moderate fatigue accumulation. Your fitness base is absorbing the stress well. Prioritise sleep and nutrition to maximise adaptation.', warnings: null, urgency: 'yellow' }
+  if (tsb > 25)
+    return { text: 'You are very fresh — good for race day but if you are not tapering, consider adding a stimulus session. Prolonged freshness can reverse fitness gains.', warnings: null, urgency: 'blue' }
+  if (tsb > 5)
+    return { text: 'Excellent form. Your body has absorbed recent training and you are primed for performance. Ideal window for a key workout, race simulation, or event.', warnings: null, urgency: 'green' }
+  return { text: 'Normal productive training load. Your fitness and fatigue are in balance — the ideal zone for consistent adaptation. Keep the pattern, respect your rest days.', warnings: null, urgency: 'green' }
+}
+
+function LoadInterpretation({ ctl, atl, tsb }) {
+  const navigate = useNavigate()
+  const c = ctlTier(ctl)
+  const a = atlTier(atl, ctl)
+  const f = tsbTier(tsb)
+  const s = loadSummary(ctl, atl, tsb)
+
+  const urgencyBorder = {
+    red: 'border-red-200 bg-red-50', orange: 'border-orange-200 bg-orange-50',
+    yellow: 'border-yellow-200 bg-yellow-50', blue: 'border-sky-200 bg-sky-50',
+    green: 'border-green-200 bg-green-50',
+  }[s.urgency] || 'border-gray-100 bg-gray-50'
+
+  function askCoach() {
+    const ratio = ctl > 0 ? (atl / ctl).toFixed(2) : 'N/A'
+    const prompt = `My current training load: Fitness (CTL) = ${Math.round(ctl)}, Fatigue (ATL) = ${Math.round(atl)}, Form (TSB) = ${Math.round(tsb)}. ATL/CTL ratio = ${ratio}. Can you explain what this means for my training right now, and what I should focus on this week?`
+    navigate(`/ai-coach?prompt=${encodeURIComponent(prompt)}`)
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="px-4 py-3 border-b border-gray-100">
+        <h3 className="font-semibold text-gray-900 text-sm">What your numbers mean for you</h3>
+        <p className="text-[11px] text-gray-400 mt-0.5">Interpretation is relative to your own baseline — not global averages</p>
+      </div>
+
+      {/* Metric rows */}
+      <div className="divide-y divide-gray-50">
+        {[
+          { metric: 'Fitness (CTL)', value: Math.round(ctl), tier: c, hint: '42-day avg load' },
+          { metric: 'Fatigue (ATL)', value: Math.round(atl), tier: a, hint: '7-day avg load' },
+          { metric: 'Form (TSB)',    value: Math.round(tsb), tier: f, hint: 'CTL minus ATL'   },
+        ].map(({ metric, value, tier, hint }) => (
+          <div key={metric} className="flex items-center gap-3 px-4 py-3">
+            <div className="w-28 shrink-0">
+              <p className="text-xs font-semibold text-gray-700">{metric}</p>
+              <p className="text-[10px] text-gray-400">{hint}</p>
+            </div>
+            <div className={`text-lg font-bold ${tier.color} w-12 shrink-0 text-center`}>{value}</div>
+            <div className={`flex-1 text-xs px-2.5 py-1.5 rounded-xl leading-snug ${tier.color} ${tier.bg}`}>
+              {tier.label}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Summary */}
+      <div className={`mx-4 mb-3 mt-1 rounded-xl border px-3 py-2.5 ${urgencyBorder}`}>
+        <p className="text-xs text-gray-700 leading-relaxed">{s.text}</p>
+        {s.warnings && (
+          <p className="text-[11px] text-gray-500 mt-1.5 leading-relaxed">
+            <span className="font-semibold">Watch for: </span>{s.warnings}
+          </p>
+        )}
+      </div>
+
+      {/* Ask Coach */}
+      <div className="px-4 pb-4">
+        <button
+          onClick={askCoach}
+          className="w-full flex items-center justify-center gap-2 bg-primary-600 text-white rounded-xl py-2.5 text-sm font-semibold active:bg-primary-700 transition-colors"
+        >
+          <span>🤖</span>
+          Ask Coach About My Load
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function Progress() {
   const { t } = useTranslation('progress')
   const { data: load = [] } = useQuery({
@@ -194,6 +313,15 @@ export default function Progress() {
                 ))}
               </div>
             </div>
+
+            {/* Personalised interpretation */}
+            {latest && (
+              <LoadInterpretation
+                ctl={latest.ctl || 0}
+                atl={latest.atl || 0}
+                tsb={latest.tsb || 0}
+              />
+            )}
 
             {/* Explainer */}
             <LoadExplainer />
