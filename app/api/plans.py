@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.db import execute_query, execute_write, get_db
 from app.services.plan_engine import generate_plan
+from app.services.translation_service import translate_plan_async
 from app.exceptions import NotFoundError, ValidationError
 
 plans_bp = Blueprint('plans', __name__)
@@ -88,6 +89,8 @@ def generate():
              wo['duration_min'], wo.get('distance_km'), wo['intensity_zone'], wo.get('tss'),
              wo.get('description'), wo.get('structure'))
         )
+
+    translate_plan_async(user_id, plan_id)
 
     return jsonify({
         'plan_id': plan_id,
