@@ -48,6 +48,7 @@ EXTRACTION_PROMPT = """Analyze the conversation and extract:
 3. Training plan changes requested
 4. Corrections to the food database per-100g nutritional values (when user provides real label data)
 5. Workout activity logs the user wants to add, update, or delete
+6. Profile/goal/plan setup actions the AI confirmed it will perform
 
 Return ONLY valid JSON in this exact format (no other text):
 {{
@@ -79,6 +80,11 @@ Return ONLY valid JSON in this exact format (no other text):
     {{"action": "add", "sport": "swim", "date": "{today}", "actual_duration_min": 30, "actual_distance_km": 1.2, "avg_hr": 145, "max_hr": 165, "perceived_effort": 7, "calories_burned": 400, "notes": "morning swim"}},
     {{"action": "update", "sport": "run", "date": "{today}", "duration_hint": 20, "actual_duration_min": 45, "avg_hr": 138}},
     {{"action": "delete", "sport": "cycle", "date": "2026-05-06", "duration_hint": 60}}
+  ],
+  "setup_actions": [
+    {{"type": "update_profile", "weight_kg": 75, "height_cm": 180, "gender": "male", "date_of_birth": "1990-01-15", "fitness_level": "intermediate", "current_weekly_hours": 8}},
+    {{"type": "create_goal", "goal_type": "marathon", "goal_name": "Berlin Marathon", "target_date": "2026-09-27", "event_name": "Berlin Marathon 2026"}},
+    {{"type": "generate_plan"}}
   ]
 }}
 

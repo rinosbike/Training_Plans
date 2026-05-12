@@ -1,13 +1,15 @@
 """
-Admin API — user list, role management, and maintenance tasks.
-- GET  /api/admin/users                      → admin + super_admin
-- PUT  /api/admin/users/<id>/role            → super_admin only
-- POST /api/admin/translate-descriptions     → super_admin only
+Admin API — user list, role management, maintenance tasks, and AI coach log viewer.
+- GET  /api/admin/users                              → admin + super_admin
+- PUT  /api/admin/users/<id>/role                    → super_admin only
+- POST /api/admin/translate-descriptions             → super_admin only
+- GET  /api/admin/ai-logs?user_id=<id>               → super_admin only
+- GET  /api/admin/ai-logs/<session_id>?user_id=<id>  → super_admin only
 """
 import json
 from flask import Blueprint, request, jsonify, abort
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.db import execute_query, execute_write, get_db
+from app.db import execute_query, execute_write, get_db, get_service_connection
 from app.exceptions import NotFoundError, ValidationError
 
 admin_bp = Blueprint('admin', __name__)
@@ -75,6 +77,90 @@ def set_user_role(target_id):
         'UPDATE training.users SET role = %s WHERE id = %s', (new_role, target_id)
     )
     return jsonify({'id': target_id, 'role': new_role})
+
+
+@admin_bp.route('/api/admin/ai-logs', methods=['GET'])
+@jwt_required()
+def list_user_ai_sessions():
+    """List AI coach sessions for a specific user (super_admin only, bypasses RLS via service conn)."""
+    caller_role = _get_role(get_jwt_identity())
+    if caller_role != 'super_admin':
+        abort(403)
+
+    target_user_id = request.args.get('user_id', '').strip()
+    if not target_user_id:
+        return jsonify({'error': 'user_id required'}), 400
+
+    # Verify user exists (no RLS needed for users table when checking by id)
+    user_row = execute_query(
+        'SELECT id, name, email FROM training.users WHERE id = %s',
+        (target_user_id,), fetch_one=True
+    )
+    if not user_row:
+        raise NotFoundError('User not found')
+
+    conn = get_service_connection(target_user_id)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                '''SELECT s.id, s.title, s.goal_id, s.created_at, s.updated_at,
+                          COUNT(m.id) AS message_count,
+                          MAX(m.created_at) AS last_message_at
+                   FROM training.ai_sessions s
+                   LEFT JOIN training.ai_messages m ON m.session_id = s.id
+                   WHERE s.user_id = %s
+                   GROUP BY s.id
+                   ORDER BY s.updated_at DESC NULLS LAST
+                   LIMIT 50''',
+                (target_user_id,)
+            )
+            sessions = [dict(r) for r in cur.fetchall()]
+    finally:
+        conn.close()
+
+    return jsonify({
+        'user': {'id': str(user_row['id']), 'name': user_row['name'], 'email': user_row['email']},
+        'sessions': sessions,
+    })
+
+
+@admin_bp.route('/api/admin/ai-logs/<session_id>', methods=['GET'])
+@jwt_required()
+def get_ai_session_messages(session_id):
+    """Get all messages in an AI session for any user (super_admin only)."""
+    caller_role = _get_role(get_jwt_identity())
+    if caller_role != 'super_admin':
+        abort(403)
+
+    target_user_id = request.args.get('user_id', '').strip()
+    if not target_user_id:
+        return jsonify({'error': 'user_id required'}), 400
+
+    conn = get_service_connection(target_user_id)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                '''SELECT id, title, goal_id, created_at, updated_at
+                   FROM training.ai_sessions
+                   WHERE id = %s AND user_id = %s''',
+                (session_id, target_user_id)
+            )
+            session = cur.fetchone()
+            if not session:
+                return jsonify({'error': 'Session not found'}), 404
+
+            cur.execute(
+                '''SELECT role, content, model, tokens_used, created_at
+                   FROM training.ai_messages
+                   WHERE session_id = %s AND user_id = %s
+                   ORDER BY created_at''',
+                (session_id, target_user_id)
+            )
+            messages = [dict(r) for r in cur.fetchall()]
+    finally:
+        conn.close()
+
+    return jsonify({'session': dict(session), 'messages': messages})
 
 
 @admin_bp.route('/api/admin/translate-descriptions', methods=['POST'])

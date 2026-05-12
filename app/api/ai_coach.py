@@ -452,7 +452,7 @@ def _handle_workout_logs(user_id: str, workout_logs: list) -> list:
                 execute_write(
                     f'UPDATE training.workout_logs SET {set_clause}, updated_at = NOW() WHERE id = %s',
                     list(updates.values()) + [existing['id']]
-                )
+                )  # updated_at added by migration 003
             log.info('AI updated workout log %s for user %s', existing['id'], user_id)
             results.append({'action': 'updated', 'sport': sport, 'date': log_date, **updates})
 
@@ -477,6 +477,8 @@ def _log_food_items(user_id: str, food_items: list, log_date: str) -> list:
         meal_type = item.get('meal_type', 'snack')
         if meal_type not in ('breakfast', 'lunch', 'dinner', 'snack', 'pre_workout', 'post_workout'):
             meal_type = 'snack'
+        # Respect per-item log_date (e.g. "I had pasta yesterday") — fall back to today
+        item_date = item.get('log_date') or log_date
 
         food = _fuzzy_match_food(name)
 
@@ -513,13 +515,14 @@ def _log_food_items(user_id: str, food_items: list, log_date: str) -> list:
                      (user_id, log_date, meal_type, food_id, food_name, amount_g,
                       calories, protein_g, carbs_g, fat_g, fiber_g)
                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
-                (user_id, log_date, meal_type, food['id'], food['name'], amount_g,
+                (user_id, item_date, meal_type, food['id'], food['name'], amount_g,
                  cal, prot, carb, fat, fiber)
             )
             logged.append({
                 'name': food['name'],
                 'amount_g': amount_g,
                 'meal_type': meal_type,
+                'log_date': item_date,
                 'calories': round(cal),
             })
         else:
@@ -529,12 +532,13 @@ def _log_food_items(user_id: str, food_items: list, log_date: str) -> list:
                      (user_id, log_date, meal_type, food_name, amount_g,
                       calories, protein_g, carbs_g, fat_g, fiber_g)
                    VALUES (%s, %s, %s, %s, %s, 0, 0, 0, 0, 0)''',
-                (user_id, log_date, meal_type, name, amount_g)
+                (user_id, item_date, meal_type, name, amount_g)
             )
             logged.append({
                 'name': name,
                 'amount_g': amount_g,
                 'meal_type': meal_type,
+                'log_date': item_date,
                 'calories': 0,
                 'unknown': True,
             })
@@ -669,7 +673,6 @@ def _handle_setup_actions(user_id: str, setup_actions) -> list:
     for action in setup_actions:
         # Apply aliases
         action = {_ALIASES.get(k, k): v for k, v in action.items()}
-        atype = action.get('type')
         atype = action.get('type')
 
         if atype == 'update_profile':
