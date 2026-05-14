@@ -69,6 +69,26 @@ export default function WorkoutCard({ workout, compact = false }) {
   const { t, i18n } = useTranslation('workouts')
   const logged = !!workout.log
 
+  // Standalone synced activity — no linked plan workout, just show the log
+  if (workout.is_unplanned) {
+    return (
+      <div className="rounded-xl border bg-green-50 border-green-200 p-4">
+        <div className="flex items-start gap-3">
+          <SportBadge sport={workout.sport} />
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-gray-900 truncate">{workout.title}</h3>
+            <div className="flex flex-wrap gap-2 mt-0.5">
+              {workout.duration_min && <span className="text-sm text-gray-600">{workout.duration_min} min</span>}
+              {workout.distance_km && <span className="text-sm text-gray-600">{workout.distance_km} km</span>}
+            </div>
+          </div>
+          <span className="text-green-600 text-sm">✓</span>
+        </div>
+        <ActivityLog log={workout.log} plannedMin={null} />
+      </div>
+    )
+  }
+
   if (compact) return (
     <button
       onClick={() => navigate(`/workout/${workout.id}`)}

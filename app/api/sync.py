@@ -72,14 +72,17 @@ def _import_mapped(mapped_list, user_id):
         raw_json = json.dumps(m.get('raw_data', {})) if m.get('raw_data') else None
 
         if existing_log:
-            # Update existing log with latest data
+            # Update existing log with latest data; also re-link workout_id in case
+            # the activity was imported before the plan existed or plan was regenerated.
             execute_write(
                 '''UPDATE training.workout_logs SET
+                     workout_id=%s, sport=%s,
                      actual_duration_min=%s, actual_distance_km=%s, avg_hr=%s, max_hr=%s,
                      avg_power_watts=%s, calories_burned=%s, perceived_effort=%s, notes=%s,
                      raw_data=%s, updated_at=NOW()
                    WHERE id=%s''',
-                (m.get('actual_duration_min'), m.get('actual_distance_km'),
+                (workout_id, m.get('sport'),
+                 m.get('actual_duration_min'), m.get('actual_distance_km'),
                  m.get('avg_hr'), m.get('max_hr'), m.get('avg_power_watts'),
                  m.get('calories_burned'), m.get('perceived_effort'), m.get('notes'),
                  raw_json, str(existing_log['id']))
@@ -87,11 +90,11 @@ def _import_mapped(mapped_list, user_id):
         else:
             execute_write(
                 '''INSERT INTO training.workout_logs
-                     (user_id, workout_id, log_date, source, external_id,
+                     (user_id, workout_id, log_date, source, external_id, sport,
                       actual_duration_min, actual_distance_km, avg_hr, max_hr,
                       avg_power_watts, calories_burned, perceived_effort, notes, raw_data)
-                   VALUES (%s, %s, %s::date, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
-                (user_id, workout_id, m['log_date'], m['source'], m['external_id'],
+                   VALUES (%s, %s, %s::date, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
+                (user_id, workout_id, m['log_date'], m['source'], m['external_id'], m.get('sport'),
                  m.get('actual_duration_min'), m.get('actual_distance_km'),
                  m.get('avg_hr'), m.get('max_hr'), m.get('avg_power_watts'),
                  m.get('calories_burned'), m.get('perceived_effort'), m.get('notes'),

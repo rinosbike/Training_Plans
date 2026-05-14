@@ -1,3 +1,4 @@
+from collections import defaultdict
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.db import execute_query, execute_write, get_db
@@ -186,4 +187,90 @@ def get_plan_days():
     query += ' GROUP BY pd.id, pw.block_type, pw.weekly_hours_target ORDER BY pd.date'
 
     rows = execute_query(query, params)
-    return jsonify([dict(r) for r in rows])
+    plan_days = [dict(r) for r in rows]
+
+    # Also include standalone synced activities (workout_id IS NULL — unmatched to any plan workout).
+    # These appear when today is a rest day, sport/duration didn't match, or no plan covers the date.
+    standalone_sql = '''
+        SELECT id, log_date, source, sport,
+               actual_duration_min, actual_distance_km, avg_hr, max_hr,
+               avg_power_watts, calories_burned, perceived_effort, notes
+        FROM training.workout_logs
+        WHERE user_id = %s AND workout_id IS NULL
+        AND source IN ('strava', 'suunto')
+    '''
+    standalone_params = [user_id]
+    if start:
+        standalone_sql += ' AND log_date >= %s'
+        standalone_params.append(start)
+    if end:
+        standalone_sql += ' AND log_date <= %s'
+        standalone_params.append(end)
+
+    standalone_rows = execute_query(standalone_sql, standalone_params) or []
+
+    if standalone_rows:
+        logs_by_date = defaultdict(list)
+        for log in standalone_rows:
+            logs_by_date[str(log['log_date'])].append(dict(log))
+
+        plan_day_dates = {str(d['date']) for d in plan_days}
+
+        for day in plan_days:
+            date_str = str(day['date'])
+            if date_str in logs_by_date:
+                if day['workouts'] is None:
+                    day['workouts'] = []
+                for log in logs_by_date[date_str]:
+                    day['workouts'].append(_standalone_log_to_workout(log))
+
+        # Create synthetic plan-day entries for dates with synced activities but no plan coverage
+        for date_str, logs in logs_by_date.items():
+            if date_str not in plan_day_dates:
+                plan_days.append({
+                    'id': None,
+                    'plan_id': None,
+                    'user_id': user_id,
+                    'date': date_str,
+                    'day_type': 'easy',
+                    'ai_adjusted': False,
+                    'notes': None,
+                    'block_type': None,
+                    'weekly_hours_target': None,
+                    'workouts': [_standalone_log_to_workout(log) for log in logs],
+                })
+
+        plan_days.sort(key=lambda d: str(d['date']))
+
+    return jsonify(plan_days)
+
+
+def _standalone_log_to_workout(log):
+    """Wrap a workout_log with no plan match into a synthetic workout dict for calendar display."""
+    source = log.get('source') or 'activity'
+    title = log.get('notes') or f'{source.title()} Activity'
+    return {
+        'id': str(log['id']),
+        'sport': log.get('sport') or 'run',
+        'title': title,
+        'title_key': None,
+        'duration_min': log.get('actual_duration_min'),
+        'distance_km': log.get('actual_distance_km'),
+        'intensity_zone': 2,
+        'tss': None,
+        'description': None,
+        'description_translations': None,
+        'is_unplanned': True,
+        'log': {
+            'id': str(log['id']),
+            'source': source,
+            'actual_duration_min': log.get('actual_duration_min'),
+            'actual_distance_km': log.get('actual_distance_km'),
+            'avg_hr': log.get('avg_hr'),
+            'max_hr': log.get('max_hr'),
+            'avg_power_watts': log.get('avg_power_watts'),
+            'calories_burned': log.get('calories_burned'),
+            'perceived_effort': log.get('perceived_effort'),
+            'notes': log.get('notes'),
+        },
+    }

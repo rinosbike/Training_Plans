@@ -55,6 +55,8 @@ export default function Sync() {
     try {
       const { data } = await api.post(`/api/sync/${provider}/run`)
       qc.invalidateQueries(['sync-status'])
+      // Invalidate calendar data so Dashboard reflects newly imported activities
+      qc.invalidateQueries({ predicate: q => q.queryKey[0] === 'plan-days' })
       toast.success(t('syncSuccess', { count: data.imported, provider }))
     } catch (e) {
       toast.error(e.response?.data?.error || t('syncFailed', { provider }))
