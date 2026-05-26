@@ -262,7 +262,11 @@ def strava_webhook_push():
     if not token_row:
         return jsonify({'status': 'user_not_found'}), 200
 
-    user_id       = str(token_row['user_id'])
+    user_id = str(token_row['user_id'])
+    # Set DB user context so RLS-protected tables (workout_logs, sync_log) allow writes
+    g.user_id = user_id
+    set_user_context(user_id)
+
     client_id     = get_credential('strava', 'client_id') or current_app.config.get('STRAVA_CLIENT_ID', '')
     client_secret = get_credential('strava', 'client_secret') or current_app.config.get('STRAVA_CLIENT_SECRET', '')
     try:
@@ -271,10 +275,11 @@ def strava_webhook_push():
             _upsert_token(user_id, 'strava', refreshed)
         activity = strava_svc.fetch_activity_detail(access_token, activity_id)
         mapped   = strava_svc.map_activity(activity)
-        _import_mapped([mapped], user_id)
-        _upsert_log(user_id, 'strava', 1, 'success')
+        imported = _import_mapped([mapped], user_id)
+        _upsert_log(user_id, 'strava', imported, 'success')
     except Exception as e:
         log.error('Strava webhook import error: %s', e)
+        return jsonify({'status': 'error'}), 500
     return jsonify({'status': 'ok'}), 200
 
 
@@ -395,7 +400,11 @@ def suunto_webhook_push():
     if not token_row or not workout_key:
         return jsonify({'status': 'ignored'}), 200
 
-    user_id       = str(token_row['user_id'])
+    user_id = str(token_row['user_id'])
+    # Set DB user context so RLS-protected tables (workout_logs, sync_log) allow writes
+    g.user_id = user_id
+    set_user_context(user_id)
+
     client_id     = get_credential('suunto', 'client_id') or current_app.config.get('SUUNTO_CLIENT_ID', '')
     client_secret = get_credential('suunto', 'client_secret') or current_app.config.get('SUUNTO_CLIENT_SECRET', '')
     sub_key       = get_credential('suunto', 'subscription_key') or current_app.config.get('SUUNTO_SUBSCRIPTION_KEY', '')
@@ -405,10 +414,11 @@ def suunto_webhook_push():
             _upsert_token(user_id, 'suunto', refreshed)
         workout = suunto_svc.fetch_workout_detail(access_token, sub_key, workout_key)
         mapped  = suunto_svc.map_workout(workout)
-        _import_mapped([mapped], user_id)
-        _upsert_log(user_id, 'suunto', 1, 'success')
+        imported = _import_mapped([mapped], user_id)
+        _upsert_log(user_id, 'suunto', imported, 'success')
     except Exception as e:
         log.error('Suunto webhook error: %s', e)
+        return jsonify({'status': 'error'}), 500
     return jsonify({'status': 'ok'}), 200
 
 
