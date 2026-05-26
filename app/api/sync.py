@@ -254,9 +254,11 @@ def strava_webhook_push():
     activity_id = data.get('object_id')
     owner_id    = str(data.get('owner_id', ''))
 
-    # Find user by Strava provider_user_id
+    # Find user by Strava provider_user_id via SECURITY DEFINER function
+    # (bypasses RLS bootstrap — webhook requests carry no JWT so
+    #  training.current_user_id is unset when the connection is first opened)
     token_row = execute_query(
-        "SELECT * FROM training.sync_tokens WHERE provider='strava' AND provider_user_id=%s",
+        "SELECT * FROM training.find_sync_token_by_provider('strava', %s)",
         (owner_id,), fetch_one=True
     )
     if not token_row:
@@ -394,7 +396,7 @@ def suunto_webhook_push():
     owner_token = data.get('username') or data.get('userId', '')
 
     token_row = execute_query(
-        "SELECT * FROM training.sync_tokens WHERE provider='suunto' AND provider_user_id=%s",
+        "SELECT * FROM training.find_sync_token_by_provider('suunto', %s)",
         (str(owner_token),), fetch_one=True
     )
     if not token_row or not workout_key:
