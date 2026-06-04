@@ -1,9 +1,10 @@
 """
 Training load computation: ATL (Acute), CTL (Chronic), TSB (Form).
-ATL = 7-day exponential weighted moving average of daily TSS
-CTL = 42-day exponential weighted moving average of daily TSS
+ATL = 7-day Banister impulse-response model  (k = 1 - exp(-1/7))
+CTL = 42-day Banister impulse-response model (k = 1 - exp(-1/42))
 TSB = CTL - ATL (positive = fresh, negative = fatigued)
 """
+import math
 from datetime import date, timedelta
 from app.db import execute_query, execute_write
 
@@ -15,10 +16,10 @@ def compute_load_for_user(user_id: str, from_date: date = None):
     rows = execute_query(
         '''SELECT log_date::date as d, COALESCE(SUM(
                CASE WHEN w.tss IS NOT NULL THEN w.tss
-                    ELSE COALESCE(wl.actual_duration_min, w.duration_min, 0) *
+                    ELSE (COALESCE(wl.actual_duration_min, w.duration_min, 0) / 60.0) * 100.0 *
                          POWER(CASE w.intensity_zone
                                WHEN 1 THEN 0.55 WHEN 2 THEN 0.75 WHEN 3 THEN 0.90
-                               WHEN 4 THEN 1.05 ELSE 1.15 END, 2)
+                               WHEN 4 THEN 1.05 WHEN 5 THEN 1.15 ELSE 0.75 END, 2)
                END), 0)::float as daily_tss
            FROM training.workout_logs wl
            LEFT JOIN training.workouts w ON w.id = wl.workout_id
@@ -30,8 +31,8 @@ def compute_load_for_user(user_id: str, from_date: date = None):
     tss_map = {str(r['d']): float(r['daily_tss']) for r in rows}
 
     atl, ctl = 0.0, 0.0
-    k_atl = 2 / (7 + 1)
-    k_ctl = 2 / (42 + 1)
+    k_atl = 1 - math.exp(-1 / 7)
+    k_ctl = 1 - math.exp(-1 / 42)
 
     current = from_date
     end = date.today()
