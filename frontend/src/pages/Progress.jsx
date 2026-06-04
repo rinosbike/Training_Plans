@@ -7,19 +7,19 @@ import api from '../services/api'
 import BottomNav from '../components/BottomNav'
 
 const ZONE_ROWS = [
-  { z: 'Z1', factor: '0.55', tss: '~18' },
-  { z: 'Z2', factor: '0.75', tss: '~34' },
-  { z: 'Z3', factor: '0.90', tss: '~49' },
-  { z: 'Z4', factor: '1.05', tss: '~66' },
-  { z: 'Z5', factor: '1.15', tss: '~79' },
+  { z: 'Z1', factor: '0.55', tss: '~30'  },
+  { z: 'Z2', factor: '0.75', tss: '~56'  },
+  { z: 'Z3', factor: '0.90', tss: '~81'  },
+  { z: 'Z4', factor: '1.05', tss: '~110' },
+  { z: 'Z5', factor: '1.15', tss: '~132' },
 ]
 
 const TSB_RANGES = [
   { range: '> +25',       key: 'tsbVeryFresh', bg: 'bg-blue-50  text-blue-800'   },
   { range: '+5 → +25',   key: 'tsbFresh',     bg: 'bg-green-50 text-green-800'  },
   { range: '−10 → +5',   key: 'tsbNormal',    bg: 'bg-gray-50  text-gray-700'   },
-  { range: '−20 → −10',  key: 'tsbTired',     bg: 'bg-orange-50 text-orange-800'},
-  { range: '< −20',       key: 'tsbRisk',      bg: 'bg-red-50   text-red-800'    },
+  { range: '−30 → −10',  key: 'tsbTired',     bg: 'bg-orange-50 text-orange-800'},
+  { range: '< −30',       key: 'tsbRisk',      bg: 'bg-red-50   text-red-800'    },
 ]
 
 function LoadExplainer() {
@@ -44,7 +44,7 @@ function LoadExplainer() {
             <p className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-1.5">{t('tssTitle')}</p>
             <p className="text-xs text-gray-600 leading-relaxed mb-2">{t('tssDesc')}</p>
             <div className="bg-gray-50 rounded-xl p-3 font-mono text-xs space-y-2">
-              <p className="text-gray-800 font-semibold">TSS = duration_min × zone_factor²</p>
+              <p className="text-gray-800 font-semibold">TSS = (duration_min / 60) × 100 × zone_factor²</p>
               <div className="pt-1 space-y-1">
                 {ZONE_ROWS.map(r => (
                   <div key={r.z} className="flex items-center gap-2 text-gray-600">
@@ -143,19 +143,17 @@ function tsbTier(tsb, t) {
   if (tsb >  25) return { ...S.sky,    label: t('tsbVeryFresh') }
   if (tsb >   5) return { ...S.green,  label: t('tsbFresh')     }
   if (tsb > -10) return { ...S.gray,   label: t('tsbNormal')    }
-  if (tsb > -20) return { ...S.orange, label: t('tsbTired')     }
+  if (tsb > -30) return { ...S.orange, label: t('tsbTired')     }
   return          { ...S.red,    label: t('tsbRisk')      }
 }
 
 function loadSummary(ctl, atl, tsb, t) {
-  const ratio = ctl > 0 ? atl / ctl : null
-  if (tsb < -20)          return { text: t('summaryRed'),    warnings: t('warningRed'),    urgency: 'red'    }
-  if (tsb < -10 && ratio > 1.3)
-                           return { text: t('summaryOrange'), warnings: t('warningOrange'), urgency: 'orange' }
-  if (tsb < -10)           return { text: t('summaryYellow'), warnings: null,               urgency: 'yellow' }
-  if (tsb > 25)            return { text: t('summaryBlue'),   warnings: null,               urgency: 'blue'   }
-  if (tsb > 5)             return { text: t('summaryFresh'),  warnings: null,               urgency: 'green'  }
-  return                          { text: t('summaryNormal'), warnings: null,               urgency: 'green'  }
+  if (tsb < -30) return { text: t('summaryRed'),    warnings: t('warningRed'),    urgency: 'red'    }
+  if (tsb < -20) return { text: t('summaryOrange'), warnings: t('warningOrange'), urgency: 'orange' }
+  if (tsb < -10) return { text: t('summaryYellow'), warnings: null,               urgency: 'yellow' }
+  if (tsb > 25)  return { text: t('summaryBlue'),   warnings: null,               urgency: 'blue'   }
+  if (tsb > 5)   return { text: t('summaryFresh'),  warnings: null,               urgency: 'green'  }
+  return                { text: t('summaryNormal'), warnings: null,               urgency: 'green'  }
 }
 
 function LoadInterpretation({ ctl, atl, tsb }) {
@@ -254,7 +252,7 @@ export default function Progress() {
     if (v > 25)  return { text: 'text-blue-600',  bg: 'bg-blue-50'  }
     if (v > 5)   return { text: 'text-green-600', bg: 'bg-green-50' }
     if (v > -10) return { text: 'text-gray-600',  bg: 'bg-gray-50'  }
-    if (v > -20) return { text: 'text-orange-600',bg: 'bg-orange-50'}
+    if (v > -30) return { text: 'text-orange-600',bg: 'bg-orange-50'}
     return         { text: 'text-red-600',         bg: 'bg-red-50'   }
   }
 
