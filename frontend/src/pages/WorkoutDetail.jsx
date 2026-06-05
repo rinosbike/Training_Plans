@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import {
   AreaChart, Area, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
-  ResponsiveContainer, Cell, ComposedChart, Line,
+  ResponsiveContainer, Cell, ComposedChart, Line, Brush,
 } from 'recharts'
 import { MapContainer, TileLayer, Polyline, CircleMarker, useMap } from 'react-leaflet'
 import api from '../services/api'
@@ -62,6 +62,14 @@ function fmtTimeSec(sec) {
 
 function isRunSport(sportType) {
   return /run|walk|hike/i.test(sportType || '')
+}
+
+// Returns bar bin size (km per bar) based on how many splits an activity has
+function getBinSize(numSplits) {
+  if (numSplits <= 20) return 1
+  if (numSplits <= 50) return 2
+  if (numSplits <= 100) return 5
+  return 10
 }
 
 function hrZoneIndex(bpm, maxHr) {
@@ -220,7 +228,7 @@ function RouteMap({ polyline, activityId }) {
         ))}
       </div>
 
-      <div className="rounded-2xl overflow-hidden border border-gray-100" style={{ height: 260 }}>
+      <div className="rounded-2xl overflow-hidden border border-gray-100 h-[260px] sm:h-[340px] lg:h-[400px]">
         <MapContainer
           center={start}
           zoom={13}
@@ -397,7 +405,7 @@ function HRStreamChart({ streams, maxHr, avgHr }) {
               stroke={z.color}
               strokeDasharray="4 3"
               strokeWidth={1.2}
-              label={{ value: z.bpm, position: 'right', fontSize: 9, fill: '#6b7280', offset: 4 }}
+              label={{ value: `${z.bpm}`, position: 'insideTopRight', fontSize: 9, fill: '#6b7280', dy: -3 }}
             />
           ))}
           <Area
@@ -410,6 +418,16 @@ function HRStreamChart({ streams, maxHr, avgHr }) {
             activeDot={{ r: 3, fill: '#ef4444' }}
             isAnimationActive={false}
           />
+          {data.length > 300 && (
+            <Brush
+              dataKey={xKey}
+              height={20}
+              travellerWidth={8}
+              stroke="#e5e7eb"
+              fill="#f9fafb"
+              tickFormatter={xFormatter}
+            />
+          )}
         </AreaChart>
       </ResponsiveContainer>
     </div>
@@ -431,7 +449,7 @@ function PaceBarChart({ splits, sportType, showTableToggle }) {
   const minSpd = Math.min(...speeds)
   const maxSpd = Math.max(...speeds)
 
-  const data = splits.map((s, i) => {
+  const rawData = splits.map((s, i) => {
     const speed  = s.average_speed || 0
     const relSpd = speeds.length > 1 && maxSpd > minSpd
       ? (speed - minSpd) / (maxSpd - minSpd) : 0.5
@@ -448,6 +466,29 @@ function PaceBarChart({ splits, sportType, showTableToggle }) {
       gap:    s.average_grade_adjusted_speed,
     }
   })
+
+  const binSize = getBinSize(splits.length)
+  const data = binSize === 1 ? rawData : (() => {
+    const out = []
+    for (let i = 0; i < rawData.length; i += binSize) {
+      const group = rawData.slice(i, Math.min(i + binSize, rawData.length))
+      const avgSpd = group.reduce((s, d) => s + d.speed, 0) / group.length
+      const validHr = group.map(d => d.hr).filter(Boolean)
+      const avgHr = validHr.length ? Math.round(validHr.reduce((a, b) => a + b, 0) / validHr.length) : null
+      const relSpd = maxSpd > minSpd ? (avgSpd - minSpd) / (maxSpd - minSpd) : 0.5
+      const km1 = splits[i]?.split ?? i + 1
+      const km2 = splits[Math.min(i + binSize - 1, splits.length - 1)]?.split ?? km1
+      out.push({
+        km:    `${km1}–${km2}`,
+        speed: avgSpd,
+        hr:    avgHr,
+        elev:  group.reduce((s, d) => s + (d.elev || 0), 0),
+        relSpd,
+        gap:   null,
+      })
+    }
+    return out
+  })()
 
   const barColor = (rel) => {
     if (rel > 0.66) return '#16a34a'
@@ -487,14 +528,15 @@ function PaceBarChart({ splits, sportType, showTableToggle }) {
         )}
       </div>
 
-      <ResponsiveContainer width="100%" height={160}>
-        <ComposedChart data={data} margin={{ top: 4, right: hasHr ? 8 : 4, left: -8, bottom: 0 }}>
+      <ResponsiveContainer width="100%" height={data.length > 30 ? 180 : 160}>
+        <ComposedChart data={data} margin={{ top: 4, right: hasHr ? 8 : 4, left: -8, bottom: data.length > 15 ? 16 : 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
           <XAxis
             dataKey="km"
-            tick={{ fontSize: 10, fill: '#9ca3af' }}
+            tick={{ fontSize: data.length > 20 ? 8 : 10, fill: '#9ca3af', angle: data.length > 20 ? -45 : 0, textAnchor: data.length > 20 ? 'end' : 'middle', dy: data.length > 20 ? 4 : 0 }}
             tickLine={false}
             axisLine={false}
+            interval={data.length > 40 ? 1 : 0}
           />
           <YAxis
             yAxisId="spd"
@@ -672,6 +714,20 @@ function CadenceChart({ streams, splits, isRun }) {
 
   if (data.length === 0) return null
 
+  // Adaptive binning for long activities
+  const cadBinSize = getBinSize(data.length)
+  if (cadBinSize > 1) {
+    const binned = []
+    for (let i = 0; i < data.length; i += cadBinSize) {
+      const group = data.slice(i, Math.min(i + cadBinSize, data.length))
+      const avgSpm = Math.round(group.reduce((s, d) => s + d.spm, 0) / group.length)
+      const km1 = data[i].km
+      const km2 = data[Math.min(i + cadBinSize - 1, data.length - 1)].km
+      binned.push({ km: `${km1}–${km2}`, spm: avgSpm })
+    }
+    data = binned
+  }
+
   const unit  = isRun ? 'spm' : 'rpm'
   const svals = data.map(d => d.spm).filter(Boolean)
   const minS  = Math.min(...svals) - 5
@@ -694,14 +750,15 @@ function CadenceChart({ streams, splits, isRun }) {
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('strava.extras.cadence')}</p>
         <p className="text-xs text-gray-400 mt-0.5">{t('strava.charts.avg', { val: avgS, unit })}</p>
       </div>
-      <ResponsiveContainer width="100%" height={140}>
-        <ComposedChart data={data} margin={{ top: 4, right: 8, left: -8, bottom: 0 }}>
+      <ResponsiveContainer width="100%" height={data.length > 30 ? 160 : 140}>
+        <ComposedChart data={data} margin={{ top: 4, right: 8, left: -8, bottom: data.length > 15 ? 16 : 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
           <XAxis
             dataKey="km"
-            tick={{ fontSize: 10, fill: '#9ca3af' }}
+            tick={{ fontSize: data.length > 20 ? 8 : 10, fill: '#9ca3af', angle: data.length > 20 ? -45 : 0, textAnchor: data.length > 20 ? 'end' : 'middle', dy: data.length > 20 ? 4 : 0 }}
             tickLine={false}
             axisLine={false}
+            interval={data.length > 40 ? 1 : 0}
           />
           <YAxis
             domain={[minS, maxS]}
@@ -913,7 +970,7 @@ function StravaAnalysis({ workoutId, sport, maxHr }) {
 
         {/* Summary stats */}
         {extras.length > 0 && (
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
             {extras.map(e => (
               <div key={e.label} className="bg-gray-50 rounded-xl p-2.5 text-center">
                 <p className="text-sm font-bold text-gray-900">{e.value}</p>
@@ -1025,7 +1082,7 @@ export default function WorkoutDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-6">
-      <div className="bg-white border-b border-gray-200 px-4 pt-12 pb-4">
+      <div className="bg-white border-b border-gray-200 px-4 lg:px-6 pt-12 pb-4">
         <button onClick={() => navigate(-1)} className="text-primary-600 text-sm font-medium mb-2">
           {tc('back')}
         </button>
@@ -1047,7 +1104,7 @@ export default function WorkoutDetail() {
         </div>
       </div>
 
-      <div className="px-4 mt-4 space-y-4">
+      <div className="px-4 lg:px-6 mt-4 space-y-4 max-w-5xl mx-auto">
         {/* Planned */}
         <div className="bg-white rounded-2xl border border-gray-100 p-4">
           <h2 className="font-semibold text-gray-900 mb-3">{t('planned')}</h2>
