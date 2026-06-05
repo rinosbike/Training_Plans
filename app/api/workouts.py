@@ -170,8 +170,21 @@ def strava_analysis(workout_id):
                 (refreshed.get('access_token'), refreshed.get('refresh_token'), expires_at, user_id)
             )
 
-        detail = strava_svc.fetch_activity_detail(access_token, activity_id)
-        zones  = strava_svc.fetch_activity_zones(access_token, activity_id)
+        detail       = strava_svc.fetch_activity_detail(access_token, activity_id)
+        zones        = strava_svc.fetch_activity_zones(access_token, activity_id)
+        streams_raw  = strava_svc.fetch_activity_streams(access_token, activity_id)
+
+        def _downsample(arr, max_pts=500):
+            if not arr or len(arr) <= max_pts:
+                return arr
+            step = max(1, len(arr) // max_pts)
+            return arr[::step]
+
+        streams = {
+            key: _downsample(streams_raw[key]['data'])
+            for key in ('heartrate', 'time', 'distance', 'altitude', 'cadence')
+            if key in streams_raw
+        }
 
         return jsonify({
             'activity_id':            activity_id,
@@ -195,6 +208,7 @@ def strava_analysis(workout_id):
             'kudos_count':            detail.get('kudos_count', 0),
             'average_temp':           detail.get('average_temp'),
             'map_polyline':           detail.get('map', {}).get('summary_polyline'),
+            'streams':                streams,
         })
     except Exception as e:
         import logging

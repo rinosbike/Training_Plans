@@ -155,6 +155,24 @@ def fetch_activity_zones(access_token: str, activity_id) -> list:
     return resp.json()
 
 
+def fetch_activity_streams(
+    access_token: str,
+    activity_id,
+    keys: str = 'heartrate,time,distance,altitude,cadence',
+) -> dict:
+    """Fetch time-series streams for a single activity (keyed by type)."""
+    resp = requests.get(
+        f"{STRAVA_API_BASE}/activities/{activity_id}/streams",
+        headers={'Authorization': f'Bearer {access_token}'},
+        params={'keys': keys, 'key_by_type': 'true'},
+        timeout=20,
+    )
+    if resp.status_code in (403, 404):
+        return {}
+    resp.raise_for_status()
+    return resp.json()
+
+
 # ---------------------------------------------------------------------------
 # Data mapping
 # ---------------------------------------------------------------------------

@@ -1,13 +1,22 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import {
+  AreaChart, Area, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
+  ResponsiveContainer, Cell, ComposedChart, Line,
+} from 'recharts'
+import { MapContainer, TileLayer, Polyline, CircleMarker, useMap } from 'react-leaflet'
 import api from '../services/api'
 import { SportBadge } from '../components/workout/SportIcon'
 import toast from 'react-hot-toast'
 
 const ZONE_COLORS = ['bg-blue-300', 'bg-green-300', 'bg-yellow-300', 'bg-orange-400', 'bg-red-500']
 const ZONE_TEXT   = ['text-blue-800', 'text-green-800', 'text-yellow-800', 'text-orange-800', 'text-red-700']
+
+// Zone color scales used in charts (hex for Recharts)
+const ZONE_HEX = ['#93c5fd', '#86efac', '#fde047', '#fb923c', '#ef4444']
 
 const HR_ZONES = [
   { z: 1, pct: [0.50, 0.60], bar: 'bg-green-200',   text: 'text-green-900',   border: 'border-green-200' },
@@ -43,8 +52,26 @@ function fmtDuration(sec) {
   return `${m}:${String(s).padStart(2,'0')}`
 }
 
+function fmtTimeSec(sec) {
+  const h = Math.floor(sec / 3600)
+  const m = Math.floor((sec % 3600) / 60)
+  const s = sec % 60
+  if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+  return `${m}:${String(s).padStart(2,'0')}`
+}
+
 function isRunSport(sportType) {
   return /run|walk|hike/i.test(sportType || '')
+}
+
+function hrZoneIndex(bpm, maxHr) {
+  if (!bpm || !maxHr) return -1
+  const pct = bpm / maxHr
+  if (pct >= 0.90) return 4
+  if (pct >= 0.80) return 3
+  if (pct >= 0.70) return 2
+  if (pct >= 0.60) return 1
+  return 0
 }
 
 // ---------------------------------------------------------------------------
@@ -89,6 +116,79 @@ function HRZones({ maxHr, activeZone }) {
 }
 
 // ---------------------------------------------------------------------------
+// Polyline decoder (Google Encoded Polyline Algorithm)
+// ---------------------------------------------------------------------------
+
+function decodePolyline(encoded) {
+  const coords = []
+  let index = 0, lat = 0, lng = 0
+  while (index < encoded.length) {
+    let shift = 0, result = 0, b
+    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5 } while (b >= 0x20)
+    lat += result & 1 ? ~(result >> 1) : result >> 1
+    shift = 0; result = 0
+    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5 } while (b >= 0x20)
+    lng += result & 1 ? ~(result >> 1) : result >> 1
+    coords.push([lat * 1e-5, lng * 1e-5])
+  }
+  return coords
+}
+
+// Auto-fit map bounds to the polyline
+function FitBounds({ positions }) {
+  const map = useMap()
+  useEffect(() => {
+    if (positions.length > 0) map.fitBounds(positions, { padding: [16, 16] })
+  }, [map, positions])
+  return null
+}
+
+// ---------------------------------------------------------------------------
+// Route map
+// ---------------------------------------------------------------------------
+
+function RouteMap({ polyline, activityId }) {
+  if (!polyline) return null
+  const positions = decodePolyline(polyline)
+  if (positions.length < 2) return null
+
+  const start = positions[0]
+  const end   = positions[positions.length - 1]
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Route</p>
+        <a
+          href={`https://www.strava.com/activities/${activityId}`}
+          target="_blank" rel="noopener noreferrer"
+          className="text-[10px] text-orange-500 font-medium"
+        >
+          View on Strava ↗
+        </a>
+      </div>
+      <div className="rounded-2xl overflow-hidden border border-gray-100" style={{ height: 220 }}>
+        <MapContainer
+          center={start}
+          zoom={13}
+          style={{ height: '100%', width: '100%' }}
+          zoomControl={false}
+          attributionControl={false}
+        >
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <Polyline positions={positions} color="#ef4444" weight={3} opacity={0.85} />
+          {/* Start marker */}
+          <CircleMarker center={start} color="#16a34a" fillColor="#16a34a" fillOpacity={1} radius={5} weight={2} />
+          {/* End marker */}
+          <CircleMarker center={end} color="#ef4444" fillColor="#ef4444" fillOpacity={1} radius={5} weight={2} />
+          <FitBounds positions={positions} />
+        </MapContainer>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Strava Analysis sub-components
 // ---------------------------------------------------------------------------
 
@@ -127,16 +227,460 @@ function ZoneBar({ label, buckets, unit }) {
   )
 }
 
+// ---------------------------------------------------------------------------
+// HR Stream Chart — continuous HR over time with zone reference lines
+// ---------------------------------------------------------------------------
+
+function HRStreamChart({ streams, maxHr, avgHr }) {
+  const [xMode, setXMode] = useState('time') // 'time' | 'distance'
+
+  const hr   = streams?.heartrate
+  const time = streams?.time
+  const dist = streams?.distance
+
+  if (!hr || hr.length === 0) return null
+
+  const data = hr.map((bpm, i) => ({
+    bpm,
+    t:   time?.[i] ?? i,
+    d:   dist?.[i] != null ? +(dist[i] / 1000).toFixed(2) : i,
+  }))
+
+  const minBpm = Math.max(40, Math.min(...hr) - 10)
+  const maxBpm = Math.max(...hr) + 5
+
+  const zoneBoundaries = maxHr
+    ? [0.60, 0.70, 0.80, 0.90].map((pct, i) => ({
+        bpm: Math.round(pct * maxHr),
+        label: `Z${i + 2}`,
+        color: ZONE_HEX[i + 1],
+      }))
+    : []
+
+  const xKey     = xMode === 'time' ? 't' : 'd'
+  const xFormatter = xMode === 'time'
+    ? (v) => fmtTimeSec(v)
+    : (v) => `${v} km`
+
+  // Gradient stops: map each zone boundary to a y-axis percentage
+  // SVG linearGradient y=0% = top (maxBpm), y=100% = bottom (minBpm)
+  const range = maxBpm - minBpm
+  const gradientStops = maxHr ? [
+    { offset: '0%',   color: ZONE_HEX[4], opacity: 0.85 },
+    { offset: `${Math.max(0, ((maxBpm - Math.round(0.90 * maxHr)) / range) * 100).toFixed(1)}%`, color: ZONE_HEX[4], opacity: 0.75 },
+    { offset: `${Math.max(0, ((maxBpm - Math.round(0.80 * maxHr)) / range) * 100).toFixed(1)}%`, color: ZONE_HEX[3], opacity: 0.70 },
+    { offset: `${Math.max(0, ((maxBpm - Math.round(0.70 * maxHr)) / range) * 100).toFixed(1)}%`, color: ZONE_HEX[2], opacity: 0.65 },
+    { offset: `${Math.max(0, ((maxBpm - Math.round(0.60 * maxHr)) / range) * 100).toFixed(1)}%`, color: ZONE_HEX[1], opacity: 0.55 },
+    { offset: '100%', color: ZONE_HEX[0], opacity: 0.40 },
+  ] : [
+    { offset: '0%',   color: '#ef4444', opacity: 0.7 },
+    { offset: '100%', color: '#fca5a5', opacity: 0.3 },
+  ]
+
+  const CustomTooltip = ({ active, payload }) => {
+    if (!active || !payload?.[0]) return null
+    const { bpm, t, d } = payload[0].payload
+    const zi = hrZoneIndex(bpm, maxHr)
+    return (
+      <div className="bg-white border border-gray-200 rounded-xl shadow-md px-3 py-2 text-xs">
+        <p className="font-bold text-gray-900">{bpm} bpm{zi >= 0 && <span className="ml-1.5 font-normal text-gray-500">Z{zi + 1}</span>}</p>
+        {xMode === 'time' ? <p className="text-gray-500">{fmtTimeSec(t)}</p> : <p className="text-gray-500">{d} km</p>}
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Heart Rate</p>
+          {avgHr && <p className="text-xs text-gray-400 mt-0.5">Avg {avgHr} bpm</p>}
+        </div>
+        <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
+          <button
+            onClick={() => setXMode('time')}
+            className={`text-[10px] px-2 py-1 rounded-md font-medium transition-colors ${xMode === 'time' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'}`}
+          >
+            Time
+          </button>
+          <button
+            onClick={() => setXMode('distance')}
+            className={`text-[10px] px-2 py-1 rounded-md font-medium transition-colors ${xMode === 'distance' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'}`}
+          >
+            Distance
+          </button>
+        </div>
+      </div>
+      <ResponsiveContainer width="100%" height={200}>
+        <AreaChart data={data} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
+          <defs>
+            <linearGradient id="hrGradient" x1="0" y1="0" x2="0" y2="1">
+              {gradientStops.map((s, i) => (
+                <stop key={i} offset={s.offset} stopColor={s.color} stopOpacity={s.opacity} />
+              ))}
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+          <XAxis
+            dataKey={xKey}
+            tickFormatter={xFormatter}
+            tick={{ fontSize: 10, fill: '#9ca3af' }}
+            tickLine={false}
+            axisLine={false}
+            interval="preserveStartEnd"
+            minTickGap={50}
+          />
+          <YAxis
+            domain={[minBpm, maxBpm]}
+            tick={{ fontSize: 10, fill: '#9ca3af' }}
+            tickLine={false}
+            axisLine={false}
+            width={36}
+          />
+          <Tooltip content={<CustomTooltip />} />
+          {zoneBoundaries.map(z => (
+            <ReferenceLine
+              key={z.bpm}
+              y={z.bpm}
+              stroke={z.color}
+              strokeDasharray="4 3"
+              strokeWidth={1.2}
+              label={{ value: z.bpm, position: 'right', fontSize: 9, fill: '#6b7280', offset: 4 }}
+            />
+          ))}
+          <Area
+            type="monotone"
+            dataKey="bpm"
+            stroke="#ef4444"
+            strokeWidth={1.5}
+            fill="url(#hrGradient)"
+            dot={false}
+            activeDot={{ r: 3, fill: '#ef4444' }}
+            isAnimationActive={false}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Pace bar chart per km with HR overlay
+// ---------------------------------------------------------------------------
+
+function PaceBarChart({ splits, sportType, maxHr, showTableToggle }) {
+  const [showTable, setShowTable] = useState(false)
+  const { t } = useTranslation('workouts')
+  const isRun = isRunSport(sportType)
+
+  if (!splits || splits.length === 0) return null
+
+  const speeds = splits.map(x => x.average_speed || 0).filter(Boolean)
+  const minSpd = Math.min(...speeds)
+  const maxSpd = Math.max(...speeds)
+
+  const data = splits.map((s, i) => {
+    const speed  = s.average_speed || 0
+    const relSpd = speeds.length > 1 && maxSpd > minSpd
+      ? (speed - minSpd) / (maxSpd - minSpd) : 0.5
+    const isLast = i === splits.length - 1
+    const label  = isLast && s.distance < 950
+      ? `${(s.distance / 1000).toFixed(2)}`
+      : `${s.split}`
+    return {
+      km:     label,
+      speed,
+      hr:     s.average_heartrate ? Math.round(s.average_heartrate) : null,
+      elev:   s.elevation_difference,
+      relSpd,
+      gap:    s.average_grade_adjusted_speed,
+    }
+  })
+
+  const barColor = (rel) => {
+    if (rel > 0.66) return '#16a34a'
+    if (rel > 0.33) return '#ca8a04'
+    return '#dc2626'
+  }
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (!active || !payload?.[0]) return null
+    const d = payload[0].payload
+    return (
+      <div className="bg-white border border-gray-200 rounded-xl shadow-md px-3 py-2 text-xs space-y-0.5">
+        <p className="font-bold text-gray-900">km {label}</p>
+        <p className="text-gray-700">{isRun ? `Pace: ${fmtPace(d.speed)}` : `Speed: ${fmtSpeed(d.speed)}`}</p>
+        {d.hr && <p className="text-rose-600">HR: {d.hr} bpm</p>}
+        {d.elev != null && <p className={d.elev > 0 ? 'text-orange-600' : 'text-blue-500'}>{d.elev > 0 ? '+' : ''}{Math.round(d.elev)} m</p>}
+        {isRun && d.gap && <p className="text-gray-400">GAP: {fmtPace(d.gap)}</p>}
+      </div>
+    )
+  }
+
+  const hasHr = data.some(d => d.hr)
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+          {isRun ? 'Pace per km' : 'Speed per km'}
+        </p>
+        {showTableToggle && (
+          <button
+            onClick={() => setShowTable(p => !p)}
+            className="text-[10px] text-primary-600 font-medium"
+          >
+            {showTable ? 'Hide table' : 'Show table'}
+          </button>
+        )}
+      </div>
+
+      <ResponsiveContainer width="100%" height={160}>
+        <ComposedChart data={data} margin={{ top: 4, right: hasHr ? 8 : 4, left: -24, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+          <XAxis
+            dataKey="km"
+            tick={{ fontSize: 10, fill: '#9ca3af' }}
+            tickLine={false}
+            axisLine={false}
+          />
+          <YAxis
+            yAxisId="spd"
+            domain={[minSpd * 0.92, maxSpd * 1.05]}
+            tick={{ fontSize: 10, fill: '#9ca3af' }}
+            tickLine={false}
+            axisLine={false}
+            width={36}
+            tickFormatter={v => isRun ? fmtPace(v) : `${(v * 3.6).toFixed(0)}`}
+          />
+          {hasHr && (
+            <YAxis
+              yAxisId="hr"
+              orientation="right"
+              domain={['auto', 'auto']}
+              tick={{ fontSize: 10, fill: '#fca5a5' }}
+              tickLine={false}
+              axisLine={false}
+              width={28}
+            />
+          )}
+          <Tooltip content={<CustomTooltip />} />
+          <Bar yAxisId="spd" dataKey="speed" radius={[3, 3, 0, 0]} maxBarSize={32} isAnimationActive={false}>
+            {data.map((d, i) => (
+              <Cell key={i} fill={barColor(d.relSpd)} fillOpacity={0.85} />
+            ))}
+          </Bar>
+          {hasHr && (
+            <Line
+              yAxisId="hr"
+              type="monotone"
+              dataKey="hr"
+              stroke="#ef4444"
+              strokeWidth={1.5}
+              dot={{ r: 2.5, fill: '#ef4444', strokeWidth: 0 }}
+              activeDot={{ r: 4 }}
+              isAnimationActive={false}
+            />
+          )}
+        </ComposedChart>
+      </ResponsiveContainer>
+
+      {showTable && <SplitsTable splits={splits} sportType={sportType} />}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Elevation profile
+// ---------------------------------------------------------------------------
+
+function ElevationChart({ streams }) {
+  const alt  = streams?.altitude
+  const dist = streams?.distance
+
+  if (!alt || alt.length === 0) return null
+
+  const data = alt.map((m, i) => ({
+    alt: Math.round(m),
+    d:   dist?.[i] != null ? +(dist[i] / 1000).toFixed(2) : i,
+  }))
+
+  const minAlt = Math.min(...alt)
+  const maxAlt = Math.max(...alt)
+  const range  = maxAlt - minAlt
+
+  const CustomTooltip = ({ active, payload }) => {
+    if (!active || !payload?.[0]) return null
+    const { alt: a, d } = payload[0].payload
+    return (
+      <div className="bg-white border border-gray-200 rounded-xl shadow-md px-3 py-2 text-xs">
+        <p className="font-bold text-gray-900">{a} m</p>
+        <p className="text-gray-500">{d} km</p>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Elevation</p>
+      <ResponsiveContainer width="100%" height={110}>
+        <AreaChart data={data} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
+          <defs>
+            <linearGradient id="elevGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stopColor="#f97316" stopOpacity={0.75} />
+              <stop offset="100%" stopColor="#93c5fd" stopOpacity={0.30} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+          <XAxis
+            dataKey="d"
+            tick={{ fontSize: 10, fill: '#9ca3af' }}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={v => `${v}`}
+            unit=" km"
+            interval="preserveStartEnd"
+            minTickGap={40}
+          />
+          <YAxis
+            domain={[Math.max(0, minAlt - range * 0.1), maxAlt + range * 0.15]}
+            tick={{ fontSize: 10, fill: '#9ca3af' }}
+            tickLine={false}
+            axisLine={false}
+            width={36}
+            tickFormatter={v => `${Math.round(v)}`}
+          />
+          <Tooltip content={<CustomTooltip />} />
+          <Area
+            type="monotone"
+            dataKey="alt"
+            stroke="#f97316"
+            strokeWidth={1.5}
+            fill="url(#elevGradient)"
+            dot={false}
+            activeDot={{ r: 3, fill: '#f97316' }}
+            isAnimationActive={false}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Cadence chart per km window
+// ---------------------------------------------------------------------------
+
+function CadenceChart({ streams, splits, isRun }) {
+  const cad  = streams?.cadence
+  const time = streams?.time
+  const dist = streams?.distance
+
+  if (!cad || cad.length === 0) return null
+
+  // Bucket cadence into per-km windows using distance stream
+  let data
+  if (dist && splits && splits.length > 0) {
+    const kmBuckets = []
+    let bucketIdx = 0
+    let sum = 0, count = 0
+
+    for (let i = 0; i < cad.length; i++) {
+      const kmReached = splits[bucketIdx]?.split
+      const dKm = dist[i] / 1000
+      if (dKm >= (bucketIdx + 1)) {
+        if (count > 0) {
+          const spm = isRun ? Math.round((sum / count) * 2) : Math.round(sum / count)
+          kmBuckets.push({ km: `${bucketIdx + 1}`, spm })
+        }
+        bucketIdx++
+        sum = 0; count = 0
+        if (bucketIdx >= splits.length) break
+      }
+      sum += cad[i]; count++
+    }
+    if (count > 0 && bucketIdx < splits.length) {
+      const spm = isRun ? Math.round((sum / count) * 2) : Math.round(sum / count)
+      kmBuckets.push({ km: `${bucketIdx + 1}`, spm })
+    }
+    data = kmBuckets
+  } else {
+    // Fallback: group into ~30-second windows
+    const windowSize = Math.max(1, Math.round(cad.length / 30))
+    data = []
+    for (let i = 0; i < cad.length; i += windowSize) {
+      const slice = cad.slice(i, i + windowSize)
+      const avg   = slice.reduce((a, b) => a + b, 0) / slice.length
+      const spm   = isRun ? Math.round(avg * 2) : Math.round(avg)
+      data.push({ km: `${data.length + 1}`, spm })
+    }
+  }
+
+  if (data.length === 0) return null
+
+  const unit  = isRun ? 'spm' : 'rpm'
+  const svals = data.map(d => d.spm).filter(Boolean)
+  const minS  = Math.min(...svals) - 5
+  const maxS  = Math.max(...svals) + 5
+  const avgS  = Math.round(svals.reduce((a, b) => a + b, 0) / svals.length)
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (!active || !payload?.[0]) return null
+    return (
+      <div className="bg-white border border-gray-200 rounded-xl shadow-md px-3 py-2 text-xs">
+        <p className="font-bold text-gray-900">km {label}</p>
+        <p className="text-violet-600">{payload[0].value} {unit}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div className="mb-2">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Cadence</p>
+        <p className="text-xs text-gray-400 mt-0.5">Avg {avgS} {unit}</p>
+      </div>
+      <ResponsiveContainer width="100%" height={140}>
+        <ComposedChart data={data} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+          <XAxis
+            dataKey="km"
+            tick={{ fontSize: 10, fill: '#9ca3af' }}
+            tickLine={false}
+            axisLine={false}
+          />
+          <YAxis
+            domain={[minS, maxS]}
+            tick={{ fontSize: 10, fill: '#9ca3af' }}
+            tickLine={false}
+            axisLine={false}
+            width={36}
+          />
+          <Tooltip content={<CustomTooltip />} />
+          <ReferenceLine
+            y={avgS}
+            stroke="#8b5cf6"
+            strokeDasharray="4 3"
+            strokeWidth={1}
+          />
+          <Bar dataKey="spm" fill="#8b5cf6" fillOpacity={0.75} radius={[3, 3, 0, 0]} maxBarSize={32} isAnimationActive={false} />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Splits table (kept for toggle)
+// ---------------------------------------------------------------------------
+
 function SplitsTable({ splits, sportType }) {
   const { t } = useTranslation('workouts')
   const isRun = isRunSport(sportType)
   if (!splits || splits.length === 0) return null
 
   return (
-    <div>
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-        {t('strava.splits')}
-      </p>
+    <div className="mt-3">
       <div className="overflow-x-auto -mx-1">
         <table className="w-full text-xs">
           <thead>
@@ -241,7 +785,7 @@ function StravaLogo() {
   )
 }
 
-function StravaAnalysis({ workoutId, sport }) {
+function StravaAnalysis({ workoutId, sport, maxHr }) {
   const { t } = useTranslation('workouts')
   const { data, isLoading, isError } = useQuery({
     queryKey: ['strava-analysis', workoutId],
@@ -269,6 +813,7 @@ function StravaAnalysis({ workoutId, sport }) {
   const hrZone  = data.zones?.find(z => z.type === 'heartrate')
   const pwrZone = data.zones?.find(z => z.type === 'power')
   const isRun   = isRunSport(data.sport_type || sport)
+  const streams = data.streams || {}
 
   const extras = [
     data.total_elevation_gain != null && { label: t('strava.extras.elevation'), value: `${Math.round(data.total_elevation_gain)} m ↑` },
@@ -282,11 +827,12 @@ function StravaAnalysis({ workoutId, sport }) {
     data.kudos_count          > 0     && { label: t('strava.extras.kudos'),     value: `👍 ${data.kudos_count}` },
   ].filter(Boolean)
 
-  const hasSplits = data.splits_metric?.length > 0
-  const hasLaps   = data.laps?.length > 1
-  const hasZones  = hrZone?.distribution_buckets?.length > 0 || pwrZone?.distribution_buckets?.length > 0
+  const hasSplits  = data.splits_metric?.length > 0
+  const hasLaps    = data.laps?.length > 1
+  const hasZones   = hrZone?.distribution_buckets?.length > 0 || pwrZone?.distribution_buckets?.length > 0
+  const hasStreams  = Object.keys(streams).length > 0
 
-  if (!hasSplits && !hasLaps && !hasZones && extras.length === 0) return null
+  if (!hasSplits && !hasLaps && !hasZones && !hasStreams && extras.length === 0) return null
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
@@ -306,6 +852,12 @@ function StravaAnalysis({ workoutId, sport }) {
       </div>
 
       <div className="px-4 pb-5 pt-3 space-y-5">
+        {/* Route map */}
+        {data.map_polyline && (
+          <RouteMap polyline={data.map_polyline} activityId={data.activity_id} />
+        )}
+
+        {/* Summary stats */}
         {extras.length > 0 && (
           <div className="grid grid-cols-3 gap-2">
             {extras.map(e => (
@@ -317,18 +869,53 @@ function StravaAnalysis({ workoutId, sport }) {
           </div>
         )}
 
+        {/* HR stream chart — full width */}
+        {streams.heartrate && (
+          <HRStreamChart
+            streams={streams}
+            maxHr={maxHr}
+            avgHr={data.zones?.find(z => z.type === 'heartrate')?.average_heartrate
+              ?? (data.splits_metric?.length
+                ? Math.round(data.splits_metric.reduce((s, x) => s + (x.average_heartrate || 0), 0) / data.splits_metric.filter(x => x.average_heartrate).length)
+                : null)}
+          />
+        )}
+
+        {/* Pace + Cadence side by side on sm+ */}
+        {(hasSplits || streams.cadence) && (
+          <div className={`grid gap-5 ${streams.cadence && hasSplits ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+            {hasSplits && (
+              <PaceBarChart
+                splits={data.splits_metric}
+                sportType={data.sport_type || sport}
+                maxHr={maxHr}
+                showTableToggle
+              />
+            )}
+            {streams.cadence && (
+              <CadenceChart
+                streams={streams}
+                splits={data.splits_metric}
+                isRun={isRun}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Elevation profile — full width */}
+        {streams.altitude && (
+          <ElevationChart streams={streams} />
+        )}
+
+        {/* Zone distribution summaries */}
         {hrZone?.distribution_buckets?.length > 0 && (
           <ZoneBar label={t('strava.hrZones')} buckets={hrZone.distribution_buckets} unit="bpm" />
         )}
-
         {pwrZone?.distribution_buckets?.length > 0 && (
           <ZoneBar label={t('strava.powerZones')} buckets={pwrZone.distribution_buckets} unit="W" />
         )}
 
-        {hasSplits && (
-          <SplitsTable splits={data.splits_metric} sportType={data.sport_type || sport} />
-        )}
-
+        {/* Laps */}
         {hasLaps && (
           <LapsTable laps={data.laps} sportType={data.sport_type || sport} />
         )}
@@ -457,7 +1044,7 @@ export default function WorkoutDetail() {
 
         {/* Strava rich analysis */}
         {isStrava && isLogged && (
-          <StravaAnalysis workoutId={id} sport={workout.sport} />
+          <StravaAnalysis workoutId={id} sport={workout.sport} maxHr={profile?.max_hr} />
         )}
 
         {/* Manual log form */}

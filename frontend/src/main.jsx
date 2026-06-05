@@ -6,6 +6,7 @@ import App from './App'
 import './index.css'
 import 'flag-icons/css/flag-icons.min.css'
 import './i18n'
+import 'leaflet/dist/leaflet.css'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } }
