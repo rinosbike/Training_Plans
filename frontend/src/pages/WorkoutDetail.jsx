@@ -147,13 +147,47 @@ function FitBounds({ positions }) {
 // Route map
 // ---------------------------------------------------------------------------
 
+const MAP_LAYERS = [
+  {
+    id: 'street',
+    label: 'Street',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    routeColor: '#ef4444',
+  },
+  {
+    id: 'satellite',
+    label: 'Satellite',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    routeColor: '#facc15',
+  },
+  {
+    id: 'topo',
+    label: 'Topo',
+    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    routeColor: '#ef4444',
+  },
+]
+
+// Swap tile layer without remounting the MapContainer
+function TileLayerSwitcher({ url }) {
+  const map = useMap()
+  useEffect(() => {
+    // remove all existing tile layers then add the new one
+    map.eachLayer(layer => { if (layer._url) map.removeLayer(layer) })
+    window.L.tileLayer(url).addTo(map)
+  }, [map, url])
+  return null
+}
+
 function RouteMap({ polyline, activityId }) {
+  const [activeLayer, setActiveLayer] = useState('street')
   if (!polyline) return null
   const positions = decodePolyline(polyline)
   if (positions.length < 2) return null
 
-  const start = positions[0]
-  const end   = positions[positions.length - 1]
+  const start  = positions[0]
+  const end    = positions[positions.length - 1]
+  const layer  = MAP_LAYERS.find(l => l.id === activeLayer)
 
   return (
     <div>
@@ -167,6 +201,24 @@ function RouteMap({ polyline, activityId }) {
           View on Strava ↗
         </a>
       </div>
+
+      {/* Layer selector */}
+      <div className="flex gap-1 mb-2">
+        {MAP_LAYERS.map(l => (
+          <button
+            key={l.id}
+            onClick={() => setActiveLayer(l.id)}
+            className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${
+              activeLayer === l.id
+                ? 'bg-gray-800 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {l.label}
+          </button>
+        ))}
+      </div>
+
       <div className="rounded-2xl overflow-hidden border border-gray-100" style={{ height: 260 }}>
         <MapContainer
           center={start}
@@ -174,12 +226,11 @@ function RouteMap({ polyline, activityId }) {
           style={{ height: '100%', width: '100%' }}
           attributionControl={false}
         >
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          <Polyline positions={positions} color="#ef4444" weight={3} opacity={0.85} />
-          {/* Start marker */}
+          <TileLayer url={layer.url} />
+          <TileLayerSwitcher url={layer.url} />
+          <Polyline positions={positions} color={layer.routeColor} weight={3} opacity={0.9} />
           <CircleMarker center={start} color="#16a34a" fillColor="#16a34a" fillOpacity={1} radius={5} weight={2} />
-          {/* End marker */}
-          <CircleMarker center={end} color="#ef4444" fillColor="#ef4444" fillOpacity={1} radius={5} weight={2} />
+          <CircleMarker center={end}   color={layer.routeColor} fillColor={layer.routeColor} fillOpacity={1} radius={5} weight={2} />
           <FitBounds positions={positions} />
         </MapContainer>
       </div>
