@@ -312,7 +312,7 @@ function HRStreamChart({ streams, maxHr, avgHr }) {
         </div>
       </div>
       <ResponsiveContainer width="100%" height={200}>
-        <AreaChart data={data} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
+        <AreaChart data={data} margin={{ top: 4, right: 8, left: -8, bottom: 0 }}>
           <defs>
             <linearGradient id="hrGradient" x1="0" y1="0" x2="0" y2="1">
               {gradientStops.map((s, i) => (
@@ -335,7 +335,7 @@ function HRStreamChart({ streams, maxHr, avgHr }) {
             tick={{ fontSize: 10, fill: '#9ca3af' }}
             tickLine={false}
             axisLine={false}
-            width={36}
+            width={42}
           />
           <Tooltip content={<CustomTooltip />} />
           {zoneBoundaries.map(z => (
@@ -436,7 +436,7 @@ function PaceBarChart({ splits, sportType, maxHr, showTableToggle }) {
       </div>
 
       <ResponsiveContainer width="100%" height={160}>
-        <ComposedChart data={data} margin={{ top: 4, right: hasHr ? 8 : 4, left: -24, bottom: 0 }}>
+        <ComposedChart data={data} margin={{ top: 4, right: hasHr ? 8 : 4, left: -8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
           <XAxis
             dataKey="km"
@@ -450,7 +450,7 @@ function PaceBarChart({ splits, sportType, maxHr, showTableToggle }) {
             tick={{ fontSize: 10, fill: '#9ca3af' }}
             tickLine={false}
             axisLine={false}
-            width={36}
+            width={42}
             tickFormatter={v => isRun ? fmtPace(v) : `${(v * 3.6).toFixed(0)}`}
           />
           {hasHr && (
@@ -461,7 +461,7 @@ function PaceBarChart({ splits, sportType, maxHr, showTableToggle }) {
               tick={{ fontSize: 10, fill: '#fca5a5' }}
               tickLine={false}
               axisLine={false}
-              width={28}
+              width={34}
             />
           )}
           <Tooltip content={<CustomTooltip />} />
@@ -524,7 +524,7 @@ function ElevationChart({ streams }) {
     <div>
       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Elevation</p>
       <ResponsiveContainer width="100%" height={110}>
-        <AreaChart data={data} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
+        <AreaChart data={data} margin={{ top: 4, right: 8, left: -8, bottom: 0 }}>
           <defs>
             <linearGradient id="elevGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%"   stopColor="#f97316" stopOpacity={0.75} />
@@ -547,7 +547,7 @@ function ElevationChart({ streams }) {
             tick={{ fontSize: 10, fill: '#9ca3af' }}
             tickLine={false}
             axisLine={false}
-            width={36}
+            width={42}
             tickFormatter={v => `${Math.round(v)}`}
           />
           <Tooltip content={<CustomTooltip />} />
@@ -641,7 +641,7 @@ function CadenceChart({ streams, splits, isRun }) {
         <p className="text-xs text-gray-400 mt-0.5">Avg {avgS} {unit}</p>
       </div>
       <ResponsiveContainer width="100%" height={140}>
-        <ComposedChart data={data} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
+        <ComposedChart data={data} margin={{ top: 4, right: 8, left: -8, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
           <XAxis
             dataKey="km"
@@ -654,7 +654,7 @@ function CadenceChart({ streams, splits, isRun }) {
             tick={{ fontSize: 10, fill: '#9ca3af' }}
             tickLine={false}
             axisLine={false}
-            width={36}
+            width={42}
           />
           <Tooltip content={<CustomTooltip />} />
           <ReferenceLine
