@@ -167,12 +167,11 @@ function RouteMap({ polyline, activityId }) {
           View on Strava ↗
         </a>
       </div>
-      <div className="rounded-2xl overflow-hidden border border-gray-100" style={{ height: 220 }}>
+      <div className="rounded-2xl overflow-hidden border border-gray-100" style={{ height: 260 }}>
         <MapContainer
           center={start}
           zoom={13}
           style={{ height: '100%', width: '100%' }}
-          zoomControl={false}
           attributionControl={false}
         >
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
