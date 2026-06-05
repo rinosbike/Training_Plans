@@ -149,7 +149,7 @@ def fetch_activity_zones(access_token: str, activity_id) -> list:
         headers={'Authorization': f'Bearer {access_token}'},
         timeout=15,
     )
-    if resp.status_code == 404:
+    if resp.status_code in (402, 404):
         return []
     resp.raise_for_status()
     return resp.json()

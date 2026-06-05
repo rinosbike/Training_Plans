@@ -170,9 +170,15 @@ def strava_analysis(workout_id):
                 (refreshed.get('access_token'), refreshed.get('refresh_token'), expires_at, user_id)
             )
 
-        detail       = strava_svc.fetch_activity_detail(access_token, activity_id)
-        zones        = strava_svc.fetch_activity_zones(access_token, activity_id)
-        streams_raw  = strava_svc.fetch_activity_streams(access_token, activity_id)
+        detail      = strava_svc.fetch_activity_detail(access_token, activity_id)
+        try:
+            zones = strava_svc.fetch_activity_zones(access_token, activity_id)
+        except Exception:
+            zones = []
+        try:
+            streams_raw = strava_svc.fetch_activity_streams(access_token, activity_id)
+        except Exception:
+            streams_raw = {}
 
         def _downsample(arr, max_pts=500):
             if not arr or len(arr) <= max_pts:
