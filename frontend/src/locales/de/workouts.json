@@ -112,6 +112,23 @@
       "avgTemp": "Ø Temperatur",
       "segmentPrs": "Segment-Bestleistungen",
       "kudos": "Kudos"
+    },
+    "map": {
+      "title": "Route",
+      "viewOnStrava": "Auf Strava ansehen ↗",
+      "street": "Straße",
+      "satellite": "Satellit",
+      "topo": "Topo"
+    },
+    "charts": {
+      "heartRate": "Herzfrequenz",
+      "avgBpm": "Ø {{bpm}} bpm",
+      "avg": "Ø {{val}} {{unit}}",
+      "time": "Zeit",
+      "pacePerKm": "Tempo pro km",
+      "speedPerKm": "Geschwindigkeit pro km",
+      "showTable": "Tabelle anzeigen",
+      "hideTable": "Tabelle ausblenden"
     }
   }
 }

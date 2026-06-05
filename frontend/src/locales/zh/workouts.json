@@ -112,6 +112,23 @@
       "avgTemp": "平均温度",
       "segmentPrs": "路段PR",
       "kudos": "点赞"
+    },
+    "map": {
+      "title": "路线",
+      "viewOnStrava": "在Strava查看 ↗",
+      "street": "街道",
+      "satellite": "卫星",
+      "topo": "地形"
+    },
+    "charts": {
+      "heartRate": "心率",
+      "avgBpm": "均 {{bpm}} bpm",
+      "avg": "均 {{val}} {{unit}}",
+      "time": "时间",
+      "pacePerKm": "每公里配速",
+      "speedPerKm": "每公里速度",
+      "showTable": "显示表格",
+      "hideTable": "隐藏表格"
     }
   }
 }

@@ -112,6 +112,23 @@
       "avgTemp": "Temp. media",
       "segmentPrs": "Récords de segmento",
       "kudos": "Kudos"
+    },
+    "map": {
+      "title": "Ruta",
+      "viewOnStrava": "Ver en Strava ↗",
+      "street": "Callejero",
+      "satellite": "Satélite",
+      "topo": "Topo"
+    },
+    "charts": {
+      "heartRate": "Frecuencia cardiaca",
+      "avgBpm": "Prom {{bpm}} bpm",
+      "avg": "Prom {{val}} {{unit}}",
+      "time": "Tiempo",
+      "pacePerKm": "Ritmo por km",
+      "speedPerKm": "Velocidad por km",
+      "showTable": "Ver tabla",
+      "hideTable": "Ocultar tabla"
     }
   }
 }

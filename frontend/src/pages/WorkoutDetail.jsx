@@ -150,19 +150,19 @@ function FitBounds({ positions }) {
 const MAP_LAYERS = [
   {
     id: 'street',
-    label: 'Street',
+    labelKey: 'strava.map.street',
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     routeColor: '#ef4444',
   },
   {
     id: 'satellite',
-    label: 'Satellite',
+    labelKey: 'strava.map.satellite',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     routeColor: '#facc15',
   },
   {
     id: 'topo',
-    label: 'Topo',
+    labelKey: 'strava.map.topo',
     url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
     routeColor: '#ef4444',
   },
@@ -180,6 +180,7 @@ function TileLayerSwitcher({ url }) {
 }
 
 function RouteMap({ polyline, activityId }) {
+  const { t } = useTranslation('workouts')
   const [activeLayer, setActiveLayer] = useState('street')
   if (!polyline) return null
   const positions = decodePolyline(polyline)
@@ -192,13 +193,13 @@ function RouteMap({ polyline, activityId }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Route</p>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('strava.map.title')}</p>
         <a
           href={`https://www.strava.com/activities/${activityId}`}
           target="_blank" rel="noopener noreferrer"
           className="text-[10px] text-orange-500 font-medium"
         >
-          View on Strava ↗
+          {t('strava.map.viewOnStrava')}
         </a>
       </div>
 
@@ -214,7 +215,7 @@ function RouteMap({ polyline, activityId }) {
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            {l.label}
+            {t(l.labelKey)}
           </button>
         ))}
       </div>
@@ -282,6 +283,7 @@ function ZoneBar({ label, buckets, unit }) {
 // ---------------------------------------------------------------------------
 
 function HRStreamChart({ streams, maxHr, avgHr }) {
+  const { t } = useTranslation('workouts')
   const [xMode, setXMode] = useState('time') // 'time' | 'distance'
 
   const hr   = streams?.heartrate
@@ -343,21 +345,21 @@ function HRStreamChart({ streams, maxHr, avgHr }) {
     <div>
       <div className="flex items-center justify-between mb-2">
         <div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Heart Rate</p>
-          {avgHr && <p className="text-xs text-gray-400 mt-0.5">Avg {avgHr} bpm</p>}
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('strava.charts.heartRate')}</p>
+          {avgHr && <p className="text-xs text-gray-400 mt-0.5">{t('strava.charts.avgBpm', { bpm: avgHr })}</p>}
         </div>
         <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
           <button
             onClick={() => setXMode('time')}
             className={`text-[10px] px-2 py-1 rounded-md font-medium transition-colors ${xMode === 'time' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'}`}
           >
-            Time
+            {t('strava.charts.time')}
           </button>
           <button
             onClick={() => setXMode('distance')}
             className={`text-[10px] px-2 py-1 rounded-md font-medium transition-colors ${xMode === 'distance' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'}`}
           >
-            Distance
+            {t('fields.distance')}
           </button>
         </div>
       </div>
@@ -418,7 +420,7 @@ function HRStreamChart({ streams, maxHr, avgHr }) {
 // Pace bar chart per km with HR overlay
 // ---------------------------------------------------------------------------
 
-function PaceBarChart({ splits, sportType, maxHr, showTableToggle }) {
+function PaceBarChart({ splits, sportType, showTableToggle }) {
   const [showTable, setShowTable] = useState(false)
   const { t } = useTranslation('workouts')
   const isRun = isRunSport(sportType)
@@ -473,14 +475,14 @@ function PaceBarChart({ splits, sportType, maxHr, showTableToggle }) {
     <div>
       <div className="flex items-center justify-between mb-2">
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-          {isRun ? 'Pace per km' : 'Speed per km'}
+          {isRun ? t('strava.charts.pacePerKm') : t('strava.charts.speedPerKm')}
         </p>
         {showTableToggle && (
           <button
             onClick={() => setShowTable(p => !p)}
             className="text-[10px] text-primary-600 font-medium"
           >
-            {showTable ? 'Hide table' : 'Show table'}
+            {showTable ? t('strava.charts.hideTable') : t('strava.charts.showTable')}
           </button>
         )}
       </div>
@@ -545,6 +547,7 @@ function PaceBarChart({ splits, sportType, maxHr, showTableToggle }) {
 // ---------------------------------------------------------------------------
 
 function ElevationChart({ streams }) {
+  const { t } = useTranslation('workouts')
   const alt  = streams?.altitude
   const dist = streams?.distance
 
@@ -572,7 +575,7 @@ function ElevationChart({ streams }) {
 
   return (
     <div>
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Elevation</p>
+      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{t('strava.extras.elevation')}</p>
       <ResponsiveContainer width="100%" height={110}>
         <AreaChart data={data} margin={{ top: 4, right: 8, left: -8, bottom: 0 }}>
           <defs>
@@ -622,6 +625,7 @@ function ElevationChart({ streams }) {
 // ---------------------------------------------------------------------------
 
 function CadenceChart({ streams, splits, isRun }) {
+  const { t } = useTranslation('workouts')
   const cad  = streams?.cadence
   const time = streams?.time
   const dist = streams?.distance
@@ -687,8 +691,8 @@ function CadenceChart({ streams, splits, isRun }) {
   return (
     <div>
       <div className="mb-2">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Cadence</p>
-        <p className="text-xs text-gray-400 mt-0.5">Avg {avgS} {unit}</p>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('strava.extras.cadence')}</p>
+        <p className="text-xs text-gray-400 mt-0.5">{t('strava.charts.avg', { val: avgS, unit })}</p>
       </div>
       <ResponsiveContainer width="100%" height={140}>
         <ComposedChart data={data} margin={{ top: 4, right: 8, left: -8, bottom: 0 }}>
@@ -938,7 +942,6 @@ function StravaAnalysis({ workoutId, sport, maxHr }) {
               <PaceBarChart
                 splits={data.splits_metric}
                 sportType={data.sport_type || sport}
-                maxHr={maxHr}
                 showTableToggle
               />
             )}

@@ -97,6 +97,23 @@
       "avgTemp": "Avg Temp",
       "segmentPrs": "Segment PRs",
       "kudos": "Kudos"
+    },
+    "map": {
+      "title": "Route",
+      "viewOnStrava": "View on Strava ↗",
+      "street": "Street",
+      "satellite": "Satellite",
+      "topo": "Topo"
+    },
+    "charts": {
+      "heartRate": "Heart Rate",
+      "avgBpm": "Avg {{bpm}} bpm",
+      "avg": "Avg {{val}} {{unit}}",
+      "time": "Time",
+      "pacePerKm": "Pace per km",
+      "speedPerKm": "Speed per km",
+      "showTable": "Show table",
+      "hideTable": "Hide table"
     }
   }
 }
