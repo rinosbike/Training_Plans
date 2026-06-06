@@ -1,8 +1,11 @@
 import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function BottomNav() {
   const { t } = useTranslation('common')
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin'
 
   const tabs = [
     { to: '/',          label: t('nav.plan'),     icon: '📅' },
@@ -10,6 +13,7 @@ export default function BottomNav() {
     { to: '/progress',  label: t('nav.load'),     icon: '📈' },
     { to: '/ai-coach',  label: t('nav.aiCoach'),  icon: '🤖' },
     { to: '/settings',  label: t('nav.settings'), icon: '⚙️' },
+    ...(isAdmin ? [{ to: '/content', label: t('nav.content'), icon: '🎬' }] : []),
   ]
 
   return (

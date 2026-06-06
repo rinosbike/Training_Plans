@@ -5,6 +5,7 @@ from datetime import timedelta
 class Config:
     SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'change-me-in-production')
     DATABASE_URL = os.getenv('DATABASE_URL', '')
+    MAX_CONTENT_LENGTH = 150 * 1024 * 1024  # 150 MB for video uploads
 
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'change-me-in-production')
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=8)

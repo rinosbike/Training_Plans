@@ -35,7 +35,8 @@
     "food": "Nutrición",
     "load": "Carga",
     "aiCoach": "Coach IA",
-    "settings": "Ajustes"
+    "settings": "Ajustes",
+    "content": "Content"
   },
   "units": {
     "min": "min",

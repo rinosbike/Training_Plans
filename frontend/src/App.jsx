@@ -14,6 +14,8 @@ import Credentials from './pages/Credentials'
 import Branding from './pages/Branding'
 import Translations from './pages/Translations'
 import Admin from './pages/Admin'
+import Content from './pages/Content'
+import ContentStory from './pages/ContentStory'
 import AuthCallback from './pages/AuthCallback'
 
 function Protected({ children }) {
@@ -40,6 +42,8 @@ function AppRoutes() {
       <Route path="/branding" element={<Protected><Branding /></Protected>} />
       <Route path="/translations" element={<Protected><Translations /></Protected>} />
       <Route path="/admin/users" element={<Protected><Admin /></Protected>} />
+      <Route path="/content" element={<Protected><Content /></Protected>} />
+      <Route path="/content/:id" element={<Protected><ContentStory /></Protected>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

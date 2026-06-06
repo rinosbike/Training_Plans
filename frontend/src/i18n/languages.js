@@ -11,5 +11,5 @@ export const DEFAULT_LANGUAGE = 'en'
 export const NAMESPACES = [
   'common', 'auth', 'dashboard', 'workouts',
   'nutrition', 'settings', 'sync', 'ai_coach',
-  'onboarding', 'progress', 'credentials', 'branding',
+  'onboarding', 'progress', 'credentials', 'branding', 'content',
 ]

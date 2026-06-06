@@ -35,7 +35,8 @@
     "food": "Żywienie",
     "load": "Obciążenie",
     "aiCoach": "Trener AI",
-    "settings": "Ustawienia"
+    "settings": "Ustawienia",
+    "content": "Content"
   },
   "units": {
     "min": "min",

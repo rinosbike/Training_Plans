@@ -5,8 +5,8 @@ Uses the same bucket as the ERP (rinosbike), under the 'training/' prefix.
 Folders:
   training/food-labels/   — scanned food label photos
   training/icons/         — platform/app icons
+  training/content/       — story clips (images + videos)
 """
-import io
 import os
 import uuid
 import logging
@@ -27,7 +27,12 @@ _MIME_EXT = {
     'image/webp': 'webp',
     'image/gif':  'gif',
     'image/svg+xml': 'svg',
+    'video/mp4':       'mp4',
+    'video/quicktime': 'mov',
+    'video/webm':      'webm',
 }
+
+ALLOWED_CONTENT_MIME_TYPES = set(_MIME_EXT.keys())
 
 
 def _client():
@@ -66,8 +71,43 @@ def upload_image(data: bytes, folder: str, content_type: str,
     return url
 
 
+def upload_file(data: bytes, folder: str, content_type: str,
+                filename: str = None) -> str:
+    """
+    Upload any file (image or video) to R2 under training/<folder>/<filename>.
+    Videos skip the long-lived cache header. Returns the public URL.
+    """
+    ext = _MIME_EXT.get(content_type, 'bin')
+    if not filename:
+        filename = f'{uuid.uuid4().hex}.{ext}'
+    key = f'training/{folder.strip("/")}/{filename}'
+
+    kwargs = dict(Bucket=R2_BUCKET, Key=key, Body=data, ContentType=content_type)
+    if not content_type.startswith('video/'):
+        kwargs['CacheControl'] = 'public, max-age=31536000'
+
+    _client().put_object(**kwargs)
+    url = f'{R2_PUBLIC_URL}/{key}'
+    log.info('Uploaded %d bytes to R2: %s', len(data), url)
+    return url
+
+
+def download_file(url: str) -> bytes:
+    """Download a file from R2 by its public URL. Returns raw bytes."""
+    if not url or not R2_PUBLIC_URL or R2_PUBLIC_URL not in url:
+        raise ValueError(f'URL not in this R2 bucket: {url}')
+    key = url.replace(f'{R2_PUBLIC_URL}/', '')
+    resp = _client().get_object(Bucket=R2_BUCKET, Key=key)
+    return resp['Body'].read()
+
+
 def delete_image(url: str) -> bool:
     """Delete an image from R2 by its public URL. Returns True on success."""
+    return delete_file(url)
+
+
+def delete_file(url: str) -> bool:
+    """Delete any file from R2 by its public URL. Returns True on success."""
     if not url or not R2_PUBLIC_URL or R2_PUBLIC_URL not in url:
         return False
     key = url.replace(f'{R2_PUBLIC_URL}/', '')

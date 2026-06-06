@@ -1,0 +1,59 @@
+{
+  "title": "Content Studio",
+  "newStory": "New Story",
+  "noStories": "No stories yet. Create one to start building your reel.",
+  "story": {
+    "title": "Title",
+    "titlePlaceholder": "e.g. 1 Month of Training",
+    "theme": "Theme",
+    "themePlaceholder": "e.g. Data-driven triathlon prep",
+    "goal": "Goal",
+    "goalPlaceholder": "e.g. Gain followers for triathlon channel",
+    "status": {
+      "draft": "Draft",
+      "ready": "Ready",
+      "exported": "Exported"
+    },
+    "scenes": "Scenes",
+    "sceneCount": "{{count}} scene",
+    "sceneCount_plural": "{{count}} scenes",
+    "created": "Created {{date}}"
+  },
+  "scene": {
+    "title": "Scene {{number}}",
+    "description": "Director's note",
+    "descriptionPlaceholder": "What happens in this scene?",
+    "overlayText": "On-screen text",
+    "overlayPlaceholder": "e.g. 1 month. 0 excuses.",
+    "duration": "Duration (seconds)",
+    "durationPlaceholder": "e.g. 5",
+    "addScene": "Add Scene",
+    "deleteScene": "Delete Scene",
+    "clips": "Clips",
+    "noClips": "No clips yet",
+    "uploadClip": "Upload Clip",
+    "uploading": "Uploading…",
+    "deleteClip": "Remove clip",
+    "moveUp": "Move up",
+    "moveDown": "Move down"
+  },
+  "generate": {
+    "button": "Generate Script",
+    "generating": "Generating…",
+    "title": "Generated Reel Script",
+    "copy": "Copy Script",
+    "copied": "Copied!",
+    "noScenes": "Add at least one scene before generating."
+  },
+  "export": {
+    "button": "Export ZIP",
+    "exporting": "Preparing…"
+  },
+  "errors": {
+    "titleRequired": "Title is required",
+    "unsupportedType": "Unsupported file type. Use MP4, MOV, WEBM, JPG, or PNG.",
+    "fileTooLarge": "File exceeds 150 MB limit",
+    "generateFailed": "Script generation failed. Try again.",
+    "uploadFailed": "Upload failed. Try again."
+  }
+}

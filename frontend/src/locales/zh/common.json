@@ -35,7 +35,8 @@
     "food": "饮食",
     "load": "负荷",
     "aiCoach": "AI教练",
-    "settings": "设置"
+    "settings": "设置",
+    "content": "Content"
   },
   "units": {
     "min": "分钟",

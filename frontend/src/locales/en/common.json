@@ -35,7 +35,8 @@
     "food": "Food",
     "load": "Load",
     "aiCoach": "AI Coach",
-    "settings": "Settings"
+    "settings": "Settings",
+    "content": "Content"
   },
   "units": {
     "min": "min",

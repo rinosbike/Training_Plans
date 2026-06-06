@@ -35,7 +35,8 @@
     "food": "Ernährung",
     "load": "Belastung",
     "aiCoach": "KI-Coach",
-    "settings": "Einstellungen"
+    "settings": "Einstellungen",
+    "content": "Content"
   },
   "units": {
     "min": "Min",
