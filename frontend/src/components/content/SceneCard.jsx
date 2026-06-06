@@ -14,6 +14,7 @@ export default function SceneCard({ scene, storyId, isFirst, isLast, onUpdated }
   const [uploading, setUploading] = useState(false)
   const [deleteClipUrl, setDeleteClipUrl] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [lightboxUrl, setLightboxUrl] = useState(null)
 
   const updateScene = useMutation({
     mutationFn: (data) => api.put(`/api/content/stories/${storyId}/scenes/${scene.id}`, data),
@@ -147,20 +148,21 @@ export default function SceneCard({ scene, storyId, isFirst, isLast, onUpdated }
             <div className="flex flex-wrap gap-2 mb-2">
               {clips.map((url) => (
                 <div key={url} className="relative group">
-                  {isVideo(url) ? (
-                    <video
-                      src={url}
-                      className="w-20 h-20 object-cover rounded-lg bg-black"
-                      muted
-                      preload="metadata"
-                    />
-                  ) : (
-                    <img
-                      src={url}
-                      alt=""
-                      className="w-20 h-20 object-cover rounded-lg"
-                    />
-                  )}
+                  <button
+                    onClick={() => setLightboxUrl(url)}
+                    className="block w-20 h-20 rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    {isVideo(url) ? (
+                      <video
+                        src={url}
+                        className="w-full h-full object-cover bg-black"
+                        muted
+                        preload="metadata"
+                      />
+                    ) : (
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                    )}
+                  </button>
                   <button
                     onClick={() => setDeleteClipUrl(url)}
                     className="absolute top-0.5 right-0.5 bg-black/60 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
@@ -210,6 +212,35 @@ export default function SceneCard({ scene, storyId, isFirst, isLast, onUpdated }
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Lightbox */}
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <button
+            className="absolute top-4 right-4 text-white/60 hover:text-white text-3xl leading-none z-10"
+            onClick={() => setLightboxUrl(null)}
+          >×</button>
+          {isVideo(lightboxUrl) ? (
+            <video
+              src={lightboxUrl}
+              className="max-w-full max-h-[90vh] rounded-xl"
+              controls
+              autoPlay
+              onClick={e => e.stopPropagation()}
+            />
+          ) : (
+            <img
+              src={lightboxUrl}
+              alt=""
+              className="max-w-full max-h-[90vh] rounded-xl object-contain"
+              onClick={e => e.stopPropagation()}
+            />
+          )}
         </div>
       )}
 
