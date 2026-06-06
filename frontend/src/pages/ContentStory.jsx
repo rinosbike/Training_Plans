@@ -19,6 +19,8 @@ export default function ContentStory() {
   const [fieldValue, setFieldValue] = useState('')
   const [showScript, setShowScript] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [previewSceneIdx, setPreviewSceneIdx] = useState(0)
+  const [previewClipIdx, setPreviewClipIdx] = useState(0)
   const [copied, setCopied] = useState(false)
   const [exporting, setExporting] = useState(false)
 
@@ -155,9 +157,9 @@ export default function ContentStory() {
       {/* Action bar */}
       <div className="max-w-lg mx-auto px-4 py-3 flex gap-2">
         <button
-          onClick={() => setShowPreview(true)}
+          onClick={() => { setPreviewSceneIdx(0); setPreviewClipIdx(0); setShowPreview(true) }}
           className="px-3 bg-white border border-gray-200 text-sm rounded-xl hover:bg-gray-50"
-          title="Storyboard preview"
+          title="Reel preview"
         >
           🎞
         </button>
@@ -207,68 +209,157 @@ export default function ContentStory() {
         </button>
       </div>
 
-      {/* Storyboard preview panel */}
-      {showPreview && (
-        <div className="fixed inset-0 bg-black/90 z-50 flex flex-col">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-            <h2 className="text-white font-semibold">{story.title}</h2>
-            <button onClick={() => setShowPreview(false)} className="text-white/60 hover:text-white text-2xl leading-none">×</button>
-          </div>
+      {/* Reel preview — scene-by-scene immersive view */}
+      {showPreview && (() => {
+        const scene = scenes[previewSceneIdx]
+        if (!scene) return null
+        const clips = scene.clip_urls || []
+        const clip = clips[previewClipIdx] || null
+        const isVid = clip && /\.(mp4|mov|webm)$/i.test(clip)
+        const canPrev = previewSceneIdx > 0
+        const canNext = previewSceneIdx < scenes.length - 1
 
-          {/* Film strip */}
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="grid grid-cols-2 gap-3 max-w-lg mx-auto">
-              {scenes.map((scene) => {
-                const clips = scene.clip_urls || []
-                const firstClip = clips[0]
-                const isVideo = firstClip && /\.(mp4|mov|webm)$/i.test(firstClip)
-                return (
-                  <div key={scene.id} className="relative rounded-xl overflow-hidden bg-gray-900 aspect-[9/16]">
-                    {firstClip ? (
-                      isVideo ? (
-                        <video src={firstClip} className="w-full h-full object-cover" muted loop autoPlay playsInline />
-                      ) : (
-                        <img src={firstClip} alt="" className="w-full h-full object-cover" />
-                      )
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-600 text-xs">No clip</div>
-                    )}
-                    {/* Overlay text */}
-                    <div className="absolute inset-0 flex flex-col justify-between p-2">
-                      <span className="bg-black/40 text-white text-[10px] font-bold px-1.5 py-0.5 rounded self-start">
-                        {scene.position} · {scene.duration_sec}s
-                      </span>
-                      {scene.overlay_text && (
-                        <p className="text-white text-xs font-bold text-center drop-shadow-lg leading-tight px-1">
-                          {scene.overlay_text}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
+        function goScene(delta) {
+          const next = previewSceneIdx + delta
+          if (next < 0 || next >= scenes.length) return
+          setPreviewSceneIdx(next)
+          setPreviewClipIdx(0)
+        }
+
+        return (
+          <div className="fixed inset-0 bg-black z-50 flex flex-col select-none">
+            {/* Top bar */}
+            <div className="flex items-center justify-between px-4 pt-safe pt-10 pb-2">
+              <span className="text-white/50 text-xs font-mono tracking-widest">
+                {previewSceneIdx + 1} / {scenes.length}
+              </span>
+              <button
+                onClick={() => setShowPreview(false)}
+                className="text-white/60 hover:text-white text-2xl leading-none"
+              >×</button>
             </div>
 
-            {/* Script preview under storyboard */}
+            {/* Progress bar */}
+            <div className="flex gap-0.5 px-4 mb-3">
+              {scenes.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => { setPreviewSceneIdx(i); setPreviewClipIdx(0) }}
+                  className="flex-1 h-0.5 rounded-full overflow-hidden bg-white/20"
+                >
+                  <div className={`h-full bg-white ${i <= previewSceneIdx ? 'w-full' : 'w-0'}`} />
+                </button>
+              ))}
+            </div>
+
+            {/* 9:16 frame */}
+            <div className="flex-1 flex items-center justify-center px-4">
+              <div className="relative w-full max-w-[300px] aspect-[9/16] rounded-2xl overflow-hidden bg-gray-900 shadow-2xl">
+                {clip ? (
+                  isVid ? (
+                    <video key={clip} src={clip} className="w-full h-full object-cover" autoPlay loop muted playsInline />
+                  ) : (
+                    <img key={clip} src={clip} alt="" className="w-full h-full object-cover" />
+                  )
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <span className="text-gray-500 text-sm">No clip yet</span>
+                  </div>
+                )}
+
+                {/* Gradient */}
+                <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/75 pointer-events-none" />
+
+                {/* Duration badge top-left */}
+                {scene.duration_sec && (
+                  <div className="absolute top-3 left-3 bg-black/50 text-white/70 text-[10px] px-2 py-0.5 rounded-full">
+                    {scene.duration_sec}s
+                  </div>
+                )}
+
+                {/* Overlay text — centred at bottom like a Reel */}
+                {scene.overlay_text && (
+                  <div className="absolute bottom-10 inset-x-0 px-4 pointer-events-none">
+                    <p
+                      className="text-white text-base font-extrabold text-center leading-snug"
+                      style={{ textShadow: '0 2px 12px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.8)' }}
+                    >
+                      {scene.overlay_text}
+                    </p>
+                  </div>
+                )}
+
+                {/* Clip dots — bottom center */}
+                {clips.length > 1 && (
+                  <div className="absolute bottom-3 inset-x-0 flex justify-center gap-1.5">
+                    {clips.map((_, ci) => (
+                      <button
+                        key={ci}
+                        onClick={() => setPreviewClipIdx(ci)}
+                        className={`w-1.5 h-1.5 rounded-full transition-all ${ci === previewClipIdx ? 'bg-white scale-125' : 'bg-white/40'}`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Description */}
+            {scene.description && (
+              <p className="text-white/40 text-xs text-center px-8 py-2 leading-relaxed line-clamp-2">
+                {scene.description}
+              </p>
+            )}
+
+            {/* Navigation row */}
+            <div className="flex items-center justify-between px-6 pb-10 pt-2">
+              <button
+                onClick={() => goScene(-1)}
+                disabled={!canPrev}
+                className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white text-lg disabled:opacity-20 transition-colors"
+              >←</button>
+
+              {/* Thumbnail strip */}
+              <div className="flex gap-1.5 overflow-x-auto py-1 max-w-[160px] scrollbar-hide">
+                {scenes.map((s, i) => {
+                  const thumb = (s.clip_urls || [])[0]
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => { setPreviewSceneIdx(i); setPreviewClipIdx(0) }}
+                      className={`flex-none w-8 h-8 rounded-lg overflow-hidden border-2 transition-all ${i === previewSceneIdx ? 'border-white' : 'border-transparent opacity-40'}`}
+                    >
+                      {thumb ? (
+                        <img src={thumb} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-gray-700 flex items-center justify-center text-[8px] text-gray-400">{i + 1}</div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+
+              <button
+                onClick={() => goScene(1)}
+                disabled={!canNext}
+                className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white text-lg disabled:opacity-20 transition-colors"
+              >→</button>
+            </div>
+
+            {/* Script shortcut */}
             {story.generated_script && (
-              <div className="max-w-lg mx-auto mt-6 bg-white/5 rounded-xl p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-white/80 text-xs font-semibold uppercase tracking-wide">Generated Script</h3>
-                  <button
-                    onClick={copyScript}
-                    className="text-xs text-primary-400 hover:text-primary-300 font-medium"
-                  >
-                    {copied ? 'Copied!' : 'Copy'}
-                  </button>
-                </div>
-                <pre className="text-white/70 text-xs whitespace-pre-wrap font-sans leading-relaxed">
-                  {story.generated_script}
-                </pre>
+              <div className="border-t border-white/10 px-4 py-3">
+                <button
+                  onClick={() => { setShowPreview(false); setShowScript(true) }}
+                  className="w-full text-xs text-primary-400 hover:text-primary-300 font-medium text-center"
+                >
+                  View generated script →
+                </button>
               </div>
             )}
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* Generated script panel */}
       {showScript && (
