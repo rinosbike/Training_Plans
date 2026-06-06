@@ -14,10 +14,14 @@ Stories contain ordered scenes; each scene holds clips uploaded to R2.
 - POST   /api/content/stories/<sid>/scenes/<scid>/clips  upload clip → R2
 - DELETE /api/content/stories/<sid>/scenes/<scid>/clips  remove one clip URL
 - POST   /api/content/stories/<sid>/generate           AI reel script generation
-- GET    /api/content/stories/<sid>/export             download ZIP
+- GET    /api/content/stories/<sid>/export             compose + download 9:16 MP4 Reel
 """
 import io
 import json
+import os
+import shutil
+import subprocess
+import tempfile
 import zipfile
 from flask import Blueprint, request, jsonify, abort, Response
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -328,9 +332,56 @@ Format clearly with numbered scenes. Tone: raw, passionate, data-meets-grit. Aud
 
 # ─── Export ──────────────────────────────────────────────────────────────────
 
+_FONT_PATH   = '/usr/share/fonts/truetype/lato/Lato-Black.ttf'
+_REEL_W, _REEL_H = 1080, 1920
+_FPS  = 30
+_CRF  = 22   # quality: lower = larger file, better quality
+_PRESET = 'fast'
+
+
+def _ffmpeg_segment(clip_path, text_file, duration, out_path, is_video):
+    """Encode one scene segment to a 9:16 MP4 with text overlay."""
+    scale_crop = (
+        f'scale={_REEL_W}:{_REEL_H}:force_original_aspect_ratio=increase,'
+        f'crop={_REEL_W}:{_REEL_H}'
+    )
+    drawtext = (
+        f'drawtext=fontfile={_FONT_PATH}'
+        f':textfile={text_file}'
+        f':fontsize=78:fontcolor=white'
+        f':x=(w-text_w)/2:y=h*0.77'
+        f':shadowx=5:shadowy=5:shadowcolor=black@0.85'
+    )
+    vf = f'{scale_crop},{drawtext}' if os.path.getsize(text_file) > 0 else scale_crop
+
+    if is_video:
+        cmd = [
+            'ffmpeg', '-y',
+            '-i', clip_path,
+            '-t', str(duration),
+            '-vf', vf,
+            '-c:v', 'libx264', '-preset', _PRESET, '-crf', str(_CRF),
+            '-pix_fmt', 'yuv420p', '-r', str(_FPS),
+            '-an', out_path,
+        ]
+    else:
+        cmd = [
+            'ffmpeg', '-y',
+            '-loop', '1', '-i', clip_path,
+            '-t', str(duration),
+            '-vf', vf,
+            '-c:v', 'libx264', '-preset', _PRESET, '-crf', str(_CRF),
+            '-pix_fmt', 'yuv420p', '-r', str(_FPS),
+            out_path,
+        ]
+    result = subprocess.run(cmd, capture_output=True, timeout=180)
+    return result.returncode == 0, result.stderr.decode('utf-8', errors='replace')
+
+
 @content_bp.route('/api/content/stories/<story_id>/export', methods=['GET'])
 @jwt_required()
 def export_story(story_id):
+    """Compose all scenes into a single 9:16 MP4 ready for Instagram Reels."""
     _require_admin()
     story = _get_story(story_id)
     scenes = execute_query(
@@ -338,45 +389,76 @@ def export_story(story_id):
         (story_id,)
     )
 
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
-        # script.md
-        script_lines = [
-            f'# {story["title"]}',
-            f'',
-            f'**Theme:** {story.get("theme") or "—"}',
-            f'**Goal:** {story.get("goal") or "—"}',
-            f'',
-            f'---',
-            f'',
+    tmpdir = tempfile.mkdtemp(prefix='reel_export_')
+    try:
+        segment_paths = []
+
+        for i, scene in enumerate(scenes):
+            clips = scene.get('clip_urls') or []
+            if not clips:
+                continue
+
+            duration = scene.get('duration_sec') or 5
+            overlay  = (scene.get('overlay_text') or '').strip()
+
+            # Write overlay text to file (avoids all ffmpeg escaping issues)
+            text_file = os.path.join(tmpdir, f'text_{i}.txt')
+            with open(text_file, 'w', encoding='utf-8') as tf:
+                tf.write(overlay)
+
+            # Use first video clip if present, otherwise first image
+            video_clip = next((u for u in clips if u.lower().endswith(('.mp4', '.mov', '.webm'))), None)
+            image_clip = next((u for u in clips if not u.lower().endswith(('.mp4', '.mov', '.webm'))), None)
+            chosen_url = video_clip or image_clip
+            is_video   = video_clip is not None
+
+            ext = chosen_url.split('.')[-1].lower()
+            clip_path = os.path.join(tmpdir, f'clip_{i}.{ext}')
+            clip_data = download_file(chosen_url)
+            with open(clip_path, 'wb') as f:
+                f.write(clip_data)
+
+            seg_path = os.path.join(tmpdir, f'seg_{i:03d}.mp4')
+            ok, err = _ffmpeg_segment(clip_path, text_file, duration, seg_path, is_video)
+            if not ok:
+                import logging
+                logging.getLogger(__name__).error('ffmpeg segment %d failed: %s', i, err[-500:])
+                continue
+            segment_paths.append(seg_path)
+
+        if not segment_paths:
+            return jsonify({'error': 'No clips to export — add clips to your scenes first'}), 400
+
+        # Concat all segments
+        concat_list = os.path.join(tmpdir, 'concat.txt')
+        with open(concat_list, 'w') as f:
+            for p in segment_paths:
+                f.write(f"file '{p}'\n")
+
+        final_path = os.path.join(tmpdir, 'reel.mp4')
+        concat_cmd = [
+            'ffmpeg', '-y',
+            '-f', 'concat', '-safe', '0',
+            '-i', concat_list,
+            '-c', 'copy',
+            final_path,
         ]
-        for s in scenes:
-            script_lines.append(f'## Scene {s["position"]} — {s.get("overlay_text") or "(no overlay)"}')
-            if s.get('description'):
-                script_lines.append(f'_{s["description"]}_')
-            if s.get('duration_sec'):
-                script_lines.append(f'Duration: {s["duration_sec"]}s')
-            script_lines.append('')
+        result = subprocess.run(concat_cmd, capture_output=True, timeout=120)
+        if result.returncode != 0:
+            return jsonify({'error': 'Video assembly failed', 'detail': result.stderr.decode()[-300:]}), 500
 
-        script_lines += ['---', '', '## Generated Reel Script', '']
-        script_lines.append(story.get('generated_script') or '_No script generated yet. Use the Generate Script button in the app._')
+        with open(final_path, 'rb') as f:
+            video_data = f.read()
 
-        zf.writestr('script.md', '\n'.join(script_lines))
+        safe_title = ''.join(c if c.isalnum() or c in '-_ ' else '_' for c in story['title'])
+        return Response(
+            video_data,
+            mimetype='video/mp4',
+            headers={
+                'Content-Disposition': f'attachment; filename="{safe_title}.mp4"',
+                'Content-Length': str(len(video_data)),
+            }
+        )
 
-        # Clips
-        for s in scenes:
-            for url in (s.get('clip_urls') or []):
-                try:
-                    file_data = download_file(url)
-                    filename = url.split('/')[-1]
-                    zf.writestr(f'scenes/{s["position"]}/{filename}', file_data)
-                except Exception as e:
-                    zf.writestr(f'scenes/{s["position"]}/ERROR_{url.split("/")[-1]}.txt', str(e))
-
-    buf.seek(0)
-    safe_title = ''.join(c if c.isalnum() or c in '-_ ' else '_' for c in story['title'])
-    return Response(
-        buf.read(),
-        mimetype='application/zip',
-        headers={'Content-Disposition': f'attachment; filename="{safe_title}.zip"'}
-    )
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)

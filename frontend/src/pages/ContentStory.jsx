@@ -59,16 +59,23 @@ export default function ContentStory() {
 
   async function handleExport() {
     setExporting(true)
+    toast('Composing video… this takes 30–60 s', { icon: '🎬', duration: 55000, id: 'export-progress' })
     try {
-      const resp = await api.get(`/api/content/stories/${id}/export`, { responseType: 'blob' })
+      const resp = await api.get(`/api/content/stories/${id}/export`, {
+        responseType: 'blob',
+        timeout: 120000,
+      })
+      toast.dismiss('export-progress')
       const url = URL.createObjectURL(resp.data)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${story?.title || 'story'}.zip`
+      a.download = `${story?.title || 'story'}.mp4`
       a.click()
       URL.revokeObjectURL(url)
+      toast.success('Reel exported! Ready for Instagram.')
     } catch {
-      toast.error('Export failed. Try again.')
+      toast.dismiss('export-progress')
+      toast.error('Export failed — check server logs.')
     } finally {
       setExporting(false)
     }
