@@ -287,6 +287,84 @@ function ZoneBar({ label, buckets, unit }) {
 }
 
 // ---------------------------------------------------------------------------
+// Peak Moments — auto-computed highlights from stream data
+// ---------------------------------------------------------------------------
+
+function PeakMoments({ streams, isRun, maxHr }) {
+  const { t } = useTranslation('workouts')
+  const hr  = streams?.heartrate
+  const vel = streams?.velocity_smooth
+  const alt = streams?.altitude
+  const tim = streams?.time
+
+  if (!hr && !vel) return null
+
+  const moments = []
+
+  if (hr && hr.length > 0) {
+    const peak = Math.max(...hr)
+    const idx  = hr.lastIndexOf(peak)
+    const ts   = tim?.[idx]
+    moments.push({
+      icon: '❤️',
+      label: 'Peak HR',
+      value: `${peak} bpm${maxHr ? ` · Z${hrZoneIndex(peak, maxHr) + 1}` : ''}`,
+      sub: ts != null ? `at ${fmtTimeSec(ts)}` : null,
+      color: 'text-red-600',
+    })
+  }
+
+  if (vel && vel.length > 0) {
+    const WINDOW = 12 // ~60 sec at 5s sampling
+    let bestAvg = 0, bestIdx = 0
+    for (let i = 0; i <= vel.length - WINDOW; i++) {
+      const avg = vel.slice(i, i + WINDOW).reduce((a, b) => a + b, 0) / WINDOW
+      if (avg > bestAvg) { bestAvg = avg; bestIdx = i }
+    }
+    const ts = tim?.[bestIdx]
+    moments.push({
+      icon: '⚡',
+      label: isRun ? 'Best 60s Pace' : 'Best 60s Speed',
+      value: isRun ? fmtPace(bestAvg) + '/km' : `${(bestAvg * 3.6).toFixed(1)} km/h`,
+      sub: ts != null ? `at ${fmtTimeSec(ts)}` : null,
+      color: 'text-blue-600',
+    })
+  }
+
+  if (alt && alt.length > 0) {
+    const gain = alt.reduce((sum, v, i) => i === 0 ? 0 : sum + Math.max(0, v - alt[i - 1]), 0)
+    const peak = Math.max(...alt)
+    moments.push({
+      icon: '⛰️',
+      label: 'Elevation',
+      value: `+${Math.round(gain)} m`,
+      sub: `peak ${Math.round(peak)} m`,
+      color: 'text-orange-600',
+    })
+  }
+
+  if (moments.length === 0) return null
+
+  return (
+    <div>
+      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+        {t('strava.peakMoments', { defaultValue: 'Peak Moments' })}
+      </p>
+      <div className="grid grid-cols-3 gap-2">
+        {moments.map((m) => (
+          <div key={m.label} className="bg-gray-50 rounded-xl p-2.5">
+            <div className="text-base mb-0.5">{m.icon}</div>
+            <p className={`text-sm font-bold ${m.color} leading-tight`}>{m.value}</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">{m.label}</p>
+            {m.sub && <p className="text-[10px] text-gray-400">{m.sub}</p>}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // HR Stream Chart — continuous HR over time with zone reference lines
 // ---------------------------------------------------------------------------
 
@@ -372,7 +450,7 @@ function HRStreamChart({ streams, maxHr, avgHr }) {
         </div>
       </div>
       <ResponsiveContainer width="100%" height={200}>
-        <AreaChart data={data} margin={{ top: 4, right: 8, left: -8, bottom: 0 }}>
+        <AreaChart data={data} syncId="activity" margin={{ top: 4, right: 8, left: -8, bottom: 0 }}>
           <defs>
             <linearGradient id="hrGradient" x1="0" y1="0" x2="0" y2="1">
               {gradientStops.map((s, i) => (
@@ -428,6 +506,105 @@ function HRStreamChart({ streams, maxHr, avgHr }) {
               tickFormatter={xFormatter}
             />
           )}
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Speed stream chart — continuous pace/speed over time, synced with HR chart
+// ---------------------------------------------------------------------------
+
+function SpeedStreamChart({ streams, isRun }) {
+  const { t } = useTranslation('workouts')
+  const vel  = streams?.velocity_smooth
+  const time = streams?.time
+  const dist = streams?.distance
+
+  if (!vel || vel.length === 0) return null
+
+  const data = vel.map((ms, i) => {
+    const kmh  = +(ms * 3.6).toFixed(2)
+    const pace = ms > 0.5 ? Math.round(1000 / ms) : null
+    return {
+      kmh,
+      pace,
+      display: isRun ? (pace ?? 0) : kmh,
+      t: time?.[i] ?? i,
+      d: dist?.[i] != null ? +(dist[i] / 1000).toFixed(2) : i,
+    }
+  })
+
+  const vals    = data.map(d => d.display).filter(v => v > 0)
+  const minVal  = Math.max(0, Math.min(...vals) * 0.85)
+  const maxVal  = Math.max(...vals) * 1.08
+
+  const CustomTooltip = ({ active, payload }) => {
+    if (!active || !payload?.[0]) return null
+    const d = payload[0].payload
+    return (
+      <div className="bg-white border border-gray-200 rounded-xl shadow-md px-3 py-2 text-xs">
+        <p className="font-bold text-blue-700">
+          {isRun ? `${fmtPace(d.kmh / 3.6)}/km` : `${d.kmh.toFixed(1)} km/h`}
+        </p>
+        <p className="text-gray-500">{fmtTimeSec(d.t)}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            {isRun ? t('strava.charts.pace', { defaultValue: 'PACE' }) : t('strava.charts.speed', { defaultValue: 'SPEED' })}
+          </p>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {t('strava.charts.perSecond', { defaultValue: 'per second · synced with HR' })}
+          </p>
+        </div>
+      </div>
+      <ResponsiveContainer width="100%" height={160}>
+        <AreaChart data={data} syncId="activity" margin={{ top: 4, right: 8, left: -8, bottom: 0 }}>
+          <defs>
+            <linearGradient id="speedGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stopColor="#3b82f6" stopOpacity={0.75} />
+              <stop offset="100%" stopColor="#93c5fd" stopOpacity={0.20} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+          <XAxis
+            dataKey="t"
+            tickFormatter={fmtTimeSec}
+            tick={{ fontSize: 10, fill: '#9ca3af' }}
+            tickLine={false}
+            axisLine={false}
+            interval="preserveStartEnd"
+            minTickGap={50}
+          />
+          <YAxis
+            domain={[minVal, maxVal]}
+            tick={{ fontSize: 10, fill: '#9ca3af' }}
+            tickLine={false}
+            axisLine={false}
+            width={42}
+            tickFormatter={v => isRun
+              ? fmtPace(v > 0 ? 1000 / (v / 3.6 || 0.001) : 0)
+              : `${v.toFixed(0)}`
+            }
+          />
+          <Tooltip content={<CustomTooltip />} />
+          <Area
+            type="monotone"
+            dataKey="display"
+            stroke="#3b82f6"
+            strokeWidth={1.5}
+            fill="url(#speedGradient)"
+            dot={false}
+            activeDot={{ r: 3, fill: '#3b82f6' }}
+            isAnimationActive={false}
+          />
         </AreaChart>
       </ResponsiveContainer>
     </div>
@@ -980,17 +1157,32 @@ function StravaAnalysis({ workoutId, sport, maxHr }) {
           </div>
         )}
 
-        {/* HR stream chart — full width */}
-        {streams.heartrate && (
-          <HRStreamChart
-            streams={streams}
-            maxHr={maxHr}
-            avgHr={data.zones?.find(z => z.type === 'heartrate')?.average_heartrate
-              ?? (data.splits_metric?.length
-                ? Math.round(data.splits_metric.reduce((s, x) => s + (x.average_heartrate || 0), 0) / data.splits_metric.filter(x => x.average_heartrate).length)
-                : null)}
-          />
+        {/* Synced HR + Speed pair — hover on one highlights both */}
+        {(streams.heartrate || streams.velocity_smooth) && (
+          <div className="space-y-1">
+            {streams.heartrate && (
+              <HRStreamChart
+                streams={streams}
+                maxHr={maxHr}
+                avgHr={data.zones?.find(z => z.type === 'heartrate')?.average_heartrate
+                  ?? (data.splits_metric?.length
+                    ? Math.round(data.splits_metric.reduce((s, x) => s + (x.average_heartrate || 0), 0) / data.splits_metric.filter(x => x.average_heartrate).length)
+                    : null)}
+              />
+            )}
+            {streams.velocity_smooth && (
+              <SpeedStreamChart streams={streams} isRun={isRun} />
+            )}
+            {(streams.heartrate || streams.velocity_smooth) && (
+              <p className="text-[10px] text-gray-400 text-center">
+                Hover either chart to see HR + {isRun ? 'pace' : 'speed'} at the same instant
+              </p>
+            )}
+          </div>
         )}
+
+        {/* Peak Moments */}
+        <PeakMoments streams={streams} isRun={isRun} maxHr={maxHr} />
 
         {/* Pace + Cadence side by side on sm+ */}
         {(hasSplits || streams.cadence) && (

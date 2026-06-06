@@ -188,7 +188,7 @@ def strava_analysis(workout_id):
 
         streams = {
             key: _downsample(streams_raw[key]['data'])
-            for key in ('heartrate', 'time', 'distance', 'altitude', 'cadence')
+            for key in ('heartrate', 'time', 'distance', 'altitude', 'cadence', 'velocity_smooth')
             if key in streams_raw
         }
 
