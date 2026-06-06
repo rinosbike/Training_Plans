@@ -18,6 +18,7 @@ export default function ContentStory() {
   const [editingField, setEditingField] = useState(null)
   const [fieldValue, setFieldValue] = useState('')
   const [showScript, setShowScript] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
   const [copied, setCopied] = useState(false)
   const [exporting, setExporting] = useState(false)
 
@@ -154,6 +155,13 @@ export default function ContentStory() {
       {/* Action bar */}
       <div className="max-w-lg mx-auto px-4 py-3 flex gap-2">
         <button
+          onClick={() => setShowPreview(true)}
+          className="px-3 bg-white border border-gray-200 text-sm rounded-xl hover:bg-gray-50"
+          title="Storyboard preview"
+        >
+          🎞
+        </button>
+        <button
           onClick={() => generateScript.mutate()}
           disabled={generateScript.isPending}
           className="flex-1 bg-primary-600 text-white text-sm font-medium py-2.5 rounded-xl hover:bg-primary-700 disabled:opacity-50 transition-colors"
@@ -198,6 +206,69 @@ export default function ContentStory() {
           {addScene.isPending ? '…' : `+ ${t('scene.addScene')}`}
         </button>
       </div>
+
+      {/* Storyboard preview panel */}
+      {showPreview && (
+        <div className="fixed inset-0 bg-black/90 z-50 flex flex-col">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+            <h2 className="text-white font-semibold">{story.title}</h2>
+            <button onClick={() => setShowPreview(false)} className="text-white/60 hover:text-white text-2xl leading-none">×</button>
+          </div>
+
+          {/* Film strip */}
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="grid grid-cols-2 gap-3 max-w-lg mx-auto">
+              {scenes.map((scene) => {
+                const clips = scene.clip_urls || []
+                const firstClip = clips[0]
+                const isVideo = firstClip && /\.(mp4|mov|webm)$/i.test(firstClip)
+                return (
+                  <div key={scene.id} className="relative rounded-xl overflow-hidden bg-gray-900 aspect-[9/16]">
+                    {firstClip ? (
+                      isVideo ? (
+                        <video src={firstClip} className="w-full h-full object-cover" muted loop autoPlay playsInline />
+                      ) : (
+                        <img src={firstClip} alt="" className="w-full h-full object-cover" />
+                      )
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-600 text-xs">No clip</div>
+                    )}
+                    {/* Overlay text */}
+                    <div className="absolute inset-0 flex flex-col justify-between p-2">
+                      <span className="bg-black/40 text-white text-[10px] font-bold px-1.5 py-0.5 rounded self-start">
+                        {scene.position} · {scene.duration_sec}s
+                      </span>
+                      {scene.overlay_text && (
+                        <p className="text-white text-xs font-bold text-center drop-shadow-lg leading-tight px-1">
+                          {scene.overlay_text}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Script preview under storyboard */}
+            {story.generated_script && (
+              <div className="max-w-lg mx-auto mt-6 bg-white/5 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-white/80 text-xs font-semibold uppercase tracking-wide">Generated Script</h3>
+                  <button
+                    onClick={copyScript}
+                    className="text-xs text-primary-400 hover:text-primary-300 font-medium"
+                  >
+                    {copied ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+                <pre className="text-white/70 text-xs whitespace-pre-wrap font-sans leading-relaxed">
+                  {story.generated_script}
+                </pre>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Generated script panel */}
       {showScript && (
