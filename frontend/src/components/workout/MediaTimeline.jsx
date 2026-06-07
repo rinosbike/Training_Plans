@@ -15,11 +15,46 @@ function VideoHUD({ metrics, currentTime }) {
   if (!metrics || metrics.length === 0) return null
   const frame = metrics[Math.min(Math.floor(currentTime), metrics.length - 1)]
   if (!frame) return null
+  const hasAny = frame.km != null || frame.speed != null || frame.hr != null
+  if (!hasAny) return null
+
   return (
-    <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm text-white rounded-xl px-3 py-2 text-xs font-mono leading-relaxed pointer-events-none">
-      {frame.km   != null && <div className="font-semibold text-sm">{frame.km.toFixed(2)} km</div>}
-      {frame.speed != null && <div className="text-gray-200">{frame.speed.toFixed(1)} km/h</div>}
-      {frame.hr   != null && <div className="text-red-300">{frame.hr} bpm ♥</div>}
+    <div className="absolute bottom-3 right-3 pointer-events-none select-none">
+      <div className="bg-white/90 backdrop-blur rounded-xl shadow-xl overflow-hidden w-28">
+        {/* KM — big center stat */}
+        {frame.km != null && (
+          <div className="bg-gray-900 px-3 pt-2.5 pb-1 text-center">
+            <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-widest mb-0.5">
+              Distance
+            </div>
+            <div className="text-2xl font-black text-white leading-none tabular-nums">
+              {frame.km.toFixed(2)}
+            </div>
+            <div className="text-[9px] text-gray-400 mt-0.5">km</div>
+          </div>
+        )}
+        {/* Speed + HR side by side */}
+        <div className="flex divide-x divide-gray-200">
+          {frame.speed != null && (
+            <div className="flex-1 px-1.5 py-1.5 text-center">
+              <div className="text-[8px] font-semibold text-gray-400 uppercase tracking-wide">Spd</div>
+              <div className="text-sm font-bold text-gray-900 tabular-nums leading-tight">
+                {frame.speed.toFixed(0)}
+              </div>
+              <div className="text-[8px] text-gray-400">km/h</div>
+            </div>
+          )}
+          {frame.hr != null && (
+            <div className="flex-1 px-1.5 py-1.5 text-center">
+              <div className="text-[8px] font-semibold text-red-400 uppercase tracking-wide">HR</div>
+              <div className="text-sm font-bold text-gray-900 tabular-nums leading-tight">
+                {frame.hr}
+              </div>
+              <div className="text-[8px] text-gray-400">bpm</div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

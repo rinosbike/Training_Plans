@@ -26,8 +26,10 @@ def correct_dji_clock(video_start: datetime, filename: str, strava_detail: dict)
     if not start_date_local or not start_date_utc:
         return video_start
 
-    # Derive the UTC offset from the Strava activity
-    local_dt = datetime.fromisoformat(start_date_local)
+    # Derive the UTC offset from the Strava activity.
+    # Python 3.11+ fromisoformat() accepts 'Z' as UTC, making the result timezone-aware.
+    # Strip timezone info so both are naive before arithmetic.
+    local_dt = datetime.fromisoformat(start_date_local.replace('Z', '+00:00')).replace(tzinfo=None)
     utc_dt   = datetime.fromisoformat(start_date_utc.replace('Z', '+00:00')).replace(tzinfo=None)
     tz_offset = local_dt - utc_dt  # e.g. timedelta(hours=2) for CEST
 

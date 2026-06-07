@@ -94,7 +94,7 @@ def upload_media(workout_id):
                          duration_sec, recorded_at, km_start, km_end,
                          strava_time_start, strava_time_end, offset_sec, created_at''',
             [user_id, workout_id, r2_url, f.filename, 'video',
-             meta['duration_sec'], meta['video_start'],
+             meta['duration_sec'], sync_result.get('corrected_video_start', meta['video_start']),
              sync_result.get('offset_sec'),
              sync_result.get('km_start'), sync_result.get('km_end'),
              sync_result.get('strava_time_start'), sync_result.get('strava_time_end'),
@@ -108,6 +108,54 @@ def upload_media(workout_id):
             os.unlink(tmp_path)
         except OSError:
             pass
+
+
+@media_bp.route('/api/workouts/<workout_id>/media/sync-all', methods=['POST'])
+@jwt_required()
+def sync_all_media(workout_id):
+    """Re-run Strava sync on every unsynced clip for this workout."""
+    user_id = get_jwt_identity()
+    _require_workout(workout_id, user_id)
+
+    clips = execute_query(
+        '''SELECT id, recorded_at, duration_sec, original_filename
+           FROM training.workout_media
+           WHERE workout_id = %s AND user_id = %s AND km_start IS NULL
+           ORDER BY recorded_at ASC''',
+        (workout_id, user_id)
+    )
+
+    updated, failed = 0, 0
+    for clip in clips:
+        recorded_at = clip['recorded_at']
+        if recorded_at is None:
+            failed += 1
+            continue
+        meta = {
+            'video_start': recorded_at,
+            'duration_sec': clip['duration_sec'] or 0,
+            'filename': clip['original_filename'] or '',
+        }
+        sync_result = _try_strava_sync(workout_id, user_id, meta)
+        if not sync_result.get('km_start') is None or sync_result.get('km_start') is not None:
+            corrected = sync_result.get('corrected_video_start', recorded_at)
+            execute_write(
+                '''UPDATE training.workout_media
+                   SET offset_sec=%s, km_start=%s, km_end=%s,
+                       strava_time_start=%s, strava_time_end=%s,
+                       metrics_json=%s, recorded_at=%s
+                   WHERE id=%s''',
+                [sync_result.get('offset_sec'), sync_result.get('km_start'),
+                 sync_result.get('km_end'), sync_result.get('strava_time_start'),
+                 sync_result.get('strava_time_end'),
+                 json.dumps(sync_result['metrics']) if sync_result.get('metrics') else None,
+                 corrected, clip['id']]
+            )
+            updated += 1
+        else:
+            failed += 1
+
+    return jsonify({'updated': updated, 'failed': failed, 'total': len(clips)})
 
 
 @media_bp.route('/api/workouts/<workout_id>/media/<media_id>', methods=['DELETE'])
@@ -224,8 +272,13 @@ def _try_strava_sync(workout_id, user_id, meta: dict) -> dict:
         # Auto-correct DJI cameras that store local time as UTC in creation_time
         video_start = correct_dji_clock(meta['video_start'], meta.get('filename', ''), detail)
 
-        streams_raw = strava_svc.fetch_activity_streams(access_token, activity_id)
-        return compute_sync(video_start, meta['duration_sec'], strava_start, streams_raw)
+        streams_raw = strava_svc.fetch_activity_streams(
+            access_token, activity_id,
+            keys='heartrate,time,distance,velocity_smooth,altitude,cadence',
+        )
+        result = compute_sync(video_start, meta['duration_sec'], strava_start, streams_raw)
+        result['corrected_video_start'] = video_start
+        return result
 
     except Exception as e:
         log.warning('Strava sync skipped for media upload: %s', e, exc_info=True)
