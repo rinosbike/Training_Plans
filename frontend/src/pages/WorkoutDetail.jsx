@@ -1146,12 +1146,6 @@ function StravaAnalysis({ workoutId, sport, maxHr }) {
           <RouteMap polyline={data.map_polyline} activityId={data.activity_id} />
         )}
 
-        {/* Footage timeline — clips synced to distance */}
-        <MediaTimeline
-          workoutId={workoutId}
-          totalKm={data.total_distance_m ? data.total_distance_m / 1000 : null}
-        />
-
         {/* Summary stats */}
         {extras.length > 0 && (
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
@@ -1354,6 +1348,16 @@ export default function WorkoutDetail() {
         {/* Strava rich analysis */}
         {isStrava && isLogged && (
           <StravaAnalysis workoutId={id} sport={workout.sport} maxHr={profile?.max_hr} />
+        )}
+
+        {/* Footage — visible for any logged workout, Strava sync is best-effort */}
+        {isLogged && workout.sport !== 'rest' && (
+          <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <MediaTimeline
+              workoutId={id}
+              totalKm={workout.actual_distance_km ?? workout.distance_km ?? null}
+            />
+          </div>
         )}
 
         {/* Manual log form */}
