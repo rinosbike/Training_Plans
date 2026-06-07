@@ -228,5 +228,5 @@ def _try_strava_sync(workout_id, user_id, meta: dict) -> dict:
         return compute_sync(video_start, meta['duration_sec'], strava_start, streams_raw)
 
     except Exception as e:
-        log.warning('Strava sync skipped for media upload: %s', e)
+        log.warning('Strava sync skipped for media upload: %s', e, exc_info=True)
         return {}
