@@ -179,6 +179,12 @@ def _require_workout(workout_id, user_id):
         (workout_id, user_id), fetch_one=True
     )
     if not row:
+        # Also accept standalone synced activities (workout_log.id with no plan workout)
+        row = execute_query(
+            'SELECT id FROM training.workout_logs WHERE id = %s AND user_id = %s AND workout_id IS NULL',
+            (workout_id, user_id), fetch_one=True
+        )
+    if not row:
         raise NotFoundError('Workout not found')
 
 
@@ -190,6 +196,13 @@ def _try_strava_sync(workout_id, user_id, meta: dict) -> dict:
             "WHERE workout_id = %s AND user_id = %s AND source = 'strava'",
             (workout_id, user_id), fetch_one=True
         )
+        if not log_row or not log_row['external_id']:
+            # Standalone log — workout_id param is the log's own id
+            log_row = execute_query(
+                "SELECT external_id FROM training.workout_logs "
+                "WHERE id = %s AND user_id = %s AND source = 'strava' AND workout_id IS NULL",
+                (workout_id, user_id), fetch_one=True
+            )
         if not log_row or not log_row['external_id']:
             return {}
 

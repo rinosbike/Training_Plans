@@ -106,14 +106,18 @@ function ClipPlayer({ clip, workoutId, onClose }) {
           <div className="flex items-center gap-3">
             <input
               type="range"
-              min={-120} max={120} step={1}
+              min={-14400} max={14400} step={30}
               value={offsetAdjust}
               onChange={e => setOffsetAdjust(Number(e.target.value))}
               className="flex-1 accent-blue-500"
             />
-            <span className="text-xs font-mono text-white w-16 text-right">
-              {offsetAdjust >= 0 ? '+' : ''}{offsetAdjust}s
-            </span>
+            <input
+              type="number"
+              value={offsetAdjust}
+              onChange={e => setOffsetAdjust(Number(e.target.value))}
+              className="w-20 text-xs font-mono bg-gray-800 text-white rounded px-2 py-1 text-right"
+              placeholder="sec"
+            />
           </div>
           <button
             onClick={() => resyncMutation.mutate()}
