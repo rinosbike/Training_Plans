@@ -247,83 +247,80 @@ function TimelineBar({ sortedClips, totalKm, selectedId, onSelect }) {
 }
 
 // ---------------------------------------------------------------------------
-// Scrollable clip list — all clips numbered with quick stats
+// Collapsible clip dropdown — compact rows, scrollable, shown below the player
 // ---------------------------------------------------------------------------
 
-function ClipList({ sortedClips, selectedId, onSelect, onDelete, deletingId }) {
+function ClipDropdown({ sortedClips, selectedId, onSelect, onDelete, deletingId }) {
   const { t } = useTranslation('workouts')
+  const [open, setOpen] = useState(false)
 
   if (!sortedClips.length) return null
 
+  const fmtDur = (sec) => sec == null ? '' : sec >= 60
+    ? `${Math.floor(sec / 60)}m ${Math.round(sec % 60)}s`
+    : `${Math.round(sec)}s`
+
   return (
-    <div className="space-y-1.5">
-      {sortedClips.map((clip, idx) => {
-        const color = CLIP_COLORS[idx % CLIP_COLORS.length]
-        const isSelected = selectedId === clip.id
-        const clipNum = idx + 1
-        const hasSyncedKm = clip.km_start != null && clip.km_end != null
-        const durationStr = clip.duration_sec != null
-          ? clip.duration_sec >= 60
-            ? `${Math.floor(clip.duration_sec / 60)}m ${Math.round(clip.duration_sec % 60)}s`
-            : `${Math.round(clip.duration_sec)}s`
-          : null
+    <div className="mt-3 border border-gray-200 rounded-xl overflow-hidden">
+      {/* Toggle header */}
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 hover:bg-gray-100 transition-colors text-xs text-gray-600 font-medium"
+      >
+        <span>
+          {sortedClips.length} {sortedClips.length === 1 ? 'clip' : 'clips'}
+          {selectedId && (() => {
+            const idx = sortedClips.findIndex(c => c.id === selectedId)
+            return idx >= 0 ? ` · playing #${idx + 1}` : ''
+          })()}
+        </span>
+        <span className="text-gray-400 text-[10px]">{open ? '▲ hide' : '▼ show all'}</span>
+      </button>
 
-        return (
-          <div
-            key={clip.id}
-            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 cursor-pointer transition-colors ${
-              isSelected ? 'bg-gray-100 ring-1 ring-gray-300' : 'hover:bg-gray-50'
-            }`}
-            onClick={() => onSelect(isSelected ? null : clip.id)}
-          >
-            {/* Color badge with clip number */}
-            <div
-              className="w-7 h-7 rounded-lg flex-shrink-0 flex items-center justify-center text-white text-xs font-bold shadow-sm"
-              style={{ backgroundColor: color }}
-            >
-              {clipNum}
-            </div>
+      {/* Scrollable list */}
+      {open && (
+        <div className="max-h-48 overflow-y-auto divide-y divide-gray-100">
+          {sortedClips.map((clip, idx) => {
+            const color = CLIP_COLORS[idx % CLIP_COLORS.length]
+            const isSelected = selectedId === clip.id
+            const hasSyncedKm = clip.km_start != null && clip.km_end != null
 
-            {/* Main info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                {hasSyncedKm ? (
-                  <span className="text-xs font-semibold font-mono text-gray-800">
-                    {clip.km_start.toFixed(2)} – {clip.km_end.toFixed(2)} km
-                  </span>
-                ) : (
-                  <span className="text-xs font-medium text-amber-600">
-                    {t('strava.media.unsynced')}
-                  </span>
-                )}
-                {durationStr && (
-                  <span className="text-[11px] text-gray-400">{durationStr}</span>
-                )}
-              </div>
-              {clip.original_filename && (
-                <p className="text-[10px] text-gray-400 truncate mt-0.5 font-mono">
-                  {clip.original_filename}
-                </p>
-              )}
-            </div>
-
-            {/* Status + delete */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {isSelected && (
-                <span className="text-[10px] text-blue-500 font-medium">Playing</span>
-              )}
-              <button
-                onClick={(e) => { e.stopPropagation(); onDelete(clip.id) }}
-                disabled={deletingId === clip.id}
-                className="text-gray-300 hover:text-red-400 disabled:opacity-30 transition-colors text-xs px-1"
-                title={t('strava.media.deleteClip')}
+            return (
+              <div
+                key={clip.id}
+                className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer transition-colors ${
+                  isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'
+                }`}
+                onClick={() => onSelect(isSelected ? null : clip.id)}
               >
-                ✕
-              </button>
-            </div>
-          </div>
-        )
-      })}
+                <div
+                  className="w-5 h-5 rounded flex-shrink-0 flex items-center justify-center text-white text-[10px] font-bold"
+                  style={{ backgroundColor: color }}
+                >
+                  {idx + 1}
+                </div>
+                <div className="flex-1 min-w-0 flex items-center gap-2">
+                  {hasSyncedKm ? (
+                    <span className="text-xs font-mono text-gray-700">
+                      {clip.km_start.toFixed(1)}–{clip.km_end.toFixed(1)} km
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-amber-500">{t('strava.media.unsynced')}</span>
+                  )}
+                  <span className="text-[10px] text-gray-400">{fmtDur(clip.duration_sec)}</span>
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDelete(clip.id) }}
+                  disabled={deletingId === clip.id}
+                  className="text-gray-300 hover:text-red-400 disabled:opacity-30 text-xs px-1 flex-shrink-0"
+                >
+                  ✕
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
@@ -420,11 +417,6 @@ export function MediaTimeline({ workoutId, totalKm }) {
       <div className="flex items-center justify-between mb-3">
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
           {t('strava.media.title')}
-          {sortedClips.length > 0 && (
-            <span className="ml-1.5 text-gray-400 font-normal normal-case">
-              ({sortedClips.length} {sortedClips.length === 1 ? 'clip' : 'clips'})
-            </span>
-          )}
         </p>
         <button
           onClick={() => fileInputRef.current?.click()}
@@ -472,7 +464,7 @@ export function MediaTimeline({ workoutId, totalKm }) {
         </button>
       ) : (
         <>
-          {/* Proportional timeline bar (km if synced, time-based fallback otherwise) */}
+          {/* Timeline bar — click any segment to open that clip */}
           <TimelineBar
             sortedClips={sortedClips}
             totalKm={safeTotalKm}
@@ -480,17 +472,8 @@ export function MediaTimeline({ workoutId, totalKm }) {
             onSelect={setSelectedClipId}
           />
 
-          {/* Numbered clip list — all clips visible */}
-          <ClipList
-            sortedClips={sortedClips}
-            selectedId={selectedClipId}
-            onSelect={setSelectedClipId}
-            onDelete={(id) => deleteMutation.mutate(id)}
-            deletingId={deletingId}
-          />
-
-          {/* Player for active clip */}
-          {selectedClip && (
+          {/* Player appears immediately below the bar */}
+          {selectedClip ? (
             <ClipPlayer
               key={selectedClip.id}
               clip={selectedClip}
@@ -499,7 +482,20 @@ export function MediaTimeline({ workoutId, totalKm }) {
               workoutId={workoutId}
               onClose={() => setSelectedClipId(null)}
             />
+          ) : (
+            <p className="text-[11px] text-gray-400 text-center py-2">
+              Tap a clip on the timeline to play
+            </p>
           )}
+
+          {/* Dropdown clip list — hidden by default, expands below the player */}
+          <ClipDropdown
+            sortedClips={sortedClips}
+            selectedId={selectedClipId}
+            onSelect={setSelectedClipId}
+            onDelete={(id) => deleteMutation.mutate(id)}
+            deletingId={deletingId}
+          />
         </>
       )}
     </div>
