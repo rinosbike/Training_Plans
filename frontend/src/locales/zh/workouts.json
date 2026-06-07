@@ -129,6 +129,25 @@
       "speedPerKm": "每公里速度",
       "showTable": "显示表格",
       "hideTable": "隐藏表格"
+    },
+    "media": {
+      "title": "影像片段",
+      "addClip": "添加片段",
+      "uploading": "上传中… {{pct}}%",
+      "uploaded": "片段已上传",
+      "uploadedAt": "片段已同步到 {{km}} km",
+      "uploadFailed": "上传失败",
+      "deleted": "片段已删除",
+      "deleteFailed": "删除失败",
+      "deleteClip": "删除片段",
+      "empty": "拖放视频片段至此处或点击添加片段",
+      "unsynced": "片段尚未与距离同步",
+      "adjustSync": "调整同步",
+      "adjustDesc": "若摄像机时钟偏差，可调整片段位置（±120秒）",
+      "applySync": "应用",
+      "resyncing": "同步中…",
+      "resynced": "同步已更新",
+      "resyncFailed": "重新同步失败"
     }
   }
 }

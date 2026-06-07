@@ -10,6 +10,7 @@ import {
 import { MapContainer, TileLayer, Polyline, CircleMarker, useMap } from 'react-leaflet'
 import api from '../services/api'
 import { SportBadge } from '../components/workout/SportIcon'
+import { MediaTimeline } from '../components/workout/MediaTimeline'
 import toast from 'react-hot-toast'
 
 const ZONE_COLORS = ['bg-blue-300', 'bg-green-300', 'bg-yellow-300', 'bg-orange-400', 'bg-red-500']
@@ -1144,6 +1145,12 @@ function StravaAnalysis({ workoutId, sport, maxHr }) {
         {data.map_polyline && (
           <RouteMap polyline={data.map_polyline} activityId={data.activity_id} />
         )}
+
+        {/* Footage timeline — clips synced to distance */}
+        <MediaTimeline
+          workoutId={workoutId}
+          totalKm={data.total_distance_m ? data.total_distance_m / 1000 : null}
+        />
 
         {/* Summary stats */}
         {extras.length > 0 && (

@@ -129,6 +129,25 @@
       "speedPerKm": "Prędkość na km",
       "showTable": "Pokaż tabelę",
       "hideTable": "Ukryj tabelę"
+    },
+    "media": {
+      "title": "Nagrania",
+      "addClip": "Dodaj klip",
+      "uploading": "Wysyłanie… {{pct}}%",
+      "uploaded": "Klip wysłany",
+      "uploadedAt": "Klip zsynchronizowany na {{km}} km",
+      "uploadFailed": "Wysyłanie nie powiodło się",
+      "deleted": "Klip usunięty",
+      "deleteFailed": "Usunięcie nie powiodło się",
+      "deleteClip": "Usuń klip",
+      "empty": "Upuść klip wideo tutaj lub kliknij Dodaj klip",
+      "unsynced": "Klip nie jest jeszcze zsynchronizowany z dystansem",
+      "adjustSync": "Dostosuj synchronizację",
+      "adjustDesc": "Przesuń pozycję klipu, jeśli zegar kamery był niedokładny (±120 s)",
+      "applySync": "Zastosuj",
+      "resyncing": "Synchronizowanie…",
+      "resynced": "Synchronizacja zaktualizowana",
+      "resyncFailed": "Synchronizacja nie powiodła się"
     }
   }
 }

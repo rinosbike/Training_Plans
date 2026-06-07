@@ -27,11 +27,26 @@
     "title": "Heart Rate Zones (max {{bpm}} bpm)",
     "noHr": "Set your max HR in Settings to see heart rate zone targets.",
     "target": "Target",
-    "1": { "name": "Recovery",  "desc": "Very easy, can hold full conversation" },
-    "2": { "name": "Aerobic",   "desc": "Easy, comfortable, aerobic base building" },
-    "3": { "name": "Tempo",     "desc": "Comfortably hard, limited conversation" },
-    "4": { "name": "Threshold", "desc": "Hard, only short sentences" },
-    "5": { "name": "VO2max",    "desc": "Very hard, cannot speak" }
+    "1": {
+      "name": "Recovery",
+      "desc": "Very easy, can hold full conversation"
+    },
+    "2": {
+      "name": "Aerobic",
+      "desc": "Easy, comfortable, aerobic base building"
+    },
+    "3": {
+      "name": "Tempo",
+      "desc": "Comfortably hard, limited conversation"
+    },
+    "4": {
+      "name": "Threshold",
+      "desc": "Hard, only short sentences"
+    },
+    "5": {
+      "name": "VO2max",
+      "desc": "Very hard, cannot speak"
+    }
   },
   "source": {
     "strava": "Strava Activity",
@@ -114,6 +129,25 @@
       "speedPerKm": "Speed per km",
       "showTable": "Show table",
       "hideTable": "Hide table"
+    },
+    "media": {
+      "title": "Footage",
+      "addClip": "Add clip",
+      "uploading": "Uploading… {{pct}}%",
+      "uploaded": "Clip uploaded",
+      "uploadedAt": "Clip synced at {{km}} km",
+      "uploadFailed": "Upload failed",
+      "deleted": "Clip deleted",
+      "deleteFailed": "Delete failed",
+      "deleteClip": "Delete clip",
+      "empty": "Drop a video clip here or click Add clip",
+      "unsynced": "Clip not yet synced to distance",
+      "adjustSync": "Adjust sync",
+      "adjustDesc": "Shift the clip position if the camera clock was off (±120 s)",
+      "applySync": "Apply",
+      "resyncing": "Resyncing…",
+      "resynced": "Sync updated",
+      "resyncFailed": "Resync failed"
     }
   }
 }

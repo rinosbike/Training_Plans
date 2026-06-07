@@ -214,6 +214,7 @@ def strava_analysis(workout_id):
             'kudos_count':            detail.get('kudos_count', 0),
             'average_temp':           detail.get('average_temp'),
             'map_polyline':           detail.get('map', {}).get('summary_polyline'),
+            'total_distance_m':       detail.get('distance'),
             'streams':                streams,
         })
     except Exception as e:

@@ -106,6 +106,34 @@ def delete_image(url: str) -> bool:
     return delete_file(url)
 
 
+def upload_fileobj_streaming(fileobj, folder: str, content_type: str,
+                             filename: str = None) -> str:
+    """
+    Stream-upload a file-like object to R2 using boto3 multipart transfer.
+    Handles large video files without loading them fully into memory.
+    Returns the public URL.
+    """
+    from boto3.s3.transfer import TransferConfig
+    ext = _MIME_EXT.get(content_type, 'bin')
+    if not filename:
+        filename = f'{uuid.uuid4().hex}.{ext}'
+    key = f'training/{folder.strip("/")}/{filename}'
+
+    config = TransferConfig(
+        multipart_threshold=64 * 1024 * 1024,
+        multipart_chunksize=64 * 1024 * 1024,
+        max_concurrency=4,
+    )
+    _client().upload_fileobj(
+        fileobj, R2_BUCKET, key,
+        ExtraArgs={'ContentType': content_type},
+        Config=config,
+    )
+    url = f'{R2_PUBLIC_URL}/{key}'
+    log.info('Streamed upload to R2: %s', url)
+    return url
+
+
 def delete_file(url: str) -> bool:
     """Delete any file from R2 by its public URL. Returns True on success."""
     if not url or not R2_PUBLIC_URL or R2_PUBLIC_URL not in url:
