@@ -69,10 +69,13 @@ export default function WorkoutCard({ workout, compact = false }) {
   const { t, i18n } = useTranslation('workouts')
   const logged = !!workout.log
 
-  // Standalone synced activity — no linked plan workout, just show the log
+  // Standalone synced activity — no linked plan workout, clickable to show full Strava analysis
   if (workout.is_unplanned) {
     return (
-      <div className="rounded-xl border bg-green-50 border-green-200 p-4">
+      <button
+        onClick={() => navigate(`/workout/${workout.id}`)}
+        className="w-full text-left rounded-xl border bg-green-50 border-green-200 p-4 hover:bg-green-100 transition-colors"
+      >
         <div className="flex items-start gap-3">
           <SportBadge sport={workout.sport} />
           <div className="flex-1 min-w-0">
@@ -85,7 +88,7 @@ export default function WorkoutCard({ workout, compact = false }) {
           <span className="text-green-600 text-sm">✓</span>
         </div>
         <ActivityLog log={workout.log} plannedMin={null} />
-      </div>
+      </button>
     )
   }
 

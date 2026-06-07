@@ -26,7 +26,44 @@ def get_workout(workout_id):
         (workout_id, user_id), fetch_one=True
     )
     if not row:
-        raise NotFoundError('Workout not found')
+        # Standalone synced activity — the ID is a workout_log.id with no plan workout
+        log = execute_query(
+            '''SELECT id, log_date, sport, source, external_id,
+                 actual_duration_min, actual_distance_km, avg_hr, max_hr,
+                 avg_power_watts, calories_burned, perceived_effort, notes
+               FROM training.workout_logs
+               WHERE id = %s AND user_id = %s AND workout_id IS NULL''',
+            (workout_id, user_id), fetch_one=True
+        )
+        if not log:
+            raise NotFoundError('Workout not found')
+        source = log['source'] or 'activity'
+        return jsonify({
+            'id': str(log['id']),
+            'sport': log['sport'] or 'run',
+            'title': log['notes'] or f'{source.title()} Activity',
+            'title_key': None,
+            'duration_min': log['actual_duration_min'],
+            'distance_km': log['actual_distance_km'],
+            'intensity_zone': 2,
+            'tss': None,
+            'description': None,
+            'description_translations': None,
+            'is_unplanned': True,
+            'date': log['log_date'].isoformat() if log['log_date'] else None,
+            'day_type': 'easy',
+            'actual_duration_min': log['actual_duration_min'],
+            'actual_distance_km': log['actual_distance_km'],
+            'avg_hr': log['avg_hr'],
+            'max_hr': log['max_hr'],
+            'avg_power_watts': log['avg_power_watts'],
+            'calories_burned': log['calories_burned'],
+            'perceived_effort': log['perceived_effort'],
+            'log_notes': log['notes'],
+            'log_id': str(log['id']),
+            'log_source': source,
+            'strava_activity_id': log['external_id'],
+        })
     return jsonify(dict(row))
 
 
@@ -139,6 +176,12 @@ def strava_analysis(workout_id):
         "SELECT external_id FROM training.workout_logs WHERE workout_id = %s AND user_id = %s AND source = 'strava'",
         (workout_id, user_id), fetch_one=True
     )
+    if not log_row or not log_row['external_id']:
+        # Standalone log — the workout_id param is actually a workout_log.id
+        log_row = execute_query(
+            "SELECT external_id FROM training.workout_logs WHERE id = %s AND user_id = %s AND source = 'strava' AND workout_id IS NULL",
+            (workout_id, user_id), fetch_one=True
+        )
     if not log_row or not log_row['external_id']:
         return jsonify({'error': 'No Strava activity linked to this workout'}), 404
 
