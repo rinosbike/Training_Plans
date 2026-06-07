@@ -144,56 +144,103 @@ function ClipPlayer({ clip, clipNumber, color, workoutId, onClose }) {
 
 // ---------------------------------------------------------------------------
 // Km timeline bar — proportional colored segments with clip numbers
+// Falls back to a relative-time bar when no km data is available
 // ---------------------------------------------------------------------------
 
 function TimelineBar({ sortedClips, totalKm, selectedId, onSelect }) {
-  const syncedClips = sortedClips.filter(c => c.km_start != null)
-  if (!syncedClips.length) return null
+  const hasSyncedKm = sortedClips.some(c => c.km_start != null)
+
+  // ── km mode ───────────────────────────────────────────────────────────────
+  if (hasSyncedKm && totalKm) {
+    const syncedClips = sortedClips.filter(c => c.km_start != null)
+    return (
+      <div className="mb-4">
+        <div className="relative h-14 bg-gray-100 rounded-xl overflow-hidden">
+          {syncedClips.map((clip) => {
+            const idx = sortedClips.indexOf(clip)
+            const color = CLIP_COLORS[idx % CLIP_COLORS.length]
+            const left  = (clip.km_start / totalKm) * 100
+            const width = Math.max(((clip.km_end - clip.km_start) / totalKm) * 100, 0.8)
+            const isSelected = selectedId === clip.id
+            const showLabel = width > 3
+            return (
+              <button
+                key={clip.id}
+                onClick={() => onSelect(isSelected ? null : clip.id)}
+                title={`Clip ${idx + 1} · ${clip.km_start.toFixed(2)}–${clip.km_end.toFixed(2)} km`}
+                className="absolute top-0 h-full flex items-center justify-center transition-all hover:brightness-110 focus:outline-none"
+                style={{
+                  left: `${left}%`, width: `${width}%`,
+                  backgroundColor: color,
+                  opacity: isSelected ? 1 : 0.75, minWidth: '6px',
+                  outline: isSelected ? `2px solid ${color}` : 'none',
+                  outlineOffset: '-2px',
+                }}
+              >
+                {showLabel && (
+                  <span className="text-white text-xs font-bold select-none drop-shadow">{idx + 1}</span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+        <div className="flex justify-between text-[10px] text-gray-400 mt-1 px-0.5">
+          <span>0 km</span>
+          <span>{(totalKm / 2).toFixed(0)} km</span>
+          <span>{totalKm.toFixed(1)} km</span>
+        </div>
+      </div>
+    )
+  }
+
+  // ── time mode (fallback: use recorded_at timestamps) ──────────────────────
+  const timedClips = sortedClips.filter(c => c.recorded_at)
+  if (!timedClips.length) return null
+
+  const msOf = (clip) => new Date(clip.recorded_at).getTime()
+  const minMs = Math.min(...timedClips.map(msOf))
+  const maxMs = Math.max(...timedClips.map(c => msOf(c) + (c.duration_sec || 30) * 1000))
+  const rangeMs = maxMs - minMs
+  if (rangeMs <= 0) return null
+
+  const totalMin = rangeMs / 60000
+  const midMin   = totalMin / 2
 
   return (
     <div className="mb-4">
-      {/* Track */}
       <div className="relative h-14 bg-gray-100 rounded-xl overflow-hidden">
-        {syncedClips.map((clip) => {
+        {timedClips.map((clip) => {
           const idx = sortedClips.indexOf(clip)
           const color = CLIP_COLORS[idx % CLIP_COLORS.length]
-          const left  = (clip.km_start / totalKm) * 100
-          const width = Math.max(((clip.km_end - clip.km_start) / totalKm) * 100, 0.8)
+          const left  = ((msOf(clip) - minMs) / rangeMs) * 100
+          const width = Math.max(((clip.duration_sec || 30) * 1000 / rangeMs) * 100, 0.8)
           const isSelected = selectedId === clip.id
-          const clipNum = idx + 1
           const showLabel = width > 3
-
           return (
             <button
               key={clip.id}
               onClick={() => onSelect(isSelected ? null : clip.id)}
-              title={`Clip ${clipNum} · ${clip.km_start.toFixed(2)}–${clip.km_end.toFixed(2)} km`}
+              title={`Clip ${idx + 1} · ${((msOf(clip) - minMs) / 60000).toFixed(1)} min`}
               className="absolute top-0 h-full flex items-center justify-center transition-all hover:brightness-110 focus:outline-none"
               style={{
-                left: `${left}%`,
-                width: `${width}%`,
+                left: `${left}%`, width: `${width}%`,
                 backgroundColor: color,
-                opacity: isSelected ? 1 : 0.75,
-                minWidth: '6px',
+                opacity: isSelected ? 1 : 0.75, minWidth: '6px',
                 outline: isSelected ? `2px solid ${color}` : 'none',
                 outlineOffset: '-2px',
               }}
             >
               {showLabel && (
-                <span className="text-white text-xs font-bold select-none drop-shadow">
-                  {clipNum}
-                </span>
+                <span className="text-white text-xs font-bold select-none drop-shadow">{idx + 1}</span>
               )}
             </button>
           )
         })}
       </div>
-
-      {/* Km axis */}
       <div className="flex justify-between text-[10px] text-gray-400 mt-1 px-0.5">
-        <span>0 km</span>
-        <span>{(totalKm / 2).toFixed(0)} km</span>
-        <span>{totalKm.toFixed(1)} km</span>
+        <span>0 min</span>
+        <span>{midMin.toFixed(0)} min</span>
+        <span>{totalMin.toFixed(0)} min · no km sync yet</span>
       </div>
     </div>
   )
@@ -425,15 +472,13 @@ export function MediaTimeline({ workoutId, totalKm }) {
         </button>
       ) : (
         <>
-          {/* Proportional km timeline bar */}
-          {safeTotalKm && (
-            <TimelineBar
-              sortedClips={sortedClips}
-              totalKm={safeTotalKm}
-              selectedId={selectedClipId}
-              onSelect={setSelectedClipId}
-            />
-          )}
+          {/* Proportional timeline bar (km if synced, time-based fallback otherwise) */}
+          <TimelineBar
+            sortedClips={sortedClips}
+            totalKm={safeTotalKm}
+            selectedId={selectedClipId}
+            onSelect={setSelectedClipId}
+          />
 
           {/* Numbered clip list — all clips visible */}
           <ClipList
