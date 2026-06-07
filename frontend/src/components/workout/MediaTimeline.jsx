@@ -139,7 +139,7 @@ export function MediaTimeline({ workoutId, totalKm }) {
   const qc = useQueryClient()
   const fileInputRef = useRef(null)
   const [selectedClipId, setSelectedClipId] = useState(null)
-  const [uploadProgress, setUploadProgress] = useState(null)
+  const [uploadState, setUploadState] = useState(null) // { current, total, pct }
 
   const { data: clips = [], isLoading } = useQuery({
     queryKey: ['workout-media', workoutId],
@@ -158,38 +158,46 @@ export function MediaTimeline({ workoutId, totalKm }) {
   })
 
   const handleFileChange = useCallback(async (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
     e.target.value = ''
 
-    const formData = new FormData()
-    formData.append('file', file)
+    let lastUploadedId = null
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      const formData = new FormData()
+      formData.append('file', file)
 
-    setUploadProgress(0)
-    try {
-      const { data } = await api.post(
-        `/api/workouts/${workoutId}/media`,
-        formData,
-        {
-          headers: { 'Content-Type': 'multipart/form-data' },
-          onUploadProgress: (ev) => {
-            if (ev.total) setUploadProgress(Math.round((ev.loaded / ev.total) * 100))
-          },
+      setUploadState({ current: i + 1, total: files.length, pct: 0 })
+      try {
+        const { data } = await api.post(
+          `/api/workouts/${workoutId}/media`,
+          formData,
+          {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            onUploadProgress: (ev) => {
+              if (ev.total) setUploadState(s => ({ ...s, pct: Math.round((ev.loaded / ev.total) * 100) }))
+            },
+          }
+        )
+        qc.invalidateQueries(['workout-media', workoutId])
+        lastUploadedId = data.id
+        if (files.length === 1) {
+          toast.success(
+            data.km_start != null
+              ? t('strava.media.uploadedAt', { km: data.km_start.toFixed(2) })
+              : t('strava.media.uploaded')
+          )
         }
-      )
-      qc.invalidateQueries(['workout-media', workoutId])
-      toast.success(
-        data.km_start != null
-          ? t('strava.media.uploadedAt', { km: data.km_start.toFixed(2) })
-          : t('strava.media.uploaded')
-      )
-      setSelectedClipId(data.id)
-    } catch (err) {
-      const msg = err.response?.data?.error || t('strava.media.uploadFailed')
-      toast.error(msg)
-    } finally {
-      setUploadProgress(null)
+      } catch (err) {
+        const msg = err.response?.data?.error || t('strava.media.uploadFailed')
+        toast.error(`${file.name}: ${msg}`)
+      }
     }
+
+    if (files.length > 1) toast.success(t('strava.media.uploaded'))
+    if (lastUploadedId) setSelectedClipId(lastUploadedId)
+    setUploadState(null)
   }, [workoutId, qc, t])
 
   const selectedClip = clips.find(c => c.id === selectedClipId) ?? null
@@ -205,7 +213,7 @@ export function MediaTimeline({ workoutId, totalKm }) {
         </p>
         <button
           onClick={() => fileInputRef.current?.click()}
-          disabled={uploadProgress !== null}
+          disabled={uploadState !== null}
           className="text-[10px] text-blue-600 font-medium hover:text-blue-700 disabled:opacity-40"
         >
           + {t('strava.media.addClip')}
@@ -213,6 +221,7 @@ export function MediaTimeline({ workoutId, totalKm }) {
         <input
           ref={fileInputRef}
           type="file"
+          multiple
           accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
           className="hidden"
           onChange={handleFileChange}
@@ -220,16 +229,18 @@ export function MediaTimeline({ workoutId, totalKm }) {
       </div>
 
       {/* Upload progress */}
-      {uploadProgress !== null && (
+      {uploadState !== null && (
         <div className="mb-2">
           <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
             <div
               className="h-full bg-blue-500 transition-all duration-300 rounded-full"
-              style={{ width: `${uploadProgress}%` }}
+              style={{ width: `${uploadState.pct}%` }}
             />
           </div>
           <p className="text-[10px] text-gray-400 mt-1">
-            {t('strava.media.uploading', { pct: uploadProgress })}
+            {uploadState.total > 1
+              ? `${uploadState.current} / ${uploadState.total} — ${uploadState.pct}%`
+              : t('strava.media.uploading', { pct: uploadState.pct })}
           </p>
         </div>
       )}
@@ -237,7 +248,7 @@ export function MediaTimeline({ workoutId, totalKm }) {
       {/* Timeline bar */}
       {isLoading ? (
         <div className="h-8 bg-gray-100 rounded-full animate-pulse" />
-      ) : clips.length === 0 && uploadProgress === null ? (
+      ) : clips.length === 0 && uploadState === null ? (
         <button
           onClick={() => fileInputRef.current?.click()}
           className="w-full border-2 border-dashed border-gray-200 rounded-xl py-5 text-xs text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors"
