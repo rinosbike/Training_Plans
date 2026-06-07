@@ -11,7 +11,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.db import execute_query, execute_write
 from app.exceptions import NotFoundError, ValidationError
 from app.services import storage_service
-from app.services.media_sync_service import extract_video_metadata, compute_sync
+from app.services.media_sync_service import extract_video_metadata, compute_sync, correct_dji_clock
 from app.services.credential_service import get_credential
 from app.services.sync import strava as strava_svc
 
@@ -82,7 +82,7 @@ def upload_media(workout_id):
                 fh, folder, content_type, filename=r2_filename
             )
 
-        sync_result = _try_strava_sync(workout_id, user_id, meta)
+        sync_result = _try_strava_sync(workout_id, user_id, {**meta, 'filename': f.filename})
 
         row = execute_write(
             '''INSERT INTO training.workout_media
@@ -221,8 +221,11 @@ def _try_strava_sync(workout_id, user_id, meta: dict) -> dict:
         detail = strava_svc.fetch_activity_detail(access_token, activity_id)
         strava_start = datetime.fromisoformat(detail['start_date'].replace('Z', '+00:00'))
 
+        # Auto-correct DJI cameras that store local time as UTC in creation_time
+        video_start = correct_dji_clock(meta['video_start'], meta.get('filename', ''), detail)
+
         streams_raw = strava_svc.fetch_activity_streams(access_token, activity_id)
-        return compute_sync(meta['video_start'], meta['duration_sec'], strava_start, streams_raw)
+        return compute_sync(video_start, meta['duration_sec'], strava_start, streams_raw)
 
     except Exception as e:
         log.warning('Strava sync skipped for media upload: %s', e)

@@ -1,9 +1,48 @@
 import json
+import re
 import subprocess
 import logging
 from datetime import datetime, timezone
 
 log = logging.getLogger(__name__)
+
+_DJI_FILENAME_RE = re.compile(r'DJI_(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})_')
+
+
+def correct_dji_clock(video_start: datetime, filename: str, strava_detail: dict) -> datetime:
+    """
+    DJI cameras often store creation_time with the wrong timezone (e.g. UTC-6 labelled
+    as UTC). The filename timestamp is always in the camera's local clock which matches
+    the user's local time. Use the DJI filename + Strava's local timezone to compute the
+    correct UTC start, and return it when it differs from creation_time by more than 60s.
+    """
+    m = _DJI_FILENAME_RE.match(filename or '')
+    if not m:
+        return video_start
+
+    yr, mo, dy, hh, mn, ss = [int(x) for x in m.groups()]
+    start_date_local = strava_detail.get('start_date_local', '')
+    start_date_utc   = strava_detail.get('start_date', '')
+    if not start_date_local or not start_date_utc:
+        return video_start
+
+    # Derive the UTC offset from the Strava activity
+    local_dt = datetime.fromisoformat(start_date_local)
+    utc_dt   = datetime.fromisoformat(start_date_utc.replace('Z', '+00:00')).replace(tzinfo=None)
+    tz_offset = local_dt - utc_dt  # e.g. timedelta(hours=2) for CEST
+
+    # Convert DJI filename local time → UTC
+    filename_utc = datetime(yr, mo, dy, hh, mn, ss, tzinfo=timezone.utc) - tz_offset
+
+    creation_utc = video_start.replace(tzinfo=timezone.utc) if video_start.tzinfo is None else video_start
+    drift_sec = abs((creation_utc - filename_utc).total_seconds())
+
+    if drift_sec > 60:
+        log.info('DJI clock drift %.0fs detected — correcting creation_time from %s to %s',
+                 drift_sec, creation_utc.isoformat(), filename_utc.isoformat())
+        return filename_utc
+
+    return video_start
 
 
 def extract_video_metadata(file_path: str) -> dict:
