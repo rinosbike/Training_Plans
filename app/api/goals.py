@@ -106,7 +106,7 @@ def delete_goal(goal_id):
     )
     if not existing:
         raise NotFoundError('Goal not found')
-    execute_write('DELETE FROM training.goals WHERE id = %s', (goal_id,))
+    execute_write('DELETE FROM training.goals WHERE id = %s AND user_id = %s', (goal_id, user_id))
     return jsonify({'message': 'Deleted'})
 
 

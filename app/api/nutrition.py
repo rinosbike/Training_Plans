@@ -97,7 +97,8 @@ def add_food_log():
 @nutrition_bp.route('/api/food/database/<int:food_id>', methods=['PATCH'])
 @jwt_required()
 def patch_food_database(food_id):
-    """User-supplied label correction: update per-100g nutrient values + recalculate logs."""
+    """User-supplied label correction: update per-100g nutrient values + recalculate own logs."""
+    user_id = get_jwt_identity()
     data = request.get_json()
     nutrients = data.get('nutrients', {})
 
@@ -118,9 +119,10 @@ def patch_food_database(food_id):
         tuple(params)
     )
 
-    # Recalculate food_log entries referencing this food
+    # Recalculate only this user's food_log entries referencing this food
     log_rows = execute_query(
-        'SELECT id, amount_g FROM training.food_log WHERE food_id = %s', (food_id,)
+        'SELECT id, amount_g FROM training.food_log WHERE food_id = %s AND user_id = %s',
+        (food_id, user_id)
     )
     updated = execute_query(
         'SELECT * FROM training.food_database WHERE id = %s', (food_id,), fetch_one=True
