@@ -76,9 +76,10 @@ def upload_media(workout_id):
         meta = extract_video_metadata(tmp_path)
 
         r2_filename = f'{uuid.uuid4().hex}{ext}'
+        folder = f'workout-media/{user_id}/{workout_id}'
         with open(tmp_path, 'rb') as fh:
             r2_url = storage_service.upload_fileobj_streaming(
-                fh, 'workout-media', content_type, filename=r2_filename
+                fh, folder, content_type, filename=r2_filename
             )
 
         sync_result = _try_strava_sync(workout_id, user_id, meta)
