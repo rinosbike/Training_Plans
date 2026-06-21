@@ -278,6 +278,8 @@ def strava_webhook_push():
         activity = strava_svc.fetch_activity_detail(access_token, activity_id)
         mapped   = strava_svc.map_activity(activity)
         imported = _import_mapped([mapped], user_id)
+        if imported:
+            compute_load_for_user(user_id)
         _upsert_log(user_id, 'strava', imported, 'success')
     except Exception as e:
         log.error('Strava webhook import error: %s', e)
@@ -417,6 +419,8 @@ def suunto_webhook_push():
         workout = suunto_svc.fetch_workout_detail(access_token, sub_key, workout_key)
         mapped  = suunto_svc.map_workout(workout)
         imported = _import_mapped([mapped], user_id)
+        if imported:
+            compute_load_for_user(user_id)
         _upsert_log(user_id, 'suunto', imported, 'success')
     except Exception as e:
         log.error('Suunto webhook error: %s', e)
