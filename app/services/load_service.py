@@ -44,7 +44,7 @@ def compute_load_for_user(user_id: str, from_date: date = None):
                         * POWER(LEAST(wl.avg_power_watts::float / p.ftp_watts, 1.50), 2)
                         * 100
 
-                 -- 3. HR-based TSS: LTHR ≈ 90 % of max_hr
+                 -- 3. HR-based TSS: LTHR ≈ 90%% of max_hr
                  WHEN wl.avg_hr   IS NOT NULL
                       AND p.max_hr IS NOT NULL
                       AND p.max_hr > 0
