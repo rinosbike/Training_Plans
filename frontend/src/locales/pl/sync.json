@@ -36,7 +36,7 @@
     "noFile": "Nie wybrano pliku",
     "uploading": "Przesyłanie…",
     "uploadBtn": "Prześlij",
-    "success": "Zaimportowano aktywność z {{filename}}",
+    "success": "Zapisano jako {{sport}} w dniu {{date}}",
     "failed": "Przesyłanie nieudane"
   }
 }

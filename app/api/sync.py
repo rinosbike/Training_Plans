@@ -77,12 +77,12 @@ def _import_mapped(mapped_list, user_id):
             # the activity was imported before the plan existed or plan was regenerated.
             execute_write(
                 '''UPDATE training.workout_logs SET
-                     workout_id=%s, sport=%s,
+                     workout_id=%s, log_date=%s::date, sport=%s,
                      actual_duration_min=%s, actual_distance_km=%s, avg_hr=%s, max_hr=%s,
                      avg_power_watts=%s, calories_burned=%s, perceived_effort=%s, notes=%s,
                      raw_data=%s, updated_at=NOW()
                    WHERE id=%s''',
-                (workout_id, m.get('sport'),
+                (workout_id, m['log_date'], m.get('sport'),
                  m.get('actual_duration_min'), m.get('actual_distance_km'),
                  m.get('avg_hr'), m.get('max_hr'), m.get('avg_power_watts'),
                  m.get('calories_burned'), m.get('perceived_effort'), m.get('notes'),

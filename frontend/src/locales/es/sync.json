@@ -36,7 +36,7 @@
     "noFile": "Ningún archivo seleccionado",
     "uploading": "Subiendo…",
     "uploadBtn": "Subir",
-    "success": "Actividad importada desde {{filename}}",
+    "success": "Guardado como {{sport}} el {{date}}",
     "failed": "Error al subir"
   }
 }

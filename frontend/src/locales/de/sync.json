@@ -36,7 +36,7 @@
     "noFile": "Keine Datei ausgewählt",
     "uploading": "Wird hochgeladen…",
     "uploadBtn": "Hochladen",
-    "success": "Aktivität aus {{filename}} importiert",
+    "success": "Gespeichert als {{sport}} am {{date}}",
     "failed": "Upload fehlgeschlagen"
   }
 }

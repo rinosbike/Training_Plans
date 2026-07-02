@@ -36,7 +36,7 @@
     "noFile": "未选择文件",
     "uploading": "上传中…",
     "uploadBtn": "上传",
-    "success": "已从 {{filename}} 导入活动",
+    "success": "已保存为 {{sport}}，日期 {{date}}",
     "failed": "上传失败"
   }
 }

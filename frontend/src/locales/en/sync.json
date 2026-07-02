@@ -36,7 +36,7 @@
     "noFile": "No file selected",
     "uploading": "Uploading…",
     "uploadBtn": "Upload",
-    "success": "Imported activity from {{filename}}",
+    "success": "Saved as {{sport}} on {{date}}",
     "failed": "Upload failed"
   }
 }
