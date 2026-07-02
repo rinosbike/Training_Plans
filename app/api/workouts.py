@@ -164,8 +164,59 @@ def delete_log(workout_id):
 
 
 # ---------------------------------------------------------------------------
-# Strava rich analysis — fetched on demand when viewing a synced workout
+# Rich analysis — Strava (live fetch) or manually uploaded FIT/GPX (stored raw_data)
 # ---------------------------------------------------------------------------
+
+@workouts_bp.route('/api/workouts/<workout_id>/analysis')
+@jwt_required()
+def workout_analysis(workout_id):
+    user_id = get_jwt_identity()
+
+    log_row = execute_query(
+        "SELECT source, raw_data FROM training.workout_logs WHERE workout_id = %s AND user_id = %s",
+        (workout_id, user_id), fetch_one=True
+    )
+    if not log_row:
+        log_row = execute_query(
+            "SELECT source, raw_data FROM training.workout_logs WHERE id = %s AND user_id = %s AND workout_id IS NULL",
+            (workout_id, user_id), fetch_one=True
+        )
+    if not log_row:
+        return jsonify({'error': 'No logged activity found'}), 404
+
+    if log_row['source'] == 'strava':
+        return strava_analysis(workout_id)
+
+    if log_row['source'] != 'manual':
+        return jsonify({'error': 'No rich analysis available'}), 404
+
+    raw = log_row['raw_data'] or {}
+    return jsonify({
+        'activity_id':            raw.get('activity_id'),
+        'sport_type':             raw.get('sport_type'),
+        'name':                   None,
+        'splits_metric':          [],
+        'laps':                   raw.get('laps', []),
+        'zones':                  [],
+        'total_elevation_gain':   raw.get('total_elevation_gain'),
+        'elev_high':              raw.get('elev_high'),
+        'elev_low':               raw.get('elev_low'),
+        'average_cadence':        None,
+        'average_watts':          raw.get('average_watts'),
+        'weighted_average_watts': None,
+        'max_watts':              raw.get('max_watts'),
+        'kilojoules':             None,
+        'device_watts':           raw.get('device_watts', False),
+        'suffer_score':           None,
+        'pr_count':               0,
+        'achievement_count':      0,
+        'kudos_count':            0,
+        'average_temp':           None,
+        'map_polyline':           raw.get('map_polyline'),
+        'total_distance_m':       raw.get('total_distance_m'),
+        'streams':                raw.get('streams', {}),
+    })
+
 
 @workouts_bp.route('/api/workouts/<workout_id>/strava-analysis')
 @jwt_required()

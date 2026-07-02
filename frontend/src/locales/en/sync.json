@@ -1,6 +1,6 @@
 {
   "title": "Device Sync",
-  "subtitle": "Connect Strava or Suunto to import your workouts",
+  "subtitle": "Upload a FIT or GPX file from your watch to import your workouts",
   "syncNow": "Sync Now",
   "syncing": "Syncing…",
   "syncSuccess": "Imported {{count}} new activities from {{provider}}",
@@ -25,5 +25,18 @@
       "desc": "Direct API access — richer data: R-R intervals, Peak Training Effect, recovery time.",
       "note": "Adds HRV, Peak TE, recovery hours — not available via Strava. Application may take 1-5 days."
     }
+  },
+  "manualUpload": {
+    "title": "Upload FIT/GPX File",
+    "desc": "Exported a workout from your watch's app? Upload the file directly — no account connection needed.",
+    "sportLabel": "Sport (optional — auto-detected if left blank)",
+    "dateLabel": "Date (optional — auto-detected if left blank)",
+    "sportAuto": "Auto-detect",
+    "chooseFile": "Choose File",
+    "noFile": "No file selected",
+    "uploading": "Uploading…",
+    "uploadBtn": "Upload",
+    "success": "Imported activity from {{filename}}",
+    "failed": "Upload failed"
   }
 }

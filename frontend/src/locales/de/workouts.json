@@ -86,7 +86,9 @@
   },
   "strava": {
     "analysis": "Strava-Analyse",
+    "analysisGeneric": "Workout-Analyse",
     "loading": "Strava-Analyse wird geladen…",
+    "loadingGeneric": "Analyse wird geladen…",
     "viewActivity": "Ansehen ↗",
     "viaStrava": "via Strava",
     "hrZones": "Herzfrequenzzonen",

@@ -11,6 +11,7 @@ from flask import g
 from app.db import execute_query, execute_write, set_user_context
 from app.services.sync import strava as strava_svc
 from app.services.sync import suunto as suunto_svc
+from app.services.sync import manual_import as manual_svc
 from app.services.credential_service import get_credential
 from app.services.load_service import compute_load_for_user
 
@@ -229,6 +230,46 @@ def strava_run():
         log.error('Strava sync error: %s', e)
         _upsert_log(user_id, 'strava', 0, 'error', str(e))
         return jsonify({'error': str(e)}), 500
+
+
+@sync_bp.route('/api/sync/manual/upload', methods=['POST'])
+@jwt_required()
+def manual_upload():
+    user_id = get_jwt_identity()
+
+    if 'file' not in request.files:
+        return jsonify({'error': 'file is required'}), 400
+
+    f = request.files['file']
+    filename = f.filename or 'upload'
+    ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+    sport_override = request.form.get('sport') or None
+    log_date_override = request.form.get('log_date') or None
+
+    if ext not in ('fit', 'gpx'):
+        return jsonify({'error': 'Only .fit and .gpx files are supported'}), 400
+
+    if log_date_override:
+        try:
+            datetime.strptime(log_date_override, '%Y-%m-%d')
+        except ValueError:
+            return jsonify({'error': 'log_date must be YYYY-MM-DD'}), 400
+
+    file_bytes = f.read()
+
+    try:
+        parsed = manual_svc.parse_fit(file_bytes) if ext == 'fit' else manual_svc.parse_gpx(file_bytes)
+        mapped = manual_svc.map_summary(parsed, file_bytes, filename, sport_override, log_date_override)
+        imported = _import_mapped([mapped], user_id)
+        if imported:
+            compute_load_for_user(user_id)
+        _upsert_log(user_id, 'manual', imported, 'success')
+        return jsonify({'imported': imported, 'sport': mapped['sport'], 'log_date': mapped['log_date']})
+
+    except Exception as e:
+        log.warning('Manual import error: %s', e, exc_info=True)
+        _upsert_log(user_id, 'manual', 0, 'error', str(e))
+        return jsonify({'error': f'Could not parse file: {e}'}), 400
 
 
 # ---------------------------------------------------------------------------

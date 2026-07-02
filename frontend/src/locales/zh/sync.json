@@ -1,6 +1,6 @@
 {
   "title": "设备同步",
-  "subtitle": "连接您的训练设备",
+  "subtitle": "上传手表导出的 FIT 或 GPX 文件以导入训练记录",
   "syncNow": "立即同步",
   "syncing": "同步中…",
   "syncSuccess": "同步成功",
@@ -25,5 +25,18 @@
       "desc": "从Suunto手表同步训练数据",
       "note": "需要Suunto账户和开发者注册"
     }
+  },
+  "manualUpload": {
+    "title": "上传 FIT/GPX 文件",
+    "desc": "已从手表的App导出训练记录？直接上传文件即可 — 无需连接账户。",
+    "sportLabel": "运动类型（可选 — 留空将自动识别）",
+    "dateLabel": "日期（可选 — 留空将自动识别）",
+    "sportAuto": "自动识别",
+    "chooseFile": "选择文件",
+    "noFile": "未选择文件",
+    "uploading": "上传中…",
+    "uploadBtn": "上传",
+    "success": "已从 {{filename}} 导入活动",
+    "failed": "上传失败"
   }
 }

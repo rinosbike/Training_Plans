@@ -1,6 +1,6 @@
 {
   "title": "Synchronizacja urządzeń",
-  "subtitle": "Połącz swoje urządzenia treningowe",
+  "subtitle": "Prześlij plik FIT lub GPX z zegarka, aby zaimportować treningi",
   "syncNow": "Synchronizuj teraz",
   "syncing": "Synchronizowanie…",
   "syncSuccess": "Synchronizacja zakończona",
@@ -25,5 +25,18 @@
       "desc": "Synchronizuj treningi z zegarka Suunto",
       "note": "Wymaga konta Suunto i rejestracji deweloperskiej"
     }
+  },
+  "manualUpload": {
+    "title": "Prześlij plik FIT/GPX",
+    "desc": "Wyeksportowałeś trening z aplikacji zegarka? Prześlij plik bezpośrednio — bez łączenia konta.",
+    "sportLabel": "Dyscyplina (opcjonalnie — wykrywana automatycznie, jeśli pozostawisz puste)",
+    "dateLabel": "Data (opcjonalnie — wykrywana automatycznie, jeśli pozostawisz puste)",
+    "sportAuto": "Wykryj automatycznie",
+    "chooseFile": "Wybierz plik",
+    "noFile": "Nie wybrano pliku",
+    "uploading": "Przesyłanie…",
+    "uploadBtn": "Prześlij",
+    "success": "Zaimportowano aktywność z {{filename}}",
+    "failed": "Przesyłanie nieudane"
   }
 }

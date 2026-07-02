@@ -1,6 +1,6 @@
 {
   "title": "Gerätesync",
-  "subtitle": "Verbinde deine Trainingsgeräte",
+  "subtitle": "Lade eine FIT- oder GPX-Datei von deiner Uhr hoch, um Trainings zu importieren",
   "syncNow": "Jetzt synchronisieren",
   "syncing": "Wird synchronisiert…",
   "syncSuccess": "Synchronisation erfolgreich",
@@ -25,5 +25,18 @@
       "desc": "Synchronisiere Workouts von deiner Suunto-Uhr",
       "note": "Erfordert ein Suunto-Konto und Developer-Registrierung"
     }
+  },
+  "manualUpload": {
+    "title": "FIT/GPX-Datei hochladen",
+    "desc": "Workout aus der App deiner Uhr exportiert? Lade die Datei direkt hoch — keine Kontoverbindung nötig.",
+    "sportLabel": "Sportart (optional — wird sonst automatisch erkannt)",
+    "dateLabel": "Datum (optional — wird sonst automatisch erkannt)",
+    "sportAuto": "Automatisch erkennen",
+    "chooseFile": "Datei auswählen",
+    "noFile": "Keine Datei ausgewählt",
+    "uploading": "Wird hochgeladen…",
+    "uploadBtn": "Hochladen",
+    "success": "Aktivität aus {{filename}} importiert",
+    "failed": "Upload fehlgeschlagen"
   }
 }

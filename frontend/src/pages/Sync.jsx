@@ -26,10 +26,24 @@ function fmt(min) {
   return h > 0 ? `${h}h ${m}m` : `${m}m`
 }
 
+const SHOW_LIVE_PROVIDERS = false
+
+const SPORT_OPTIONS = [
+  { value: 'run', label: 'Run' },
+  { value: 'cycle', label: 'Ride' },
+  { value: 'swim', label: 'Swim' },
+  { value: 'strength', label: 'Strength' },
+  { value: 'core', label: 'Core' },
+]
+
 export default function Sync() {
   const { t, i18n } = useTranslation('sync')
   const qc = useQueryClient()
   const [syncing, setSyncing] = useState({})
+  const [uploadFile, setUploadFile] = useState(null)
+  const [uploadSport, setUploadSport] = useState('')
+  const [uploadDate, setUploadDate] = useState('')
+  const [uploading, setUploading] = useState(false)
 
   const { data: status } = useQuery({
     queryKey: ['sync-status'],
@@ -62,6 +76,28 @@ export default function Sync() {
       toast.error(e.response?.data?.error || t('syncFailed', { provider }))
     } finally {
       setSyncing(s => ({ ...s, [provider]: false }))
+    }
+  }
+
+  async function uploadManual() {
+    if (!uploadFile) return
+    setUploading(true)
+    try {
+      const form = new FormData()
+      form.append('file', uploadFile)
+      if (uploadSport) form.append('sport', uploadSport)
+      if (uploadDate) form.append('log_date', uploadDate)
+      await api.post('/api/sync/manual/upload', form)
+      qc.invalidateQueries(['sync-status'])
+      qc.invalidateQueries({ predicate: q => q.queryKey[0] === 'plan-days' })
+      toast.success(t('manualUpload.success', { filename: uploadFile.name }))
+      setUploadFile(null)
+      setUploadSport('')
+      setUploadDate('')
+    } catch (e) {
+      toast.error(e.response?.data?.error || t('manualUpload.failed'))
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -110,8 +146,10 @@ export default function Sync() {
 
       <div className="px-4 mt-4 space-y-4">
 
-        {/* Provider cards */}
-        {providers.map(p => {
+        {/* Provider cards — hidden: Strava requires a paid subscription (June 2026 policy)
+            and Suunto Direct isn't approved yet. Manual upload covers all watch brands
+            without needing per-vendor developer approval. Flip SHOW_LIVE_PROVIDERS to restore. */}
+        {SHOW_LIVE_PROVIDERS && providers.map(p => {
           const conn = status?.connected?.[p.id]
           const isConnected = !!conn
           const lastSync = status?.recent_syncs?.find(s => s.provider === p.id)
@@ -190,6 +228,62 @@ export default function Sync() {
             </div>
           )
         })}
+
+        {/* Manual FIT/GPX upload */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+          <h3 className="font-semibold text-gray-900 mb-1">{t('manualUpload.title')}</h3>
+          <p className="text-sm text-gray-500 mb-3">{t('manualUpload.desc')}</p>
+
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                {t('manualUpload.sportLabel')}
+              </label>
+              <select
+                value={uploadSport}
+                onChange={e => setUploadSport(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 bg-white"
+              >
+                <option value="">{t('manualUpload.sportAuto')}</option>
+                {SPORT_OPTIONS.map(s => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                {t('manualUpload.dateLabel')}
+              </label>
+              <input
+                type="date"
+                value={uploadDate}
+                onChange={e => setUploadDate(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 bg-white"
+              />
+            </div>
+          </div>
+
+          <label className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border border-dashed border-gray-300 text-sm text-gray-600 mb-3 cursor-pointer">
+            <span className="truncate">{uploadFile ? uploadFile.name : t('manualUpload.noFile')}</span>
+            <span className="shrink-0 px-3 py-1 rounded-lg bg-gray-100 font-medium text-gray-700">
+              {t('manualUpload.chooseFile')}
+            </span>
+            <input
+              type="file"
+              accept=".fit,.gpx"
+              className="hidden"
+              onChange={e => setUploadFile(e.target.files?.[0] || null)}
+            />
+          </label>
+
+          <button
+            onClick={uploadManual}
+            disabled={!uploadFile || uploading}
+            className="w-full py-2.5 rounded-xl bg-primary-600 text-white text-sm font-medium active:bg-primary-700 disabled:opacity-50"
+          >
+            {uploading ? t('manualUpload.uploading') : t('manualUpload.uploadBtn')}
+          </button>
+        </div>
 
         {/* Recent imported activities */}
         {status?.recent_activities?.length > 0 && (

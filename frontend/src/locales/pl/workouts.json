@@ -86,7 +86,9 @@
   },
   "strava": {
     "analysis": "Analiza Strava",
+    "analysisGeneric": "Analiza treningu",
     "loading": "Ładowanie analizy Strava…",
+    "loadingGeneric": "Ładowanie analizy…",
     "viewActivity": "Zobacz ↗",
     "viaStrava": "przez Strava",
     "hrZones": "Strefy tętna",

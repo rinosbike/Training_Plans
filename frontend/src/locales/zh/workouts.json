@@ -86,7 +86,9 @@
   },
   "strava": {
     "analysis": "Strava分析",
+    "analysisGeneric": "训练分析",
     "loading": "正在加载Strava分析…",
+    "loadingGeneric": "正在加载分析…",
     "viewActivity": "查看 ↗",
     "viaStrava": "来自Strava",
     "hrZones": "心率区间",

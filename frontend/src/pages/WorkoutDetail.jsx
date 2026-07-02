@@ -188,7 +188,7 @@ function TileLayerSwitcher({ url }) {
   return null
 }
 
-function RouteMap({ polyline, activityId }) {
+function RouteMap({ polyline, activityId, source }) {
   const { t } = useTranslation('workouts')
   const [activeLayer, setActiveLayer] = useState('street')
   if (!polyline) return null
@@ -203,13 +203,15 @@ function RouteMap({ polyline, activityId }) {
     <div>
       <div className="flex items-center justify-between mb-2">
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('strava.map.title')}</p>
-        <a
-          href={`https://www.strava.com/activities/${activityId}`}
-          target="_blank" rel="noopener noreferrer"
-          className="text-[10px] text-orange-500 font-medium"
-        >
-          {t('strava.map.viewOnStrava')}
-        </a>
+        {source === 'strava' && (
+          <a
+            href={`https://www.strava.com/activities/${activityId}`}
+            target="_blank" rel="noopener noreferrer"
+            className="text-[10px] text-orange-500 font-medium"
+          >
+            {t('strava.map.viewOnStrava')}
+          </a>
+        )}
       </div>
 
       {/* Layer selector */}
@@ -1074,11 +1076,12 @@ function StravaLogo() {
   )
 }
 
-function StravaAnalysis({ workoutId, sport, maxHr }) {
+function StravaAnalysis({ workoutId, sport, maxHr, source }) {
   const { t } = useTranslation('workouts')
+  const isStravaSource = source === 'strava'
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['strava-analysis', workoutId],
-    queryFn: () => api.get(`/api/workouts/${workoutId}/strava-analysis`).then(r => r.data),
+    queryKey: ['workout-analysis', workoutId],
+    queryFn: () => api.get(`/api/workouts/${workoutId}/analysis`).then(r => r.data),
     retry: false,
     staleTime: 5 * 60 * 1000,
   })
@@ -1087,8 +1090,10 @@ function StravaAnalysis({ workoutId, sport, maxHr }) {
     return (
       <div className="bg-white rounded-2xl border border-gray-100 p-4">
         <div className="flex items-center gap-2 mb-4">
-          <StravaLogo />
-          <span className="text-sm font-semibold text-gray-700">{t('strava.loading')}</span>
+          {isStravaSource && <StravaLogo />}
+          <span className="text-sm font-semibold text-gray-700">
+            {isStravaSource ? t('strava.loading') : t('strava.loadingGeneric')}
+          </span>
         </div>
         <div className="space-y-2">
           {[1,2,3].map(i => <div key={i} className="h-4 bg-gray-100 rounded animate-pulse" />)}
@@ -1126,24 +1131,28 @@ function StravaAnalysis({ workoutId, sport, maxHr }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
       <div className="px-4 pt-4 pb-3 flex items-center gap-2.5 border-b border-gray-50">
-        <StravaLogo />
+        {isStravaSource && <StravaLogo />}
         <div>
-          <h2 className="font-semibold text-gray-900 text-sm leading-tight">{t('strava.analysis')}</h2>
+          <h2 className="font-semibold text-gray-900 text-sm leading-tight">
+            {isStravaSource ? t('strava.analysis') : t('strava.analysisGeneric')}
+          </h2>
           {data.name && <p className="text-xs text-gray-400 truncate max-w-[220px]">{data.name}</p>}
         </div>
-        <a
-          href={`https://www.strava.com/activities/${data.activity_id}`}
-          target="_blank" rel="noopener noreferrer"
-          className="ml-auto text-xs text-orange-500 font-medium"
-        >
-          {t('strava.viewActivity')}
-        </a>
+        {isStravaSource && (
+          <a
+            href={`https://www.strava.com/activities/${data.activity_id}`}
+            target="_blank" rel="noopener noreferrer"
+            className="ml-auto text-xs text-orange-500 font-medium"
+          >
+            {t('strava.viewActivity')}
+          </a>
+        )}
       </div>
 
       <div className="px-4 pb-5 pt-3 space-y-5">
         {/* Route map */}
         {data.map_polyline && (
-          <RouteMap polyline={data.map_polyline} activityId={data.activity_id} />
+          <RouteMap polyline={data.map_polyline} activityId={data.activity_id} source={source} />
         )}
 
         {/* Summary stats */}
@@ -1272,6 +1281,8 @@ export default function WorkoutDetail() {
   const zoneColor = ['','bg-green-100 text-green-700','bg-green-200 text-green-800','bg-yellow-100 text-yellow-700','bg-orange-100 text-orange-700','bg-red-100 text-red-700'][zoneNum] || 'bg-gray-100 text-gray-700'
   const isLogged = !!workout.log_id
   const isStrava = workout.log_source === 'strava'
+  const isManual = workout.log_source === 'manual'
+  const hasRichAnalysis = isStrava || isManual
 
   return (
     <div className="min-h-screen bg-gray-50 pb-6">
@@ -1345,9 +1356,9 @@ export default function WorkoutDetail() {
           </div>
         )}
 
-        {/* Strava rich analysis */}
-        {isStrava && isLogged && (
-          <StravaAnalysis workoutId={id} sport={workout.sport} maxHr={profile?.max_hr} />
+        {/* Rich analysis — Strava live fetch or manually uploaded FIT/GPX */}
+        {hasRichAnalysis && isLogged && (
+          <StravaAnalysis workoutId={id} sport={workout.sport} maxHr={profile?.max_hr} source={workout.log_source} />
         )}
 
         {/* Footage — visible for any logged workout, Strava sync is best-effort */}
