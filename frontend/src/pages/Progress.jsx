@@ -43,18 +43,30 @@ function LoadExplainer() {
           <section>
             <p className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-1.5">{t('tssTitle')}</p>
             <p className="text-xs text-gray-600 leading-relaxed mb-2">{t('tssDesc')}</p>
-            <div className="bg-gray-50 rounded-xl p-3 font-mono text-xs space-y-2">
-              <p className="text-gray-800 font-semibold">TSS = (duration_min / 60) × 100 × zone_factor²</p>
-              <div className="pt-1 space-y-1">
-                {ZONE_ROWS.map(r => (
-                  <div key={r.z} className="flex items-center gap-2 text-gray-600">
-                    <span className="font-bold text-primary-600 w-6">{r.z}</span>
-                    <span className="flex-1 text-gray-500">{t(`zoneLabel.${r.z.slice(1)}`)}</span>
-                    <span className="text-gray-400 w-12 text-right">×{r.factor}</span>
-                    <span className="text-gray-500 font-semibold w-16 text-right">{r.tss} TSS/h</span>
-                  </div>
-                ))}
-              </div>
+            <div className="bg-gray-50 rounded-xl p-3 text-xs space-y-2 mb-2">
+              {[
+                { n: '1', key: 'tssPriority1', color: 'text-green-700'  },
+                { n: '2', key: 'tssPriority2', color: 'text-blue-700'   },
+                { n: '3', key: 'tssPriority3', color: 'text-red-600'    },
+                { n: '4', key: 'tssPriority4', color: 'text-yellow-700' },
+                { n: '5', key: 'tssPriority5', color: 'text-gray-400'   },
+              ].map(({ n, key, color }) => (
+                <div key={n} className="flex items-start gap-2">
+                  <span className={`font-bold shrink-0 ${color}`}>{n}.</span>
+                  <span className="text-gray-600 leading-snug">{t(key)}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-1.5">{t('tssZoneTitle')}</p>
+            <div className="bg-gray-50 rounded-xl p-3 font-mono text-xs space-y-1">
+              {ZONE_ROWS.map(r => (
+                <div key={r.z} className="flex items-center gap-2 text-gray-600">
+                  <span className="font-bold text-primary-600 w-6">{r.z}</span>
+                  <span className="flex-1 text-gray-500">{t(`zoneLabel.${r.z.slice(1)}`)}</span>
+                  <span className="text-gray-400 w-12 text-right">×{r.factor}</span>
+                  <span className="text-gray-500 font-semibold w-16 text-right">{r.tss} TSS/h</span>
+                </div>
+              ))}
             </div>
           </section>
 

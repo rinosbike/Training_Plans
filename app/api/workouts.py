@@ -124,6 +124,7 @@ def log_workout(workout_id):
         'avg_power_watts': data.get('avg_power_watts'),
         'calories_burned': data.get('calories_burned'),
         'perceived_effort': data.get('perceived_effort'),
+        'tss': data.get('tss'),
         'notes': data.get('notes'),
     }
     fields = {k: v for k, v in fields.items() if v is not None}

@@ -197,7 +197,7 @@ def get_plan_days():
                avg_power_watts, calories_burned, perceived_effort, notes
         FROM training.workout_logs
         WHERE user_id = %s AND workout_id IS NULL
-        AND source IN ('strava', 'suunto')
+        AND source IN ('strava', 'suunto', 'manual')
     '''
     standalone_params = [user_id]
     if start:
