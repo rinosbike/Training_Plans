@@ -46,6 +46,7 @@ function fmtSpeed(speedMs) {
 
 function fmtDuration(sec) {
   if (!sec) return '—'
+  sec = Math.round(sec)
   const h = Math.floor(sec / 3600)
   const m = Math.floor((sec % 3600) / 60)
   const s = sec % 60
@@ -54,6 +55,7 @@ function fmtDuration(sec) {
 }
 
 function fmtTimeSec(sec) {
+  sec = Math.round(sec)
   const h = Math.floor(sec / 3600)
   const m = Math.floor((sec % 3600) / 60)
   const s = sec % 60

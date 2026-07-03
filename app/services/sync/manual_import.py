@@ -83,8 +83,9 @@ def parse_fit(file_bytes: bytes) -> dict:
     laps = []
     for lap_msg in fitfile.get_messages('lap'):
         l = {f.name: f.value for f in lap_msg}
+        timer_time = l.get('total_timer_time')
         laps.append({
-            'moving_time':        l.get('total_timer_time'),
+            'moving_time':        round(timer_time) if timer_time is not None else None,
             'distance':           l.get('total_distance'),
             'average_speed':      l.get('avg_speed'),
             'average_heartrate':  l.get('avg_heart_rate'),
@@ -102,7 +103,7 @@ def parse_fit(file_bytes: bytes) -> dict:
         if start_time is None:
             start_time = ts
 
-        time_s.append((ts - start_time).total_seconds())
+        time_s.append(round((ts - start_time).total_seconds()))
         distance.append(r.get('distance'))
         heartrate.append(r.get('heart_rate'))
         altitude.append(r.get('altitude') or r.get('enhanced_altitude'))
@@ -169,7 +170,7 @@ def parse_gpx(file_bytes: bytes) -> dict:
 
     for p in points:
         if p.time and start_time:
-            time_s.append((p.time - start_time).total_seconds())
+            time_s.append(round((p.time - start_time).total_seconds()))
         else:
             time_s.append(None)
         if prev is not None:
