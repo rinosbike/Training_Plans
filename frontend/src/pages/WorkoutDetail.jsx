@@ -386,7 +386,7 @@ function HRStreamChart({ streams, maxHr, avgHr }) {
   const data = hr.map((bpm, i) => ({
     bpm,
     t:   time?.[i] ?? i,
-    d:   dist?.[i] != null ? +(dist[i] / 1000).toFixed(2) : i,
+    d:   dist?.[i] != null ? +(dist[i] / 1000).toFixed(2) : null,
   }))
 
   const minBpm = Math.max(40, Math.min(...hr) - 10)
@@ -537,7 +537,7 @@ function SpeedStreamChart({ streams, isRun }) {
       pace,
       display: isRun ? (pace ?? 0) : kmh,
       t: time?.[i] ?? i,
-      d: dist?.[i] != null ? +(dist[i] / 1000).toFixed(2) : i,
+      d: dist?.[i] != null ? +(dist[i] / 1000).toFixed(2) : null,
     }
   })
 
@@ -779,7 +779,7 @@ function ElevationChart({ streams }) {
 
   const data = alt.map((m, i) => ({
     alt: Math.round(m),
-    d:   dist?.[i] != null ? +(dist[i] / 1000).toFixed(2) : i,
+    d:   dist?.[i] != null ? +(dist[i] / 1000).toFixed(2) : null,
   }))
 
   const minAlt = Math.min(...alt)

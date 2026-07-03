@@ -38,6 +38,20 @@ def _external_id(file_bytes: bytes) -> str:
     return 'manual-' + hashlib.sha256(file_bytes).hexdigest()[:16]
 
 
+def _forward_fill(arr):
+    """Carry the last known value into gaps. Indoor/pool activities (e.g. swims)
+    often only report cumulative distance sporadically per record, not every
+    second — leaving raw gaps makes distance-based charts misread the gap as
+    missing data and fall back to plotting the array index instead."""
+    filled = []
+    last = None
+    for v in arr:
+        if v is not None:
+            last = v
+        filled.append(last)
+    return filled
+
+
 def _downsample(arr, max_pts=MAX_STREAM_POINTS):
     if not arr or len(arr) <= max_pts:
         return arr
@@ -116,6 +130,8 @@ def parse_fit(file_bytes: bytes) -> dict:
 
     if not session and not time_s:
         raise ValueError('FIT file has no session or record data')
+
+    distance = _forward_fill(distance)
 
     def stream(arr):
         return _downsample(arr) if any(v is not None for v in arr) else None
