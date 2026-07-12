@@ -7,6 +7,7 @@ export default function EditorTabs({ storyId, active }) {
 
   const tabs = [
     { key: 'edit', label: t('tabs.edit', { defaultValue: 'Edit' }), path: `/content/${storyId}` },
+    { key: 'timeline', label: t('tabs.timeline', { defaultValue: 'Timeline' }), path: `/content/${storyId}/editor` },
     { key: 'preview', label: t('tabs.preview', { defaultValue: 'Preview' }), path: `/content/${storyId}/preview` },
   ]
 

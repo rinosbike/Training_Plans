@@ -3,6 +3,7 @@
   "newStory": "New Story",
   "tabs": {
     "edit": "Edit",
+    "timeline": "Timeline",
     "preview": "Preview"
   },
   "noStories": "No stories yet. Create one to start building your reel.",

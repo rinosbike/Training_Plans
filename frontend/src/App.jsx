@@ -17,6 +17,7 @@ import Admin from './pages/Admin'
 import Content from './pages/Content'
 import ContentStory from './pages/ContentStory'
 import ContentPreview from './pages/ContentPreview'
+import ContentEditor from './pages/ContentEditor'
 import AuthCallback from './pages/AuthCallback'
 
 function Protected({ children }) {
@@ -45,6 +46,7 @@ function AppRoutes() {
       <Route path="/admin/users" element={<Protected><Admin /></Protected>} />
       <Route path="/content" element={<Protected><Content /></Protected>} />
       <Route path="/content/:id" element={<Protected><ContentStory /></Protected>} />
+      <Route path="/content/:id/editor" element={<Protected><ContentEditor /></Protected>} />
       <Route path="/content/:id/preview" element={<Protected><ContentPreview /></Protected>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

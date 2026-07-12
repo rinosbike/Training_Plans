@@ -1,0 +1,203 @@
+import { useState } from 'react'
+import { useParams, useNavigate, Navigate } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import api from '../services/api'
+import { useAuth } from '../contexts/AuthContext'
+import BottomNav from '../components/BottomNav'
+import EditorTabs from '../components/content/EditorTabs'
+import Timeline from '../components/content/Timeline'
+import ClipInspector from '../components/content/ClipInspector'
+import toast from 'react-hot-toast'
+
+const TRACK_KIND_OPTIONS = ['video', 'image', 'audio', 'caption']
+
+export default function ContentEditor() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const qc = useQueryClient()
+
+  const [selectedClipId, setSelectedClipId] = useState(null)
+  const [draftClips, setDraftClips] = useState({})
+  const [playheadSec, setPlayheadSec] = useState(0)
+
+  if (user && !['admin', 'super_admin'].includes(user.role)) {
+    return <Navigate to="/" replace />
+  }
+
+  const { data: story, isLoading } = useQuery({
+    queryKey: ['content-story', id],
+    queryFn: () => api.get(`/api/content/stories/${id}`).then(r => r.data),
+  })
+
+  const invalidate = () => qc.invalidateQueries(['content-story', id])
+
+  const upgrade = useMutation({
+    mutationFn: () => api.post(`/api/content/stories/${id}/upgrade`),
+    onSuccess: (r) => {
+      invalidate()
+      const warnings = r.data?.warnings || []
+      if (warnings.length) warnings.forEach(w => toast(w, { icon: '⚠️' }))
+      toast.success('Upgraded to the multi-track timeline editor')
+    },
+    onError: (e) => toast.error(e.response?.data?.error || 'Upgrade failed'),
+  })
+
+  const addTrack = useMutation({
+    mutationFn: (kind) => api.post(`/api/content/stories/${id}/tracks`, { kind }),
+    onSuccess: invalidate,
+    onError: (e) => toast.error(e.response?.data?.error || 'Failed to add track'),
+  })
+
+  const deleteTrack = useMutation({
+    mutationFn: (trackId) => api.delete(`/api/content/stories/${id}/tracks/${trackId}`),
+    onSuccess: () => { invalidate(); setSelectedClipId(null) },
+    onError: (e) => toast.error(e.response?.data?.error || 'Failed to delete track'),
+  })
+
+  const updateClip = useMutation({
+    mutationFn: ({ trackId, clipId, data }) =>
+      api.put(`/api/content/stories/${id}/tracks/${trackId}/clips/${clipId}`, data),
+    onSuccess: invalidate,
+    onError: (e) => toast.error(e.response?.data?.error || 'Update failed'),
+  })
+
+  const deleteClip = useMutation({
+    mutationFn: ({ trackId, clipId }) =>
+      api.delete(`/api/content/stories/${id}/tracks/${trackId}/clips/${clipId}`),
+    onSuccess: () => { invalidate(); setSelectedClipId(null) },
+    onError: (e) => toast.error(e.response?.data?.error || 'Delete failed'),
+  })
+
+  const uploadClip = useMutation({
+    mutationFn: ({ trackId, file }) => {
+      const form = new FormData()
+      form.append('file', file)
+      return api.post(`/api/content/stories/${id}/tracks/${trackId}/clips/upload`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+    },
+    onSuccess: invalidate,
+    onError: (e) => toast.error(e.response?.data?.error || 'Upload failed'),
+  })
+
+  const addTextClip = useMutation({
+    mutationFn: ({ trackId, data }) => api.post(`/api/content/stories/${id}/tracks/${trackId}/clips`, data),
+    onSuccess: invalidate,
+    onError: (e) => toast.error(e.response?.data?.error || 'Failed to add caption'),
+  })
+
+  if (isLoading) return (
+    <div className="flex items-center justify-center h-screen">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+    </div>
+  )
+
+  if (!story) return <Navigate to="/content" replace />
+
+  if (story.editor_mode !== 'tracks') {
+    return (
+      <div className="min-h-screen bg-gray-50 pb-nav">
+        <div className="bg-primary-600 text-white px-4 pt-12 pb-4">
+          <div className="max-w-3xl mx-auto">
+            <button onClick={() => navigate('/content')} className="text-white/70 text-sm mb-2 hover:text-white">← Content</button>
+            <h1 className="text-xl font-bold">{story.title}</h1>
+            <EditorTabs storyId={id} active="timeline" />
+          </div>
+        </div>
+        <div className="max-w-3xl mx-auto px-4 py-10 flex justify-center">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-sm text-center">
+            <p className="text-sm text-gray-600 mb-4">
+              This story still uses the classic scene editor. Upgrade it to the multi-track timeline
+              editor to arrange separate video, image, audio and caption layers.
+            </p>
+            <button
+              onClick={() => upgrade.mutate()}
+              disabled={upgrade.isPending}
+              className="bg-primary-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-primary-700 disabled:opacity-50"
+            >
+              {upgrade.isPending ? 'Upgrading…' : 'Upgrade to Timeline Editor'}
+            </button>
+          </div>
+        </div>
+        <BottomNav />
+      </div>
+    )
+  }
+
+  const tracks = story.timeline?.tracks || []
+  const serverClips = story.timeline?.clips || []
+  const clips = serverClips.map(c => draftClips[c.id] ? { ...c, ...draftClips[c.id] } : c)
+  const selectedClip = clips.find(c => c.id === selectedClipId) || null
+  const selectedTrack = selectedClip ? tracks.find(t => t.id === selectedClip.track_id) : null
+
+  function handleChangeClip(clipId, updates) {
+    setDraftClips(d => ({ ...d, [clipId]: { ...d[clipId], ...updates } }))
+  }
+
+  function handleCommitClip(clipId) {
+    const draft = draftClips[clipId]
+    if (!draft) return
+    const clip = serverClips.find(c => c.id === clipId)
+    if (!clip) return
+    updateClip.mutate({ trackId: clip.track_id, clipId, data: draft })
+    setDraftClips(d => { const next = { ...d }; delete next[clipId]; return next })
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 pb-nav">
+      <div className="bg-primary-600 text-white px-4 pt-12 pb-4">
+        <div className="max-w-3xl mx-auto">
+          <button onClick={() => navigate('/content')} className="text-white/70 text-sm mb-2 hover:text-white">← Content</button>
+          <h1 className="text-xl font-bold">{story.title}</h1>
+          <EditorTabs storyId={id} active="timeline" />
+        </div>
+      </div>
+
+      <div className="max-w-3xl mx-auto px-4 py-4 space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-gray-500 mr-1">Add track:</span>
+          {TRACK_KIND_OPTIONS.map(kind => (
+            <button
+              key={kind}
+              onClick={() => addTrack.mutate(kind)}
+              disabled={addTrack.isPending}
+              className="text-xs font-medium text-gray-600 bg-white border border-gray-200 px-2.5 py-1 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            >
+              + {kind}
+            </button>
+          ))}
+        </div>
+
+        <Timeline
+          tracks={tracks}
+          clips={clips}
+          selectedClipId={selectedClipId}
+          onSelectClip={setSelectedClipId}
+          onChangeClip={handleChangeClip}
+          onCommitClip={handleCommitClip}
+          onDeleteTrack={(trackId) => deleteTrack.mutate(trackId)}
+          onUploadClip={(trackId, file) => uploadClip.mutate({ trackId, file })}
+          onAddCaption={(trackId, text) => addTextClip.mutate({
+            trackId,
+            data: { text_content: text, timeline_start_sec: playheadSec, timeline_end_sec: playheadSec + 3 },
+          })}
+          uploading={uploadClip.isPending}
+          playheadSec={playheadSec}
+          onSeek={setPlayheadSec}
+        />
+
+        {selectedClip && selectedTrack && (
+          <ClipInspector
+            clip={selectedClip}
+            track={selectedTrack}
+            onUpdate={(data) => updateClip.mutate({ trackId: selectedTrack.id, clipId: selectedClip.id, data })}
+            onDelete={() => deleteClip.mutate({ trackId: selectedTrack.id, clipId: selectedClip.id })}
+          />
+        )}
+      </div>
+
+      <BottomNav />
+    </div>
+  )
+}
