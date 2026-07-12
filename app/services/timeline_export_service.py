@@ -81,6 +81,23 @@ def _eq_filter(style):
     return f',eq=brightness={brightness}:contrast={contrast}:saturation={saturation}'
 
 
+def _has_audio_stream(path, cache):
+    """Some source videos (screen recordings, action-cam exports) have no audio
+    stream at all — referencing [idx:a] for those fails ffmpeg's filter graph
+    with 'matches no streams'. Probe once per local file and skip such clips."""
+    if path not in cache:
+        try:
+            result = subprocess.run(
+                ['ffprobe', '-v', 'quiet', '-select_streams', 'a', '-show_entries', 'stream=index',
+                 '-of', 'csv=p=0', path],
+                capture_output=True, text=True, timeout=30
+            )
+            cache[path] = bool(result.stdout.strip())
+        except Exception:
+            cache[path] = False
+    return cache[path]
+
+
 def _wrap_text_heuristic(text, fontsize, max_width_px):
     """Cheap character-count-based wrap, approximating useCompositor.js's
     canvas measureText() wrap without needing font-metrics access here."""
@@ -111,6 +128,7 @@ def build_filter_complex(tracks, clips, width, height, total_duration, local_pat
     filter_parts = []
     input_index = 0
     clip_input_index = {}  # clip id -> ffmpeg input index (lets a video clip's audio reuse its already-added video input instead of re-adding the file)
+    audio_probe_cache = {}  # local file path -> has_audio_stream bool
 
     def add_input(clip, extra_flags=None):
         nonlocal input_index
@@ -249,6 +267,8 @@ def build_filter_complex(tracks, clips, width, height, total_duration, local_pat
     for i, clip in enumerate(audio_sources):
         volume = clip.get('volume', 1.0)
         if not volume or clip['id'] not in local_paths:
+            continue
+        if not _has_audio_stream(local_paths[clip['id']], audio_probe_cache):
             continue
         idx = clip_input_index.get(clip['id'])
         if idx is None:
