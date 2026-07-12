@@ -98,6 +98,37 @@ def _has_audio_stream(path, cache):
     return cache[path]
 
 
+def _transition_filter(clip, next_clip, start, end, duration):
+    """
+    Fade-to-transparent transitions at same-track clip boundaries. Clips stay
+    back-to-back on the timeline (no overlap) — this is NOT a true cross-dissolve
+    of two overlapping clips (that would need `xfade` and a timeline model that
+    allows same-track clip overlap). Instead each clip ramps its own alpha to 0
+    at the very start (if it declares transition_in) and/or at the very end (if
+    the NEXT same-track clip declares transition_in) — via overlay's existing
+    enable=between(t,start,end) gating, this reveals whatever's beneath (the
+    previous clip already faded to 0, or the base layer) right at the cut.
+    """
+    style = clip.get('style_json') or {}
+    parts = []
+
+    own = style.get('transition_in')
+    if own:
+        d = min(own.get('duration_sec') or 0, duration)
+        if d > 0:
+            parts.append(f'fade=t=in:st={start}:d={d}:alpha=1')
+
+    next_transition = (next_clip.get('style_json') or {}).get('transition_in') if next_clip else None
+    if next_transition:
+        d = min(next_transition.get('duration_sec') or 0, duration)
+        if d > 0:
+            parts.append(f'fade=t=out:st={max(start, end - d)}:d={d}:alpha=1')
+
+    if not parts:
+        return ''
+    return ',format=yuva420p,' + ','.join(parts)
+
+
 def _wrap_text_heuristic(text, fontsize, max_width_px):
     """Cheap character-count-based wrap, approximating useCompositor.js's
     canvas measureText() wrap without needing font-metrics access here."""
@@ -154,11 +185,14 @@ def build_filter_complex(tracks, clips, width, height, total_duration, local_pat
             (c for c in clips if c['track_id'] == track['id']),
             key=lambda c: c['timeline_start_sec']
         )
-        for clip in track_clips:
+        for clip_idx, clip in enumerate(track_clips):
             duration = _clip_duration(clip)
             start = clip['timeline_start_sec']
+            end = clip['timeline_end_sec']
             style = clip.get('style_json') or {}
             eq = _eq_filter(style)
+            next_clip = track_clips[clip_idx + 1] if clip_idx + 1 < len(track_clips) else None
+            transition = _transition_filter(clip, next_clip, start, end, duration)
 
             if clip['source_type'] == 'video':
                 idx = add_input(clip)
@@ -169,7 +203,7 @@ def build_filter_complex(tracks, clips, width, height, total_duration, local_pat
                 # its position on the OUTPUT timeline so overlay's enable=between(t,..) lines up
                 vf = (
                     f'[{idx}:v]trim=start={trim_start}:end={trim_end},'
-                    f'setpts=(PTS-STARTPTS)/{speed}+{start}/TB,{scale_crop}{eq}[v{stage}]'
+                    f'setpts=(PTS-STARTPTS)/{speed}+{start}/TB,{scale_crop}{eq}{transition}[v{stage}]'
                 )
             else:  # image
                 kb = style.get('ken_burns')
@@ -196,14 +230,13 @@ def build_filter_complex(tracks, clips, width, height, total_duration, local_pat
                     # correctly proportioned dimensions — matches useCompositor.js's
                     # drawCoverTransformed, which also applies the cover base-scale
                     # before the Ken Burns zoom
-                    vf = f'[{idx}:v]{scale_crop},{zoom_scale},{pan_crop},setpts=PTS-STARTPTS+{start}/TB{eq}[v{stage}]'
+                    vf = f'[{idx}:v]{scale_crop},{zoom_scale},{pan_crop},setpts=PTS-STARTPTS+{start}/TB{eq}{transition}[v{stage}]'
                 else:
                     idx = add_input(clip, extra_flags=['-loop', '1', '-t', str(duration)])
-                    vf = f'[{idx}:v]setpts=PTS-STARTPTS+{start}/TB,{scale_crop}{eq}[v{stage}]'
+                    vf = f'[{idx}:v]setpts=PTS-STARTPTS+{start}/TB,{scale_crop}{eq}{transition}[v{stage}]'
             filter_parts.append(vf)
 
             next_label = f'ov{stage}'
-            end = clip['timeline_end_sec']
             filter_parts.append(
                 f"[{base_label}][v{stage}]overlay=enable='between(t,{start},{end})'[{next_label}]"
             )

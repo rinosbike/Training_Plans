@@ -52,6 +52,39 @@ function kenBurnsTransform(clip, playheadSec) {
   }
 }
 
+/** Fade-to-transparent at same-track clip boundaries — mirrors
+ *  _transition_filter() in timeline_export_service.py. Clips stay back-to-back
+ *  (no timeline overlap), so this isn't a true cross-dissolve of two
+ *  simultaneously-visible clips; each clip ramps its own alpha to 0 at its
+ *  start (if it declares transition_in) and/or at its end (if the next
+ *  same-track clip declares transition_in), revealing whatever's beneath. */
+function transitionAlpha(track, allClips, active, playheadSec) {
+  const style = active.style_json || {}
+  const duration = active.timeline_end_sec - active.timeline_start_sec
+  const t = playheadSec - active.timeline_start_sec
+  const remaining = active.timeline_end_sec - playheadSec
+  let alpha = 1
+
+  const own = style.transition_in
+  if (own) {
+    const d = Math.min(own.duration_sec || 0, duration)
+    if (d > 0 && t < d) alpha = Math.min(alpha, Math.max(0, t / d))
+  }
+
+  const trackClips = allClips
+    .filter(c => c.track_id === track.id)
+    .sort((a, b) => a.timeline_start_sec - b.timeline_start_sec)
+  const idx = trackClips.findIndex(c => c.id === active.id)
+  const next = idx >= 0 ? trackClips[idx + 1] : null
+  const nextTransition = next?.style_json?.transition_in
+  if (nextTransition) {
+    const d = Math.min(nextTransition.duration_sec || 0, duration)
+    if (d > 0 && remaining < d) alpha = Math.min(alpha, Math.max(0, remaining / d))
+  }
+
+  return alpha
+}
+
 function fadeMultiplier(clip) {
   return (t, remaining) => {
     const style = clip.style_json || {}
@@ -235,6 +268,7 @@ export function useCompositor({ canvasRef, tracks, clips, canvasW, canvasH, play
 
       const styleJson = active.style_json || {}
       ctx.filter = cssFilterFor(styleJson)
+      ctx.globalAlpha = transitionAlpha(track, clips, active, playheadSec)
 
       if (active.source_type === 'video' && active.source_url) {
         activeIds.add(active.id)
@@ -260,6 +294,7 @@ export function useCompositor({ canvasRef, tracks, clips, canvasW, canvasH, play
         }
       }
       ctx.filter = 'none'
+      ctx.globalAlpha = 1
     }
 
     const audioTracks = tracks.filter(t => t.kind === 'audio')

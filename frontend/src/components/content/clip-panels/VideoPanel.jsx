@@ -3,6 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import api from '../../../services/api'
 import toast from 'react-hot-toast'
 import FilterSliders from './FilterSliders'
+import TransitionControl from './TransitionControl'
 
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2]
 
@@ -77,6 +78,8 @@ export default function VideoPanel({ storyId, clip, onUpdate, onTranscribed }) {
       </div>
 
       <FilterSliders styleJson={styleJson} onUpdate={onUpdate} />
+
+      <TransitionControl clip={clip} onUpdate={onUpdate} />
 
       <div className="pt-1 border-t border-gray-100">
         <button

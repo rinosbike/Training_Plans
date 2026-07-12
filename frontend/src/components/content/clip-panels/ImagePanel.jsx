@@ -1,4 +1,5 @@
 import FilterSliders from './FilterSliders'
+import TransitionControl from './TransitionControl'
 
 const KEN_BURNS_PRESETS = {
   none: null,
@@ -56,6 +57,8 @@ export default function ImagePanel({ clip, onUpdate }) {
       </div>
 
       <FilterSliders styleJson={styleJson} onUpdate={onUpdate} />
+
+      <TransitionControl clip={clip} onUpdate={onUpdate} />
     </div>
   )
 }
