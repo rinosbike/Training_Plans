@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../services/api'
@@ -7,6 +7,9 @@ import BottomNav from '../components/BottomNav'
 import EditorTabs from '../components/content/EditorTabs'
 import Timeline from '../components/content/Timeline'
 import ClipInspector from '../components/content/ClipInspector'
+import CanvasPreview from '../components/content/CanvasPreview'
+import { usePlaybackClock } from '../hooks/usePlaybackClock'
+import { EXPORT_PRESETS, DEFAULT_PRESET } from '../constants/exportPresets'
 import toast from 'react-hot-toast'
 
 const TRACK_KIND_OPTIONS = ['video', 'image', 'audio', 'caption']
@@ -19,16 +22,25 @@ export default function ContentEditor() {
 
   const [selectedClipId, setSelectedClipId] = useState(null)
   const [draftClips, setDraftClips] = useState({})
-  const [playheadSec, setPlayheadSec] = useState(0)
-
-  if (user && !['admin', 'super_admin'].includes(user.role)) {
-    return <Navigate to="/" replace />
-  }
+  const [preset, setPreset] = useState(DEFAULT_PRESET)
 
   const { data: story, isLoading } = useQuery({
     queryKey: ['content-story', id],
     queryFn: () => api.get(`/api/content/stories/${id}`).then(r => r.data),
   })
+
+  const tracks = story?.timeline?.tracks || []
+  const serverClips = story?.timeline?.clips || []
+  const clips = useMemo(
+    () => serverClips.map(c => draftClips[c.id] ? { ...c, ...draftClips[c.id] } : c),
+    [serverClips, draftClips]
+  )
+  const durationSec = useMemo(
+    () => clips.reduce((m, c) => Math.max(m, c.timeline_end_sec), 10),
+    [clips]
+  )
+
+  const { playing, playheadSec, play, pause, seek } = usePlaybackClock(durationSec)
 
   const invalidate = () => qc.invalidateQueries(['content-story', id])
 
@@ -87,6 +99,10 @@ export default function ContentEditor() {
     onError: (e) => toast.error(e.response?.data?.error || 'Failed to add caption'),
   })
 
+  if (user && !['admin', 'super_admin'].includes(user.role)) {
+    return <Navigate to="/" replace />
+  }
+
   if (isLoading) return (
     <div className="flex items-center justify-center h-screen">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
@@ -125,11 +141,9 @@ export default function ContentEditor() {
     )
   }
 
-  const tracks = story.timeline?.tracks || []
-  const serverClips = story.timeline?.clips || []
-  const clips = serverClips.map(c => draftClips[c.id] ? { ...c, ...draftClips[c.id] } : c)
   const selectedClip = clips.find(c => c.id === selectedClipId) || null
   const selectedTrack = selectedClip ? tracks.find(t => t.id === selectedClip.track_id) : null
+  const activePreset = EXPORT_PRESETS[preset]
 
   function handleChangeClip(clipId, updates) {
     setDraftClips(d => ({ ...d, [clipId]: { ...d[clipId], ...updates } }))
@@ -155,6 +169,37 @@ export default function ContentEditor() {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-4 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => (playing ? pause() : play())}
+              className="w-9 h-9 rounded-full bg-primary-600 text-white flex items-center justify-center hover:bg-primary-700"
+              title={playing ? 'Pause' : 'Play'}
+            >
+              {playing ? '⏸' : '▶'}
+            </button>
+            <span className="text-xs font-mono text-gray-500">{playheadSec.toFixed(1)}s / {durationSec.toFixed(1)}s</span>
+          </div>
+          <select
+            value={preset}
+            onChange={e => setPreset(e.target.value)}
+            className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700"
+          >
+            {Object.entries(EXPORT_PRESETS).map(([key, p]) => (
+              <option key={key} value={key}>{p.label}</option>
+            ))}
+          </select>
+        </div>
+
+        <CanvasPreview
+          tracks={tracks}
+          clips={clips}
+          presetW={activePreset.width}
+          presetH={activePreset.height}
+          playheadSec={playheadSec}
+          playing={playing}
+        />
+
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs text-gray-500 mr-1">Add track:</span>
           {TRACK_KIND_OPTIONS.map(kind => (
@@ -184,7 +229,7 @@ export default function ContentEditor() {
           })}
           uploading={uploadClip.isPending}
           playheadSec={playheadSec}
-          onSeek={setPlayheadSec}
+          onSeek={seek}
         />
 
         {selectedClip && selectedTrack && (
