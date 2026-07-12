@@ -2,6 +2,7 @@ import { useRef, useEffect, useCallback } from 'react'
 
 const MAX_POOL_SIZE = 6
 const DRIFT_THRESHOLD_SEC = 0.08
+const ANIM_DURATION_SEC = 0.4
 
 function loadImage(url) {
   return new Promise((resolve, reject) => {
@@ -14,13 +15,53 @@ function loadImage(url) {
 }
 
 /** Scale+crop to FILL the destination — mirrors ffmpeg's
- *  scale=...:force_original_aspect_ratio=increase,crop=... used at export time. */
-function drawCover(ctx, source, srcW, srcH, dstW, dstH) {
+ *  scale=...:force_original_aspect_ratio=increase,crop=... used at export time.
+ *  extraScale/focusX/focusY let Ken Burns zoom/pan beyond the plain cover fill. */
+function drawCoverTransformed(ctx, source, srcW, srcH, dstW, dstH, extraScale = 1, focusX = 0.5, focusY = 0.5) {
   if (!srcW || !srcH) return
-  const scale = Math.max(dstW / srcW, dstH / srcH)
+  const baseScale = Math.max(dstW / srcW, dstH / srcH)
+  const scale = baseScale * extraScale
   const drawW = srcW * scale
   const drawH = srcH * scale
-  ctx.drawImage(source, (dstW - drawW) / 2, (dstH - drawH) / 2, drawW, drawH)
+  const dx = dstW / 2 - drawW * focusX
+  const dy = dstH / 2 - drawH * focusY
+  ctx.drawImage(source, dx, dy, drawW, drawH)
+}
+
+function cssFilterFor(styleJson) {
+  const brightness = styleJson.brightness ?? 0
+  const contrast = styleJson.contrast ?? 1
+  const saturation = styleJson.saturation ?? 1
+  if (brightness === 0 && contrast === 1 && saturation === 1) return 'none'
+  // our brightness is additive (ffmpeg eq convention, -0.5..0.5); CSS brightness() is
+  // multiplicative — 1+brightness is a reasonable preview approximation of the same idea
+  return `brightness(${1 + brightness}) contrast(${contrast}) saturate(${saturation})`
+}
+
+function kenBurnsTransform(clip, playheadSec) {
+  const kb = clip.style_json?.ken_burns
+  if (!kb) return { scale: 1, x: 0.5, y: 0.5 }
+  const duration = clip.timeline_end_sec - clip.timeline_start_sec
+  const progress = duration > 0
+    ? Math.min(1, Math.max(0, (playheadSec - clip.timeline_start_sec) / duration))
+    : 0
+  return {
+    scale: kb.from.scale + (kb.to.scale - kb.from.scale) * progress,
+    x: kb.from.x + (kb.to.x - kb.from.x) * progress,
+    y: kb.from.y + (kb.to.y - kb.from.y) * progress,
+  }
+}
+
+function fadeMultiplier(clip) {
+  return (t, remaining) => {
+    const style = clip.style_json || {}
+    const fadeIn = style.fade_in_sec || 0
+    const fadeOut = style.fade_out_sec || 0
+    let mult = 1
+    if (fadeIn > 0 && t < fadeIn) mult = Math.min(mult, t / fadeIn)
+    if (fadeOut > 0 && remaining < fadeOut) mult = Math.min(mult, remaining / fadeOut)
+    return Math.max(0, mult)
+  }
 }
 
 function wrapLines(ctx, text, maxWidth) {
@@ -40,27 +81,69 @@ function wrapLines(ctx, text, maxWidth) {
   return lines
 }
 
-function drawCaption(ctx, clip, canvasW, canvasH) {
+function captionAnimAlpha(clip, t, remaining) {
+  const anim = clip.style_json?.animation || {}
+  let alpha = 1
+  if (anim.in === 'fade' && t < ANIM_DURATION_SEC) alpha = Math.min(alpha, t / ANIM_DURATION_SEC)
+  if (anim.out === 'fade' && remaining < ANIM_DURATION_SEC) alpha = Math.min(alpha, remaining / ANIM_DURATION_SEC)
+  return Math.max(0, alpha)
+}
+
+function captionSlideOffset(clip, t, canvasH) {
+  const anim = clip.style_json?.animation || {}
+  if (anim.in !== 'slide_up' || t >= ANIM_DURATION_SEC) return 0
+  const progress = Math.max(0, t / ANIM_DURATION_SEC)
+  return (1 - progress) * canvasH * 0.08
+}
+
+function drawCaption(ctx, clip, canvasW, canvasH, playheadSec) {
   const style = clip.style_json || {}
+  const t = playheadSec - clip.timeline_start_sec
+  const remaining = clip.timeline_end_sec - playheadSec
+  const alpha = captionAnimAlpha(clip, t, remaining)
+  if (alpha <= 0) return
+
   const fontSize = style.fontSize || Math.round(canvasH * 0.045)
   const color = style.color || '#ffffff'
+  const fontFamily = style.fontFamily || "'Lato Black', Arial, sans-serif"
+  const xFrac = style.x != null ? style.x : 0.5
   const yFrac = style.y != null ? style.y : 0.85
+  const background = style.background || 'none'
+  const slideOffset = captionSlideOffset(clip, t, canvasH)
 
   ctx.save()
-  ctx.font = `900 ${fontSize}px 'Lato Black', Arial, sans-serif`
+  ctx.globalAlpha = alpha
+  ctx.font = `900 ${fontSize}px ${fontFamily}`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.shadowColor = 'rgba(0,0,0,0.85)'
-  ctx.shadowBlur = 6
 
   const lineHeight = fontSize * 1.2
   const lines = wrapLines(ctx, clip.text_content, canvasW * 0.85)
   const totalHeight = lines.length * lineHeight
-  let y = yFrac * canvasH - totalHeight / 2 + lineHeight / 2
+  const centerX = xFrac * canvasW
+  let y = yFrac * canvasH - totalHeight / 2 + lineHeight / 2 + slideOffset
+
+  if (background === 'box' || background === 'solid') {
+    const maxLineWidth = Math.max(...lines.map(l => ctx.measureText(l).width))
+    const padX = fontSize * 0.4
+    const padY = fontSize * 0.25
+    ctx.fillStyle = background === 'solid' ? 'rgba(0,0,0,1)' : 'rgba(0,0,0,0.55)'
+    ctx.fillRect(centerX - maxLineWidth / 2 - padX, y - lineHeight / 2 - padY, maxLineWidth + padX * 2, totalHeight + padY * 2)
+  }
+
+  if (background === 'outline') {
+    ctx.lineWidth = fontSize * 0.08
+    ctx.strokeStyle = '#000000'
+    ctx.lineJoin = 'round'
+  } else {
+    ctx.shadowColor = 'rgba(0,0,0,0.85)'
+    ctx.shadowBlur = 6
+  }
 
   ctx.fillStyle = color
   for (const line of lines) {
-    ctx.fillText(line, canvasW / 2, y)
+    if (background === 'outline') ctx.strokeText(line, centerX, y)
+    ctx.fillText(line, centerX, y)
     y += lineHeight
   }
   ctx.restore()
@@ -134,6 +217,8 @@ export function useCompositor({ canvasRef, tracks, clips, canvasW, canvasH, play
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
+    ctx.filter = 'none'
+    ctx.globalAlpha = 1
     ctx.fillStyle = '#000'
     ctx.fillRect(0, 0, canvasW, canvasH)
 
@@ -148,23 +233,33 @@ export function useCompositor({ canvasRef, tracks, clips, canvasW, canvasH, play
         playheadSec >= c.timeline_start_sec && playheadSec < c.timeline_end_sec)
       if (!active) continue
 
+      const styleJson = active.style_json || {}
+      ctx.filter = cssFilterFor(styleJson)
+
       if (active.source_type === 'video' && active.source_url) {
         activeIds.add(active.id)
+        const speed = active.speed || 1
         const el = getVideoEl(active.id, active.source_url)
-        const expected = (active.trim_start_sec || 0) + (playheadSec - active.timeline_start_sec)
+        const expected = (active.trim_start_sec || 0) + (playheadSec - active.timeline_start_sec) * speed
         if (el.readyState >= 1 && Math.abs(el.currentTime - expected) > DRIFT_THRESHOLD_SEC) {
           try { el.currentTime = expected } catch { /* not seekable yet */ }
         }
+        try { el.playbackRate = speed } catch { /* ignore unsupported rate */ }
+        const fade = fadeMultiplier(active)(playheadSec - active.timeline_start_sec, active.timeline_end_sec - playheadSec)
         el.muted = track.muted || active.volume === 0
-        el.volume = active.volume ?? 1
+        el.volume = (active.volume ?? 1) * fade
         if (playing) el.play?.().catch(() => {})
         else el.pause()
 
-        if (el.readyState >= 2) drawCover(ctx, el, el.videoWidth, el.videoHeight, canvasW, canvasH)
+        if (el.readyState >= 2) drawCoverTransformed(ctx, el, el.videoWidth, el.videoHeight, canvasW, canvasH)
       } else if (active.source_type === 'image' && active.source_url) {
         const img = getImage(active.source_url)
-        if (img) drawCover(ctx, img, img.naturalWidth, img.naturalHeight, canvasW, canvasH)
+        if (img) {
+          const kb = kenBurnsTransform(active, playheadSec)
+          drawCoverTransformed(ctx, img, img.naturalWidth, img.naturalHeight, canvasW, canvasH, kb.scale, kb.x, kb.y)
+        }
       }
+      ctx.filter = 'none'
     }
 
     const audioTracks = tracks.filter(t => t.kind === 'audio')
@@ -178,8 +273,9 @@ export function useCompositor({ canvasRef, tracks, clips, canvasW, canvasH, play
       if (el.readyState >= 1 && Math.abs(el.currentTime - expected) > DRIFT_THRESHOLD_SEC) {
         try { el.currentTime = expected } catch { /* not seekable yet */ }
       }
+      const fade = fadeMultiplier(active)(playheadSec - active.timeline_start_sec, active.timeline_end_sec - playheadSec)
       el.muted = track.muted || active.volume === 0
-      el.volume = active.volume ?? 1
+      el.volume = (active.volume ?? 1) * fade
       if (playing) el.play?.().catch(() => {})
       else el.pause()
     }
@@ -196,7 +292,7 @@ export function useCompositor({ canvasRef, tracks, clips, canvasW, canvasH, play
       const active = clips.find(c => c.track_id === track.id &&
         playheadSec >= c.timeline_start_sec && playheadSec < c.timeline_end_sec)
       if (!active || !active.text_content) continue
-      drawCaption(ctx, active, canvasW, canvasH)
+      drawCaption(ctx, active, canvasW, canvasH, playheadSec)
     }
   }, [canvasRef, tracks, clips, canvasW, canvasH, playheadSec, playing, getVideoEl, getAudioEl, getImage])
 

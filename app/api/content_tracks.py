@@ -322,7 +322,7 @@ def update_clip(story_id, track_id, clip_id):
 
     data = request.get_json() or {}
     allowed = ('trim_start_sec', 'trim_end_sec', 'timeline_start_sec', 'timeline_end_sec',
-               'text_content', 'style_json', 'volume', 'position', 'track_id')
+               'text_content', 'style_json', 'volume', 'speed', 'position', 'track_id')
     updates = {k: data[k] for k in allowed if k in data}
     if not updates:
         raise ValidationError('No updatable fields provided')
@@ -361,6 +361,84 @@ def delete_clip(story_id, track_id, clip_id):
 
     execute_write('DELETE FROM training.content_clips WHERE id = %s AND track_id = %s', (clip_id, track_id))
     return jsonify({'deleted': True})
+
+
+@content_tracks_bp.route('/api/content/stories/<story_id>/tracks/<track_id>/clips/<clip_id>/split', methods=['POST'])
+@jwt_required()
+def split_clip(story_id, track_id, clip_id):
+    user_id, role = _require_user()
+    _get_story(story_id, user_id, role)
+    timeline_service.get_track(track_id, story_id)
+    clip = timeline_service.get_clip(clip_id, track_id)
+
+    data = request.get_json() or {}
+    at_sec = data.get('at_sec')
+    if at_sec is None:
+        raise ValidationError('at_sec is required')
+    at_sec = float(at_sec)
+
+    if not (clip['timeline_start_sec'] < at_sec < clip['timeline_end_sec']):
+        raise ValidationError('at_sec must fall strictly inside the clip')
+
+    clip_delta = at_sec - clip['timeline_start_sec']
+    trim_start = clip.get('trim_start_sec') or 0
+    trim_end = clip.get('trim_end_sec')
+    split_trim = trim_start + clip_delta if clip['source_type'] != 'text' else None
+
+    execute_write(
+        'UPDATE training.content_clips SET timeline_end_sec = %s, trim_end_sec = %s, updated_at = now() WHERE id = %s',
+        (at_sec, split_trim, clip_id)
+    )
+
+    max_pos = execute_query(
+        'SELECT COALESCE(MAX(position), -1) AS mp FROM training.content_clips WHERE track_id = %s',
+        (track_id,), fetch_one=True
+    )
+    new_clip = execute_write(
+        '''INSERT INTO training.content_clips
+             (track_id, source_url, source_type, source_duration_sec, source_width, source_height,
+              trim_start_sec, trim_end_sec, timeline_start_sec, timeline_end_sec,
+              text_content, style_json, volume, speed, position)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+           RETURNING *''',
+        (track_id, clip['source_url'], clip['source_type'], clip['source_duration_sec'],
+         clip['source_width'], clip['source_height'],
+         split_trim, trim_end, at_sec, clip['timeline_end_sec'],
+         clip['text_content'], clip['style_json'], clip['volume'], clip['speed'], max_pos['mp'] + 1),
+        returning=True
+    )
+    return jsonify(dict(new_clip)), 201
+
+
+@content_tracks_bp.route('/api/content/stories/<story_id>/tracks/<track_id>/clips/<clip_id>/duplicate', methods=['POST'])
+@jwt_required()
+def duplicate_clip(story_id, track_id, clip_id):
+    user_id, role = _require_user()
+    _get_story(story_id, user_id, role)
+    timeline_service.get_track(track_id, story_id)
+    clip = timeline_service.get_clip(clip_id, track_id)
+
+    start = timeline_service.next_clip_start(story_id)
+    duration = clip['timeline_end_sec'] - clip['timeline_start_sec']
+
+    max_pos = execute_query(
+        'SELECT COALESCE(MAX(position), -1) AS mp FROM training.content_clips WHERE track_id = %s',
+        (track_id,), fetch_one=True
+    )
+    new_clip = execute_write(
+        '''INSERT INTO training.content_clips
+             (track_id, source_url, source_type, source_duration_sec, source_width, source_height,
+              trim_start_sec, trim_end_sec, timeline_start_sec, timeline_end_sec,
+              text_content, style_json, volume, speed, position)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+           RETURNING *''',
+        (track_id, clip['source_url'], clip['source_type'], clip['source_duration_sec'],
+         clip['source_width'], clip['source_height'],
+         clip['trim_start_sec'], clip['trim_end_sec'], start, start + duration,
+         clip['text_content'], clip['style_json'], clip['volume'], clip['speed'], max_pos['mp'] + 1),
+        returning=True
+    )
+    return jsonify(dict(new_clip)), 201
 
 
 # ─── Transcription ───────────────────────────────────────────────────────────

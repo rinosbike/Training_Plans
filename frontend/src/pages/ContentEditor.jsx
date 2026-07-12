@@ -260,6 +260,9 @@ export default function ContentEditor() {
           presetH={activePreset.height}
           playheadSec={playheadSec}
           playing={playing}
+          selectedClipId={selectedClipId}
+          onChangeClip={handleChangeClip}
+          onCommitClip={handleCommitClip}
         />
 
         <div className="flex flex-wrap items-center gap-2">
@@ -299,9 +302,12 @@ export default function ContentEditor() {
             storyId={id}
             clip={selectedClip}
             track={selectedTrack}
+            playheadSec={playheadSec}
             onUpdate={(data) => updateClip.mutate({ trackId: selectedTrack.id, clipId: selectedClip.id, data })}
             onDelete={() => deleteClip.mutate({ trackId: selectedTrack.id, clipId: selectedClip.id })}
             onTranscribed={invalidate}
+            onDuplicated={invalidate}
+            onSplit={invalidate}
           />
         )}
 

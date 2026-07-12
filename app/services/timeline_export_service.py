@@ -9,6 +9,10 @@ the concat demuxer fundamentally can't express that. This builds a single
 trimmed/scaled/time-shifted then composited on top via `overlay` gated by
 `enable='between(t,start,end)'`, captions layered on top via chained
 `drawtext`, and all clip audio mixed via `amix`.
+
+Effects (speed, filters, Ken Burns, fades, caption styling) mirror the
+canvas preview's approximations in useCompositor.js — not pixel/sample
+identical (different renderers), but the same intent.
 """
 import os
 import subprocess
@@ -24,6 +28,7 @@ _FPS = 30
 _CRF = 22
 _ENCODE_PRESET = 'fast'
 _EXPORT_TIMEOUT_SEC = 280  # stay under gunicorn's 300s worker timeout
+_ANIM_DURATION_SEC = 0.4  # matches ANIM_DURATION_SEC in useCompositor.js
 
 PRESETS = {
     '9:16':   {'width': 1080, 'height': 1920, 'label': 'Reels / TikTok / Shorts'},
@@ -38,6 +43,7 @@ PRESET_NOTES = {
               "current WeChat requirements before publishing.",
 }
 
+
 class ExportError(Exception):
     pass
 
@@ -50,11 +56,56 @@ def _ms(sec):
     return max(0, round(sec * 1000))
 
 
+def _atempo_chain(speed):
+    """atempo only accepts 0.5-2.0 per instance; chain multiple for wider ranges."""
+    if not speed or speed == 1.0:
+        return ''
+    stages = []
+    remaining = speed
+    while remaining > 2.0:
+        stages.append('atempo=2.0')
+        remaining /= 2.0
+    while remaining < 0.5:
+        stages.append('atempo=0.5')
+        remaining /= 0.5
+    stages.append(f'atempo={remaining}')
+    return ',' + ','.join(stages)
+
+
+def _eq_filter(style):
+    brightness = style.get('brightness', 0)
+    contrast = style.get('contrast', 1)
+    saturation = style.get('saturation', 1)
+    if brightness == 0 and contrast == 1 and saturation == 1:
+        return ''
+    return f',eq=brightness={brightness}:contrast={contrast}:saturation={saturation}'
+
+
+def _wrap_text_heuristic(text, fontsize, max_width_px):
+    """Cheap character-count-based wrap, approximating useCompositor.js's
+    canvas measureText() wrap without needing font-metrics access here."""
+    avg_char_width = fontsize * 0.58
+    max_chars = max(4, int(max_width_px / avg_char_width))
+    words = text.split(' ')
+    lines = []
+    current = ''
+    for w in words:
+        test = f'{current} {w}'.strip()
+        if len(test) > max_chars and current:
+            lines.append(current)
+            current = w
+        else:
+            current = test
+    if current:
+        lines.append(current)
+    return '\n'.join(lines)
+
+
 def build_filter_complex(tracks, clips, width, height, total_duration, local_paths):
     """
-    Returns (input_args, filter_complex_str, map_args) for a single ffmpeg
-    invocation. `local_paths` maps clip id -> downloaded local file path
-    (already-downloaded, one entry per clip that has a source_url).
+    Returns (input_args, filter_complex_str, map_args, text_files) for a
+    single ffmpeg invocation. `local_paths` maps clip id -> downloaded local
+    file path (already-downloaded, one entry per clip that has a source_url).
     """
     input_args = []
     filter_parts = []
@@ -88,22 +139,41 @@ def build_filter_complex(tracks, clips, width, height, total_duration, local_pat
         for clip in track_clips:
             duration = _clip_duration(clip)
             start = clip['timeline_start_sec']
+            style = clip.get('style_json') or {}
+            eq = _eq_filter(style)
 
             if clip['source_type'] == 'video':
                 idx = add_input(clip)
                 trim_start = clip.get('trim_start_sec') or 0
-                trim_end = clip.get('trim_end_sec') or (trim_start + duration)
-                # normalize the trimmed segment to t=0, then shift it forward to its
-                # position on the OUTPUT timeline so overlay's enable=between(t,..) lines up
+                speed = clip.get('speed') or 1.0
+                trim_end = clip.get('trim_end_sec') or (trim_start + duration * speed)
+                # normalize the trimmed segment to t=0, apply speed, then shift it forward to
+                # its position on the OUTPUT timeline so overlay's enable=between(t,..) lines up
                 vf = (
                     f'[{idx}:v]trim=start={trim_start}:end={trim_end},'
-                    f'setpts=PTS-STARTPTS+{start}/TB,{scale_crop}[v{stage}]'
+                    f'setpts=(PTS-STARTPTS)/{speed}+{start}/TB,{scale_crop}{eq}[v{stage}]'
                 )
             else:  # image
-                idx = add_input(clip, extra_flags=['-loop', '1', '-t', str(duration)])
-                vf = (
-                    f'[{idx}:v]setpts=PTS-STARTPTS+{start}/TB,{scale_crop}[v{stage}]'
-                )
+                kb = style.get('ken_burns')
+                if kb:
+                    total_frames = max(1, round(duration * _FPS))
+                    s0, s1 = kb['from']['scale'], kb['to']['scale']
+                    x0, x1 = kb['from']['x'], kb['to']['x']
+                    y0, y1 = kb['from']['y'], kb['to']['y']
+                    idx = add_input(clip, extra_flags=['-loop', '1'])
+                    zoompan = (
+                        f"zoompan=z='{s0}+({s1}-{s0})*on/{total_frames}'"
+                        f":x='(({x0}+({x1}-{x0})*on/{total_frames})*iw)-(iw/zoom/2)'"
+                        f":y='(({y0}+({y1}-{y0})*on/{total_frames})*ih)-(ih/zoom/2)'"
+                        f":d={total_frames}:s={width}x{height}:fps={_FPS}"
+                    )
+                    # cover-fill to the target size FIRST so zoompan's iw/ih are already
+                    # correctly proportioned — matches useCompositor.js's drawCoverTransformed,
+                    # which also applies the cover base-scale before the Ken Burns zoom
+                    vf = f'[{idx}:v]{scale_crop},{zoompan},setpts=PTS-STARTPTS+{start}/TB{eq}[v{stage}]'
+                else:
+                    idx = add_input(clip, extra_flags=['-loop', '1', '-t', str(duration)])
+                    vf = f'[{idx}:v]setpts=PTS-STARTPTS+{start}/TB,{scale_crop}{eq}[v{stage}]'
             filter_parts.append(vf)
 
             next_label = f'ov{stage}'
@@ -130,20 +200,37 @@ def build_filter_complex(tracks, clips, width, height, total_duration, local_pat
             style = clip.get('style_json') or {}
             fontsize = style.get('fontSize', 78)
             fontcolor = style.get('color', 'white')
+            x_frac = style.get('x', 0.5)
             y_frac = style.get('y', 0.77)
+            background = style.get('background', 'none')
+            animation = style.get('animation') or {}
             start = clip['timeline_start_sec']
             end = clip['timeline_end_sec']
 
+            wrapped = _wrap_text_heuristic(clip['text_content'], fontsize, width * 0.85)
             text_file = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False, encoding='utf-8')
-            text_file.write(clip['text_content'])
+            text_file.write(wrapped)
             text_file.close()
             text_files.append(text_file.name)
+
+            box_expr = ''
+            if background in ('box', 'solid'):
+                box_alpha = '1.0' if background == 'solid' else '0.55'
+                box_expr = f':box=1:boxcolor=black@{box_alpha}:boxborderw=10'
+            outline_expr = ':borderw=4:bordercolor=black' if background == 'outline' else ':shadowx=5:shadowy=5:shadowcolor=black@0.85'
+
+            alpha_expr = ''
+            if animation.get('in') == 'fade' or animation.get('out') == 'fade':
+                fade_in_expr = f"(t-{start})/{_ANIM_DURATION_SEC}" if animation.get('in') == 'fade' else '1'
+                fade_out_expr = f"({end}-t)/{_ANIM_DURATION_SEC}" if animation.get('out') == 'fade' else '1'
+                alpha_expr = f":alpha='min(1,min({fade_in_expr},{fade_out_expr}))'"
 
             next_label = f'txt{stage}'
             filter_parts.append(
                 f"[{base_label}]drawtext=fontfile={_FONT_PATH}:textfile={text_file.name}"
-                f":fontsize={fontsize}:fontcolor={fontcolor}:x=(w-text_w)/2:y=h*{y_frac}"
-                f":shadowx=5:shadowy=5:shadowcolor=black@0.85"
+                f":fontsize={fontsize}:fontcolor={fontcolor}"
+                f":x=(w*{x_frac})-text_w/2:y=(h*{y_frac})-text_h/2"
+                f"{box_expr}{outline_expr}{alpha_expr}"
                 f":enable='between(t,{start},{end})'[{next_label}]"
             )
             base_label = next_label
@@ -168,13 +255,26 @@ def build_filter_complex(tracks, clips, width, height, total_duration, local_pat
             idx = add_input(clip)
 
         trim_start = clip.get('trim_start_sec') or 0
-        trim_end = clip.get('trim_end_sec') or (trim_start + _clip_duration(clip))
+        speed = clip.get('speed') or 1.0
+        clip_dur = _clip_duration(clip)
+        trim_end = clip.get('trim_end_sec') or (trim_start + clip_dur * speed)
         start_ms = _ms(clip['timeline_start_sec'])
+
+        style = clip.get('style_json') or {}
+        fade_in = style.get('fade_in_sec') or 0
+        fade_out = style.get('fade_out_sec') or 0
+        fade_expr = ''
+        if fade_in > 0:
+            fade_expr += f',afade=t=in:st=0:d={fade_in}'
+        if fade_out > 0:
+            fade_expr += f',afade=t=out:st={max(0, clip_dur - fade_out)}:d={fade_out}'
+
         label = f'a{i}'
         filter_parts.append(
             f'[{idx}:a]atrim=start={trim_start}:end={trim_end},asetpts=PTS-STARTPTS,'
-            f'aformat=sample_rates=44100:channel_layouts=stereo,'
-            f'volume={volume},adelay={start_ms}|{start_ms}[{label}]'
+            f'aformat=sample_rates=44100:channel_layouts=stereo'
+            f'{_atempo_chain(speed)},'
+            f'volume={volume}{fade_expr},adelay={start_ms}|{start_ms}[{label}]'
         )
         audio_labels.append(label)
 
