@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../services/api'
@@ -24,11 +24,20 @@ export default function ContentEditor() {
   const [selectedClipId, setSelectedClipId] = useState(null)
   const [draftClips, setDraftClips] = useState({})
   const [preset, setPreset] = useState(DEFAULT_PRESET)
+  const [exporting, setExporting] = useState(false)
+  const presetInitialized = useRef(false)
 
   const { data: story, isLoading } = useQuery({
     queryKey: ['content-story', id],
     queryFn: () => api.get(`/api/content/stories/${id}`).then(r => r.data),
   })
+
+  useEffect(() => {
+    if (story?.export_preset && !presetInitialized.current) {
+      setPreset(story.export_preset)
+      presetInitialized.current = true
+    }
+  }, [story?.export_preset])
 
   const tracks = story?.timeline?.tracks || []
   const serverClips = story?.timeline?.clips || []
@@ -99,6 +108,40 @@ export default function ContentEditor() {
     onSuccess: invalidate,
     onError: (e) => toast.error(e.response?.data?.error || 'Failed to add caption'),
   })
+
+  const updateStory = useMutation({
+    mutationFn: (data) => api.put(`/api/content/stories/${id}`, data),
+  })
+
+  function handlePresetChange(newPreset) {
+    setPreset(newPreset)
+    updateStory.mutate({ export_preset: newPreset })
+  }
+
+  async function handleExport() {
+    setExporting(true)
+    toast('Composing video… this can take up to a minute', { icon: '🎬', duration: 55000, id: 'export-progress' })
+    try {
+      const resp = await api.get(`/api/content/stories/${id}/export`, {
+        params: { preset },
+        responseType: 'blob',
+        timeout: 120000,
+      })
+      toast.dismiss('export-progress')
+      const url = URL.createObjectURL(resp.data)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${story?.title || 'story'}.mp4`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success('Video exported!')
+    } catch {
+      toast.dismiss('export-progress')
+      toast.error('Export failed — check server logs.')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   if (user && !['admin', 'super_admin'].includes(user.role)) {
     return <Navigate to="/" replace />
@@ -190,15 +233,24 @@ export default function ContentEditor() {
             </button>
             <span className="text-xs font-mono text-gray-500">{playheadSec.toFixed(1)}s / {durationSec.toFixed(1)}s</span>
           </div>
-          <select
-            value={preset}
-            onChange={e => setPreset(e.target.value)}
-            className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700"
-          >
-            {Object.entries(EXPORT_PRESETS).map(([key, p]) => (
-              <option key={key} value={key}>{p.label}</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            <select
+              value={preset}
+              onChange={e => handlePresetChange(e.target.value)}
+              className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700"
+            >
+              {Object.entries(EXPORT_PRESETS).map(([key, p]) => (
+                <option key={key} value={key}>{p.label}</option>
+              ))}
+            </select>
+            <button
+              onClick={handleExport}
+              disabled={exporting}
+              className="text-xs font-medium bg-white border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
+            >
+              {exporting ? 'Exporting…' : 'Export'}
+            </button>
+          </div>
         </div>
 
         <CanvasPreview

@@ -417,12 +417,46 @@ def _ffmpeg_segment(clip_path, text_file, duration, out_path, is_video):
     return result.returncode == 0, result.stderr.decode('utf-8', errors='replace')
 
 
+@content_bp.route('/api/content/export-presets', methods=['GET'])
+@jwt_required()
+def list_export_presets():
+    from app.services.timeline_export_service import PRESETS, PRESET_NOTES
+    return jsonify([
+        {'key': key, 'label': dims['label'], 'width': dims['width'], 'height': dims['height'],
+         'note': PRESET_NOTES.get(key)}
+        for key, dims in PRESETS.items()
+    ])
+
+
 @content_bp.route('/api/content/stories/<story_id>/export', methods=['GET'])
 @jwt_required()
 def export_story(story_id):
-    """Compose all scenes into a single 9:16 MP4 ready for Instagram Reels."""
+    """Compose the story into a single MP4. Tracks-mode stories go through the
+    multi-format timeline export service; legacy scene-based stories keep
+    using the original 9:16-only per-scene-concat path below unchanged."""
     user_id, role = _require_user()
     story = _get_story(story_id, user_id, role)
+
+    if story['editor_mode'] == 'tracks':
+        from app.services.timeline_service import get_timeline
+        from app.services.timeline_export_service import export_story_tracks, ExportError
+
+        preset = request.args.get('preset', story.get('export_preset') or '9:16')
+        timeline = get_timeline(story_id)
+        try:
+            video_data, _preset_note = export_story_tracks(story_id, timeline['tracks'], timeline['clips'], preset)
+        except ExportError as e:
+            return jsonify({'error': str(e)}), 400
+
+        # preset caveats (e.g. WeChat's) are surfaced via GET /export-presets,
+        # not as a response header — header values must be Latin-1 safe and
+        # PRESET_NOTES uses non-Latin-1 punctuation (em dash)
+        safe_title = ''.join(c if c.isalnum() or c in '-_ ' else '_' for c in story['title'])
+        return Response(video_data, mimetype='video/mp4', headers={
+            'Content-Disposition': f'attachment; filename="{safe_title}.mp4"',
+            'Content-Length': str(len(video_data)),
+        })
+
     scenes = execute_query(
         'SELECT * FROM training.content_scenes WHERE story_id = %s ORDER BY position',
         (story_id,)
