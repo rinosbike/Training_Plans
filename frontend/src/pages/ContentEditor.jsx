@@ -146,6 +146,15 @@ export default function ContentEditor() {
   const selectedTrack = selectedClip ? tracks.find(t => t.id === selectedClip.track_id) : null
   const activePreset = EXPORT_PRESETS[preset]
 
+  function handleSelectClip(clipId) {
+    setSelectedClipId(clipId)
+    const clip = clips.find(c => c.id === clipId)
+    if (clip) {
+      if (playing) pause()
+      seek(clip.timeline_start_sec)
+    }
+  }
+
   function handleChangeClip(clipId, updates) {
     setDraftClips(d => ({ ...d, [clipId]: { ...d[clipId], ...updates } }))
   }
@@ -219,7 +228,7 @@ export default function ContentEditor() {
           tracks={tracks}
           clips={clips}
           selectedClipId={selectedClipId}
-          onSelectClip={setSelectedClipId}
+          onSelectClip={handleSelectClip}
           onChangeClip={handleChangeClip}
           onCommitClip={handleCommitClip}
           onDeleteTrack={(trackId) => deleteTrack.mutate(trackId)}
