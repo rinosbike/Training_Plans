@@ -161,7 +161,7 @@ def update_story(story_id):
     user_id, role = _require_user()
     _get_story(story_id, user_id, role)
     data = request.get_json() or {}
-    allowed = ('title', 'theme', 'goal', 'status')
+    allowed = ('title', 'theme', 'goal', 'status', 'export_preset')
     updates = {k: data[k] for k in allowed if k in data}
     if not updates:
         raise ValidationError('No updatable fields provided')

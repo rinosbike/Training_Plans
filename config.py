@@ -23,6 +23,8 @@ class Config:
 
     GITHUB_COPILOT_TOKEN = os.getenv('GITHUB_COPILOT_TOKEN', '')
     WHISPER_MODEL_SIZE = os.getenv('WHISPER_MODEL_SIZE', 'small')
+    OPENVOICE_VENV_PYTHON = os.getenv('OPENVOICE_VENV_PYTHON', '')
+    VOICEOVER_REFERENCE_PATH = os.getenv('VOICEOVER_REFERENCE_PATH', '')
 
     FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 

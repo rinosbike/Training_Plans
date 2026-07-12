@@ -8,6 +8,7 @@ import EditorTabs from '../components/content/EditorTabs'
 import Timeline from '../components/content/Timeline'
 import ClipInspector from '../components/content/ClipInspector'
 import CanvasPreview from '../components/content/CanvasPreview'
+import VoiceoverPanel from '../components/content/VoiceoverPanel'
 import { usePlaybackClock } from '../hooks/usePlaybackClock'
 import { EXPORT_PRESETS, DEFAULT_PRESET } from '../constants/exportPresets'
 import toast from 'react-hot-toast'
@@ -242,6 +243,8 @@ export default function ContentEditor() {
             onTranscribed={invalidate}
           />
         )}
+
+        <VoiceoverPanel storyId={id} tracks={tracks} onGenerated={invalidate} />
       </div>
 
       <BottomNav />
