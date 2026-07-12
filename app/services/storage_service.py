@@ -30,6 +30,12 @@ _MIME_EXT = {
     'video/mp4':       'mp4',
     'video/quicktime': 'mov',
     'video/webm':      'webm',
+    'audio/mpeg':      'mp3',
+    'audio/mp4':       'm4a',
+    'audio/wav':       'wav',
+    'audio/x-wav':     'wav',
+    'audio/webm':      'weba',
+    'audio/ogg':       'ogg',
 }
 
 ALLOWED_CONTENT_MIME_TYPES = set(_MIME_EXT.keys())

@@ -1,6 +1,10 @@
 {
   "title": "Content Studio",
   "newStory": "New Story",
+  "tabs": {
+    "edit": "Edit",
+    "preview": "Preview"
+  },
   "noStories": "No stories yet. Create one to start building your reel.",
   "story": {
     "title": "Title",

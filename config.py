@@ -22,6 +22,7 @@ class Config:
     APPLE_REDIRECT_URI = os.getenv('APPLE_REDIRECT_URI', 'http://localhost:5002/api/auth/apple/callback')
 
     GITHUB_COPILOT_TOKEN = os.getenv('GITHUB_COPILOT_TOKEN', '')
+    ELEVENLABS_API_KEY = os.getenv('ELEVENLABS_API_KEY', '')
 
     FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 

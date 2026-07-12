@@ -73,6 +73,7 @@ def _register_blueprints(app):
     from app.api.ocr import ocr_bp
     from app.api.admin import admin_bp
     from app.api.content import content_bp
+    from app.api.content_tracks import content_tracks_bp
     from app.api.media import media_bp
 
     app.register_blueprint(auth_bp)
@@ -89,6 +90,7 @@ def _register_blueprints(app):
     app.register_blueprint(ocr_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(content_bp)
+    app.register_blueprint(content_tracks_bp)
     app.register_blueprint(media_bp)
 
 

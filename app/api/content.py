@@ -149,6 +149,9 @@ def get_story(story_id):
     )
     result = dict(story)
     result['scenes'] = [dict(s) for s in scenes]
+    if story.get('editor_mode') == 'tracks':
+        from app.services.timeline_service import get_timeline
+        result['timeline'] = get_timeline(story_id)
     return jsonify(result)
 
 
