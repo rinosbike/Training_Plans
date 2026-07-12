@@ -189,6 +189,44 @@ export default function ContentEditor() {
   const selectedTrack = selectedClip ? tracks.find(t => t.id === selectedClip.track_id) : null
   const activePreset = EXPORT_PRESETS[preset]
 
+  function handleDeleteClip() {
+    if (!selectedClip || !selectedTrack) return
+    // undo is only safe for caption clips — video/image/audio clip deletes
+    // eagerly remove the backing R2 file server-side, so by the time an undo
+    // toast could be clicked, there'd be nothing left to restore
+    const isCaption = selectedClip.source_type === 'text'
+    const snapshot = { ...selectedClip }
+    const trackId = selectedTrack.id
+
+    deleteClip.mutate({ trackId, clipId: snapshot.id }, {
+      onSuccess: () => {
+        if (!isCaption) return
+        toast((t) => (
+          <span className="flex items-center gap-3">
+            Caption deleted
+            <button
+              onClick={() => {
+                toast.dismiss(t.id)
+                addTextClip.mutate({
+                  trackId,
+                  data: {
+                    text_content: snapshot.text_content,
+                    style_json: snapshot.style_json,
+                    timeline_start_sec: snapshot.timeline_start_sec,
+                    timeline_end_sec: snapshot.timeline_end_sec,
+                  },
+                })
+              }}
+              className="text-primary-300 font-semibold underline"
+            >
+              Undo
+            </button>
+          </span>
+        ), { duration: 6000 })
+      },
+    })
+  }
+
   function handleSelectClip(clipId) {
     setSelectedClipId(clipId)
     const clip = clips.find(c => c.id === clipId)
@@ -304,7 +342,7 @@ export default function ContentEditor() {
             track={selectedTrack}
             playheadSec={playheadSec}
             onUpdate={(data) => updateClip.mutate({ trackId: selectedTrack.id, clipId: selectedClip.id, data })}
-            onDelete={() => deleteClip.mutate({ trackId: selectedTrack.id, clipId: selectedClip.id })}
+            onDelete={handleDeleteClip}
             onTranscribed={invalidate}
             onDuplicated={invalidate}
             onSplit={invalidate}

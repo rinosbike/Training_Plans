@@ -3,6 +3,7 @@ import { useRef, useEffect, useCallback } from 'react'
 const MAX_POOL_SIZE = 6
 const DRIFT_THRESHOLD_SEC = 0.08
 const ANIM_DURATION_SEC = 0.4
+const DUCK_FACTOR = 0.35 // matches _DUCK_FACTOR in timeline_export_service.py
 
 function loadImage(url) {
   return new Promise((resolve, reject) => {
@@ -257,6 +258,15 @@ export function useCompositor({ canvasRef, tracks, clips, canvasW, canvasH, play
 
     const activeIds = new Set()
 
+    // duck other audio while any caption is showing — matches _duck_filter()
+    // in timeline_export_service.py (same trigger, same factor)
+    const anyCaptionActive = clips.some(c => {
+      const track = tracks.find(t => t.id === c.track_id)
+      return track?.kind === 'caption' && c.text_content &&
+        playheadSec >= c.timeline_start_sec && playheadSec < c.timeline_end_sec
+    })
+    const duck = anyCaptionActive ? DUCK_FACTOR : 1
+
     const visualTracks = tracks
       .filter(t => t.kind === 'video' || t.kind === 'image')
       .sort((a, b) => a.z_index - b.z_index)
@@ -281,7 +291,7 @@ export function useCompositor({ canvasRef, tracks, clips, canvasW, canvasH, play
         try { el.playbackRate = speed } catch { /* ignore unsupported rate */ }
         const fade = fadeMultiplier(active)(playheadSec - active.timeline_start_sec, active.timeline_end_sec - playheadSec)
         el.muted = track.muted || active.volume === 0
-        el.volume = (active.volume ?? 1) * fade
+        el.volume = (active.volume ?? 1) * fade * duck
         if (playing) el.play?.().catch(() => {})
         else el.pause()
 
@@ -310,7 +320,7 @@ export function useCompositor({ canvasRef, tracks, clips, canvasW, canvasH, play
       }
       const fade = fadeMultiplier(active)(playheadSec - active.timeline_start_sec, active.timeline_end_sec - playheadSec)
       el.muted = track.muted || active.volume === 0
-      el.volume = (active.volume ?? 1) * fade
+      el.volume = (active.volume ?? 1) * fade * duck
       if (playing) el.play?.().catch(() => {})
       else el.pause()
     }

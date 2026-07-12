@@ -1,4 +1,5 @@
 import { useTimelineDrag } from '../../hooks/useTimelineDrag'
+import AudioWaveform from './AudioWaveform'
 
 const COLOR_BY_SOURCE_TYPE = {
   video: 'bg-blue-500',
@@ -35,6 +36,9 @@ export default function ClipBlock({ clip, pixelsPerSecond, selected, onSelect, o
     >
       {clip.source_type === 'image' && clip.source_url && (
         <img src={clip.source_url} alt="" className="absolute inset-0 w-full h-full object-cover rounded-md opacity-40 pointer-events-none" />
+      )}
+      {clip.source_type === 'audio' && clip.source_url && (
+        <AudioWaveform url={clip.source_url} />
       )}
       <div className="relative px-1.5 py-0.5 text-[10px] text-white font-medium truncate pointer-events-none drop-shadow">
         {clipLabel(clip)}

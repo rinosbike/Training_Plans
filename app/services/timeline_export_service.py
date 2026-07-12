@@ -129,6 +129,44 @@ def _transition_filter(clip, next_clip, start, end, duration):
     return ',format=yuva420p,' + ','.join(parts)
 
 
+_DUCK_FACTOR = 0.35  # linear volume multiplier applied to other audio while a caption is showing
+
+
+def _merge_intervals(intervals):
+    if not intervals:
+        return []
+    intervals = sorted(intervals)
+    merged = [list(intervals[0])]
+    for s, e in intervals[1:]:
+        if s <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], e)
+        else:
+            merged.append([s, e])
+    return merged
+
+
+def _duck_filter(clip, caption_clips):
+    """Auto-duck this audio clip's volume while any caption is showing —
+    chains a `volume` filter per (merged) overlap window, gated with the same
+    enable='between(t,...)' pattern used elsewhere, expressed in clip-LOCAL
+    time (the same space as the fade filters below, before `adelay` shifts
+    the stream onto the global output timeline). Applies uniformly to all
+    audio/video-track audio — including a clip whose OWN dialogue a caption
+    is transcribing, which is a known rough edge of this simple trigger."""
+    clip_start = clip['timeline_start_sec']
+    clip_end = clip['timeline_end_sec']
+    windows = []
+    for cap in caption_clips:
+        if not (cap.get('text_content') or '').strip():
+            continue
+        ov_start = max(clip_start, cap['timeline_start_sec'])
+        ov_end = min(clip_end, cap['timeline_end_sec'])
+        if ov_end > ov_start:
+            windows.append((ov_start - clip_start, ov_end - clip_start))
+    merged = _merge_intervals(windows)
+    return ''.join(f",volume=volume={_DUCK_FACTOR}:enable='between(t,{s},{e})'" for s, e in merged)
+
+
 def _wrap_text_heuristic(text, fontsize, max_width_px):
     """Cheap character-count-based wrap, approximating useCompositor.js's
     canvas measureText() wrap without needing font-metrics access here."""
@@ -305,6 +343,9 @@ def build_filter_complex(tracks, clips, width, height, total_duration, local_pat
     audio_sources += [c for c in clips if c['source_type'] == 'video'
                        and c['track_id'] in {t['id'] for t in tracks if t['kind'] == 'video' and not t['muted']}]
 
+    caption_clip_list = [c for c in clips if c['track_id'] in
+                          {t['id'] for t in tracks if t['kind'] == 'caption'}]
+
     for i, clip in enumerate(audio_sources):
         volume = clip.get('volume', 1.0)
         if not volume or clip['id'] not in local_paths:
@@ -330,12 +371,14 @@ def build_filter_complex(tracks, clips, width, height, total_duration, local_pat
         if fade_out > 0:
             fade_expr += f',afade=t=out:st={max(0, clip_dur - fade_out)}:d={fade_out}'
 
+        duck_expr = _duck_filter(clip, caption_clip_list)
+
         label = f'a{i}'
         filter_parts.append(
             f'[{idx}:a]atrim=start={trim_start}:end={trim_end},asetpts=PTS-STARTPTS,'
             f'aformat=sample_rates=44100:channel_layouts=stereo'
             f'{_atempo_chain(speed)},'
-            f'volume={volume}{fade_expr},adelay={start_ms}|{start_ms}[{label}]'
+            f'volume={volume}{fade_expr}{duck_expr},adelay={start_ms}|{start_ms}[{label}]'
         )
         audio_labels.append(label)
 
