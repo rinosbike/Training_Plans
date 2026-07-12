@@ -71,13 +71,15 @@ def transcribe(audio_bytes: bytes, filename: str, language: str = None) -> dict:
             for segment in segments:
                 full_text.append(segment.text.strip())
                 for w in (segment.words or []):
-                    words.append({'text': w.word, 'start': w.start, 'end': w.end, 'type': 'word'})
+                    # faster-whisper's Word.start/end can come back as numpy float64,
+                    # which psycopg2 can't adapt — force plain Python floats.
+                    words.append({'text': w.word, 'start': float(w.start), 'end': float(w.end), 'type': 'word'})
 
         return {
             'text': ' '.join(full_text),
             'words': words,
             'language': info.language,
-            'language_probability': info.language_probability,
+            'language_probability': float(info.language_probability),
         }
     finally:
         try:
