@@ -120,12 +120,12 @@ export default function ContentEditor() {
 
   async function handleExport() {
     setExporting(true)
-    toast('Composing video… this can take up to a minute', { icon: '🎬', duration: 55000, id: 'export-progress' })
+    toast('Composing video… this can take a few minutes for longer or more complex timelines', { icon: '🎬', duration: 280000, id: 'export-progress' })
     try {
       const resp = await api.get(`/api/content/stories/${id}/export`, {
         params: { preset },
         responseType: 'blob',
-        timeout: 120000,
+        timeout: 290000,
       })
       toast.dismiss('export-progress')
       const url = URL.createObjectURL(resp.data)
