@@ -109,14 +109,22 @@ def upgrade_story(story_id):
             except Exception as e:
                 log.warning('Failed to probe legacy clip %s: %s', chosen_url, e)
 
-            trim_end = probed['duration_sec'] if probed['duration_sec'] else duration
+            # ffprobe's image2 demuxer reports a spurious ~0.04s "duration" for
+            # still images (1 frame / default 25fps) — only trust probed duration
+            # for actual video sources
+            if source_type == 'image':
+                trim_end = duration
+                stored_source_duration = None
+            else:
+                trim_end = probed['duration_sec'] if probed['duration_sec'] else duration
+                stored_source_duration = probed['duration_sec']
 
             execute_write(
                 '''INSERT INTO training.content_clips
                      (track_id, source_url, source_type, source_duration_sec, source_width, source_height,
                       trim_start_sec, trim_end_sec, timeline_start_sec, timeline_end_sec, position)
                    VALUES (%s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s)''',
-                (video_track['id'], chosen_url, source_type, probed['duration_sec'],
+                (video_track['id'], chosen_url, source_type, stored_source_duration,
                  probed['width'], probed['height'], trim_end,
                  cursor_sec, cursor_sec + duration, scene['position'])
             )
@@ -243,7 +251,14 @@ def upload_track_clip(story_id, track_id):
 
     try:
         probed = timeline_service.probe_media(tmp_path)
-        duration = probed['duration_sec'] or timeline_service.DEFAULT_IMAGE_DURATION_SEC
+        # ffprobe's image2 demuxer reports a spurious ~0.04s "duration" (1 frame /
+        # default 25fps) for every still image — that's a demuxer artifact, not a
+        # real content length, so images always get the fixed default instead of
+        # trusting probed duration (unlike video, where it's meaningful).
+        if source_type == 'image':
+            duration = timeline_service.DEFAULT_IMAGE_DURATION_SEC
+        else:
+            duration = probed['duration_sec'] or timeline_service.DEFAULT_IMAGE_DURATION_SEC
 
         r2_filename = f'{uuid.uuid4().hex}{ext}'
         folder = f'content/{user_id}/{story_id}/{track_id}'
@@ -256,13 +271,18 @@ def upload_track_clip(story_id, track_id):
             (track_id,), fetch_one=True
         )
 
+        # for images, probed['duration_sec'] is the image2 demuxer artifact above —
+        # don't persist it as source_duration_sec either, or the UI would show a
+        # meaningless "Source: 0.04s" on every image clip
+        stored_source_duration = None if source_type == 'image' else probed['duration_sec']
+
         clip = execute_write(
             '''INSERT INTO training.content_clips
                  (track_id, source_url, source_type, source_duration_sec, source_width, source_height,
                   trim_start_sec, trim_end_sec, timeline_start_sec, timeline_end_sec, position)
                VALUES (%s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s)
                RETURNING *''',
-            (track_id, url, source_type, probed['duration_sec'], probed['width'], probed['height'],
+            (track_id, url, source_type, stored_source_duration, probed['width'], probed['height'],
              duration, start, start + duration, max_pos['mp'] + 1),
             returning=True
         )
