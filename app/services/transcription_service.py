@@ -1,62 +1,95 @@
 """
-Auto-transcription for the Content timeline editor's caption tracks, via
-ElevenLabs Scribe. Runs in a daemon thread (like translation_service.py's
-plan translation) since transcription time is unpredictable and the user
-should be able to keep editing while it runs — unlike translate_plan_async
-this also tracks a polling status (content_transcript_jobs) since the user
-is actively waiting on this one result, not a fire-and-forget batch job.
+Auto-transcription for the Content timeline editor's caption tracks, via a
+self-hosted faster-whisper model (CPU inference, zero per-minute cost —
+avoids the ElevenLabs/cloud-STT pricing exposure this was originally built
+with). Runs in a daemon thread (like translation_service.py's plan
+translation) since transcription time is unpredictable and the user should
+be able to keep editing while it runs — unlike translate_plan_async this
+also tracks a polling status (content_transcript_jobs) since the user is
+actively waiting on this one result, not a fire-and-forget batch job.
 """
 import os
 import json
 import logging
+import tempfile
 import threading
 import psycopg2
 import psycopg2.extras
-import requests
 
 from app.services.storage_service import download_file
+from app.services.ai_inference import inference_lock
 
 log = logging.getLogger(__name__)
 
-ELEVENLABS_STT_URL = 'https://api.elevenlabs.io/v1/speech-to-text'
-STT_MODEL = 'scribe_v1'
+WHISPER_MODEL_SIZE = os.getenv('WHISPER_MODEL_SIZE', 'small')
+WHISPER_DEVICE = os.getenv('WHISPER_DEVICE', 'cpu')
+WHISPER_COMPUTE_TYPE = os.getenv('WHISPER_COMPUTE_TYPE', 'int8')
 MAX_CAPTION_CHARS = 42
 MAX_CAPTION_DURATION_SEC = 5.0
 
-
-class ElevenLabsAPIError(Exception):
-    def __init__(self, status_code, message):
-        self.status_code = status_code
-        self.message = message
-        super().__init__(message)
+_model = None
+_model_lock = threading.Lock()
 
 
-def transcribe(audio_bytes: bytes, filename: str, api_key: str, language: str = None) -> dict:
-    """Send audio to ElevenLabs Scribe. Returns the parsed JSON transcript
-    (includes word-level timestamps in `words`)."""
-    if not api_key:
-        raise ElevenLabsAPIError(0, 'ELEVENLABS_API_KEY not set')
+def is_available() -> bool:
+    try:
+        import faster_whisper  # noqa: F401
+        return True
+    except ImportError:
+        return False
 
-    data = {'model_id': STT_MODEL}
-    if language:
-        data['language_code'] = language
 
-    resp = requests.post(
-        ELEVENLABS_STT_URL,
-        headers={'xi-api-key': api_key},
-        data=data,
-        files={'file': (filename, audio_bytes)},
-        timeout=180,
-    )
-    if resp.status_code != 200:
-        raise ElevenLabsAPIError(resp.status_code, f'ElevenLabs API error {resp.status_code}: {resp.text[:300]}')
-    return resp.json()
+def _get_model():
+    global _model
+    if _model is None:
+        with _model_lock:
+            if _model is None:
+                from faster_whisper import WhisperModel
+                log.info('Loading Whisper model %s (device=%s, compute_type=%s)…',
+                          WHISPER_MODEL_SIZE, WHISPER_DEVICE, WHISPER_COMPUTE_TYPE)
+                _model = WhisperModel(WHISPER_MODEL_SIZE, device=WHISPER_DEVICE, compute_type=WHISPER_COMPUTE_TYPE)
+    return _model
+
+
+def transcribe(audio_bytes: bytes, filename: str, language: str = None) -> dict:
+    """Run local Whisper inference. Returns {'text', 'words', 'language',
+    'language_probability'} — `words` matches build_caption_clips()'s
+    expected shape: [{'text','start','end','type':'word'}, ...]."""
+    ext = os.path.splitext(filename)[1] or '.mp4'
+    with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+        tmp.write(audio_bytes)
+        tmp_path = tmp.name
+
+    try:
+        model = _get_model()
+        with inference_lock:
+            segments, info = model.transcribe(
+                tmp_path, language=language, word_timestamps=True, vad_filter=True,
+            )
+            words = []
+            full_text = []
+            for segment in segments:
+                full_text.append(segment.text.strip())
+                for w in (segment.words or []):
+                    words.append({'text': w.word, 'start': w.start, 'end': w.end, 'type': 'word'})
+
+        return {
+            'text': ' '.join(full_text),
+            'words': words,
+            'language': info.language,
+            'language_probability': info.language_probability,
+        }
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
 
 
 def build_caption_clips(transcript: dict, max_chars: int = MAX_CAPTION_CHARS,
                         max_duration_sec: float = MAX_CAPTION_DURATION_SEC) -> list:
-    """Group ElevenLabs' word-level timestamps into subtitle cues: break on
-    sentence-ending punctuation, a max character count, or a max duration."""
+    """Group word-level timestamps into subtitle cues: break on sentence-ending
+    punctuation, a max character count, or a max duration."""
     words = [
         w for w in (transcript.get('words') or [])
         if w.get('type') == 'word' and (w.get('text') or '').strip()
@@ -96,7 +129,7 @@ def build_caption_clips(transcript: dict, max_chars: int = MAX_CAPTION_CHARS,
     return cues
 
 
-def _run(job_id: str, user_id: str, db_url: str, api_key: str):
+def _run(job_id: str, user_id: str, db_url: str):
     conn = None
     try:
         conn = psycopg2.connect(db_url)
@@ -126,7 +159,7 @@ def _run(job_id: str, user_id: str, db_url: str, api_key: str):
 
         audio_bytes = download_file(job['source_url'])
         filename = job['source_url'].split('/')[-1]
-        transcript = transcribe(audio_bytes, filename, api_key)
+        transcript = transcribe(audio_bytes, filename)
         cues = build_caption_clips(transcript)
 
         if not cues:
@@ -199,12 +232,11 @@ def _run(job_id: str, user_id: str, db_url: str, api_key: str):
 
 def start_transcription_job(job_id: str, user_id: str) -> bool:
     """Kick off background transcription for a pending job row. Returns False
-    (job stays 'pending' forever, caller should surface a config error instead
-    of calling this) if ElevenLabs isn't configured."""
-    api_key = os.getenv('ELEVENLABS_API_KEY', '')
+    (caller should surface a config error rather than leave the job pending
+    forever) if faster-whisper isn't installed or DATABASE_URL is missing."""
     db_url = os.getenv('DATABASE_URL', '')
-    if not api_key or not db_url:
+    if not is_available() or not db_url:
         return False
-    t = threading.Thread(target=_run, args=(job_id, user_id, db_url, api_key), daemon=True)
+    t = threading.Thread(target=_run, args=(job_id, user_id, db_url), daemon=True)
     t.start()
     return True

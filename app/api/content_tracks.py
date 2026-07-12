@@ -368,7 +368,7 @@ def delete_clip(story_id, track_id, clip_id):
 @content_tracks_bp.route('/api/content/stories/<story_id>/transcribe', methods=['POST'])
 @jwt_required()
 def start_transcribe(story_id):
-    from app.services.transcription_service import start_transcription_job
+    from app.services.transcription_service import start_transcription_job, is_available
 
     user_id, role = _require_user()
     _get_story(story_id, user_id, role)
@@ -389,8 +389,8 @@ def start_transcribe(story_id):
     if clip['source_type'] not in ('video', 'audio'):
         raise ValidationError('Only video or audio clips can be transcribed')
 
-    if not os.getenv('ELEVENLABS_API_KEY'):
-        raise ValidationError('Transcription is not configured on this server (missing ELEVENLABS_API_KEY)')
+    if not is_available():
+        raise ValidationError('Transcription is not configured on this server (faster-whisper not installed)')
 
     job = execute_write(
         '''INSERT INTO training.content_transcript_jobs (story_id, source_clip_id, status)
