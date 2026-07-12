@@ -174,21 +174,29 @@ def build_filter_complex(tracks, clips, width, height, total_duration, local_pat
             else:  # image
                 kb = style.get('ken_burns')
                 if kb:
-                    total_frames = max(1, round(duration * _FPS))
                     s0, s1 = kb['from']['scale'], kb['to']['scale']
                     x0, x1 = kb['from']['x'], kb['to']['x']
                     y0, y1 = kb['from']['y'], kb['to']['y']
-                    idx = add_input(clip, extra_flags=['-loop', '1'])
-                    zoompan = (
-                        f"zoompan=z='{s0}+({s1}-{s0})*on/{total_frames}'"
-                        f":x='(({x0}+({x1}-{x0})*on/{total_frames})*iw)-(iw/zoom/2)'"
-                        f":y='(({y0}+({y1}-{y0})*on/{total_frames})*ih)-(ih/zoom/2)'"
-                        f":d={total_frames}:s={width}x{height}:fps={_FPS}"
+                    idx = add_input(clip, extra_flags=['-loop', '1', '-t', str(duration)])
+                    # Ken Burns via a time-varying `scale` (which supports eval=frame)
+                    # followed by a fixed-size `crop` (whose x/y are already re-evaluated
+                    # every frame) — NOT ffmpeg's `zoompan` filter, which is catastrophically
+                    # slow for this box: a 4s/1080x1920 zoompan clip alone exceeded a 60s
+                    # timeout, vs ~1s for this equivalent scale+crop chain.
+                    zoom_scale = (
+                        f"scale=w='{width}*({s0}+({s1}-{s0})*t/{duration})'"
+                        f":h='{height}*({s0}+({s1}-{s0})*t/{duration})':eval=frame"
                     )
-                    # cover-fill to the target size FIRST so zoompan's iw/ih are already
-                    # correctly proportioned — matches useCompositor.js's drawCoverTransformed,
-                    # which also applies the cover base-scale before the Ken Burns zoom
-                    vf = f'[{idx}:v]{scale_crop},{zoompan},setpts=PTS-STARTPTS+{start}/TB{eq}[v{stage}]'
+                    pan_crop = (
+                        f"crop=w={width}:h={height}"
+                        f":x='clip(({x0}+({x1}-{x0})*t/{duration})*iw-ow/2,0,iw-ow)'"
+                        f":y='clip(({y0}+({y1}-{y0})*t/{duration})*ih-oh/2,0,ih-oh)'"
+                    )
+                    # cover-fill to the target size FIRST so the zoom/pan operate on
+                    # correctly proportioned dimensions — matches useCompositor.js's
+                    # drawCoverTransformed, which also applies the cover base-scale
+                    # before the Ken Burns zoom
+                    vf = f'[{idx}:v]{scale_crop},{zoom_scale},{pan_crop},setpts=PTS-STARTPTS+{start}/TB{eq}[v{stage}]'
                 else:
                     idx = add_input(clip, extra_flags=['-loop', '1', '-t', str(duration)])
                     vf = f'[{idx}:v]setpts=PTS-STARTPTS+{start}/TB,{scale_crop}{eq}[v{stage}]'
@@ -350,7 +358,14 @@ def export_story_tracks(story_id, tracks, clips, preset='9:16'):
             cmd += ['-profile:v', 'baseline', '-level', '4.0']
         cmd.append(out_path)
 
-        result = subprocess.run(cmd, capture_output=True, timeout=_EXPORT_TIMEOUT_SEC)
+        try:
+            result = subprocess.run(cmd, capture_output=True, timeout=_EXPORT_TIMEOUT_SEC)
+        except subprocess.TimeoutExpired:
+            log.error('Timeline export timed out for story %s (preset %s) after %ss\ngraph: %s',
+                       story_id, preset, _EXPORT_TIMEOUT_SEC, filter_complex)
+            raise ExportError(
+                'Video export timed out — try a shorter timeline, fewer clips, or a simpler preset.'
+            )
         if result.returncode != 0:
             stderr = result.stderr.decode('utf-8', errors='replace')
             log.error('Timeline export failed for story %s (preset %s)\ngraph: %s\nstderr: %s',
