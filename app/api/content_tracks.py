@@ -15,6 +15,8 @@ or 'tracks' (this module). Legacy stories are upgraded on demand via /upgrade.
 - POST   /api/content/stories/<sid>/tracks/<tid>/clips                 add a text/caption clip (no file)
 - PUT    /api/content/stories/<sid>/tracks/<tid>/clips/<cid>           update trim/position/text/style/volume/track
 - DELETE /api/content/stories/<sid>/tracks/<tid>/clips/<cid>           delete clip + R2 object
+- POST   /api/content/stories/<sid>/transcribe                         auto-transcribe a video/audio clip -> caption track (background job)
+- GET    /api/content/stories/<sid>/transcribe/<job_id>                poll transcription job status
 """
 import os
 import tempfile
@@ -359,3 +361,56 @@ def delete_clip(story_id, track_id, clip_id):
 
     execute_write('DELETE FROM training.content_clips WHERE id = %s AND track_id = %s', (clip_id, track_id))
     return jsonify({'deleted': True})
+
+
+# ─── Transcription ───────────────────────────────────────────────────────────
+
+@content_tracks_bp.route('/api/content/stories/<story_id>/transcribe', methods=['POST'])
+@jwt_required()
+def start_transcribe(story_id):
+    from app.services.transcription_service import start_transcription_job
+
+    user_id, role = _require_user()
+    _get_story(story_id, user_id, role)
+
+    data = request.get_json() or {}
+    clip_id = data.get('clip_id')
+    if not clip_id:
+        raise ValidationError('clip_id is required')
+
+    clip = execute_query(
+        '''SELECT c.* FROM training.content_clips c
+           JOIN training.content_tracks t ON t.id = c.track_id
+           WHERE c.id = %s AND t.story_id = %s''',
+        (clip_id, story_id), fetch_one=True
+    )
+    if not clip:
+        raise NotFoundError('Clip not found')
+    if clip['source_type'] not in ('video', 'audio'):
+        raise ValidationError('Only video or audio clips can be transcribed')
+
+    if not os.getenv('ELEVENLABS_API_KEY'):
+        raise ValidationError('Transcription is not configured on this server (missing ELEVENLABS_API_KEY)')
+
+    job = execute_write(
+        '''INSERT INTO training.content_transcript_jobs (story_id, source_clip_id, status)
+           VALUES (%s, %s, 'pending') RETURNING *''',
+        (story_id, clip_id), returning=True
+    )
+    start_transcription_job(str(job['id']), user_id)
+    return jsonify(dict(job)), 202
+
+
+@content_tracks_bp.route('/api/content/stories/<story_id>/transcribe/<job_id>', methods=['GET'])
+@jwt_required()
+def get_transcribe_job(story_id, job_id):
+    user_id, role = _require_user()
+    _get_story(story_id, user_id, role)
+
+    job = execute_query(
+        'SELECT * FROM training.content_transcript_jobs WHERE id = %s AND story_id = %s',
+        (job_id, story_id), fetch_one=True
+    )
+    if not job:
+        raise NotFoundError('Job not found')
+    return jsonify(dict(job))

@@ -234,10 +234,12 @@ export default function ContentEditor() {
 
         {selectedClip && selectedTrack && (
           <ClipInspector
+            storyId={id}
             clip={selectedClip}
             track={selectedTrack}
             onUpdate={(data) => updateClip.mutate({ trackId: selectedTrack.id, clipId: selectedClip.id, data })}
             onDelete={() => deleteClip.mutate({ trackId: selectedTrack.id, clipId: selectedClip.id })}
+            onTranscribed={invalidate}
           />
         )}
       </div>
