@@ -8,7 +8,11 @@ const DUCK_FACTOR = 0.35 // matches _DUCK_FACTOR in timeline_export_service.py
 function loadImage(url) {
   return new Promise((resolve, reject) => {
     const img = new Image()
-    img.crossOrigin = 'anonymous'
+    // NOT setting crossOrigin: R2 doesn't send CORS headers, and this app never
+    // reads canvas pixels back out (export runs server-side against R2 directly,
+    // not via canvas.toDataURL/getImageData) — crossOrigin='anonymous' here only
+    // requested a mode we don't need and made the browser refuse to load the
+    // image at all, rendering as a black canvas
     img.onload = () => resolve(img)
     img.onerror = reject
     img.src = url
@@ -207,7 +211,8 @@ export function useCompositor({ canvasRef, tracks, clips, canvasW, canvasH, play
       pool.delete(oldestId)
     }
     el = document.createElement('video')
-    el.crossOrigin = 'anonymous'
+    // no crossOrigin — see loadImage() above for why; also avoids blocking
+    // playback of this element's own embedded audio track
     el.playsInline = true
     el.preload = 'auto'
     el.addEventListener('loadeddata', () => drawFrameRef.current(), { once: true })
@@ -229,7 +234,6 @@ export function useCompositor({ canvasRef, tracks, clips, canvasW, canvasH, play
       pool.delete(oldestId)
     }
     el = document.createElement('audio')
-    el.crossOrigin = 'anonymous'
     el.preload = 'auto'
     pool.set(clipId, el)
     el.src = url
