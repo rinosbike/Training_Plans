@@ -8,6 +8,7 @@ content_stories.editor_mode: 'legacy' (default, untouched scene-based flow)
 or 'tracks' (this module). Legacy stories are upgraded on demand via /upgrade.
 
 - POST   /api/content/stories/<sid>/upgrade                          legacy scenes -> tracks (idempotent)
+- POST   /api/content/stories/<sid>/repair-tracks                    move clips stuck on a mismatched-kind track (from an older /upgrade)
 - POST   /api/content/stories/<sid>/tracks                           add track
 - PUT    /api/content/stories/<sid>/tracks/<tid>                     update track
 - DELETE /api/content/stories/<sid>/tracks/<tid>                     delete track + its clips + R2 objects
@@ -75,6 +76,11 @@ def upgrade_story(story_id):
            VALUES (%s, 'video', 'Video 1', 0, 0) RETURNING *''',
         (story_id,), returning=True
     )
+    image_track = execute_write(
+        '''INSERT INTO training.content_tracks (story_id, kind, name, z_index, position)
+           VALUES (%s, 'image', 'Image 1', 5, 2) RETURNING *''',
+        (story_id,), returning=True
+    )
     caption_track = execute_write(
         '''INSERT INTO training.content_tracks (story_id, kind, name, z_index, position)
            VALUES (%s, 'caption', 'Captions', 10, 1) RETURNING *''',
@@ -119,12 +125,13 @@ def upgrade_story(story_id):
                 trim_end = probed['duration_sec'] if probed['duration_sec'] else duration
                 stored_source_duration = probed['duration_sec']
 
+            target_track_id = video_track['id'] if source_type == 'video' else image_track['id']
             execute_write(
                 '''INSERT INTO training.content_clips
                      (track_id, source_url, source_type, source_duration_sec, source_width, source_height,
                       trim_start_sec, trim_end_sec, timeline_start_sec, timeline_end_sec, position)
                    VALUES (%s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s)''',
-                (video_track['id'], chosen_url, source_type, stored_source_duration,
+                (target_track_id, chosen_url, source_type, stored_source_duration,
                  probed['width'], probed['height'], trim_end,
                  cursor_sec, cursor_sec + duration, scene['position'])
             )
@@ -149,6 +156,68 @@ def upgrade_story(story_id):
     )
 
     return jsonify({'editor_mode': 'tracks', 'warnings': warnings, **timeline_service.get_timeline(story_id)}), 201
+
+
+@content_tracks_bp.route('/api/content/stories/<story_id>/repair-tracks', methods=['POST'])
+@jwt_required()
+def repair_tracks(story_id):
+    """
+    One-off fix for stories that went through an older version of /upgrade,
+    which always inserted a legacy scene's chosen media into the video track
+    regardless of whether it was actually an image — moves any clip whose
+    source_type doesn't match its current track's kind onto a same-kind
+    track (creating one if the story doesn't have one yet).
+    """
+    user_id, role = _require_user()
+    _get_story(story_id, user_id, role)
+
+    timeline = timeline_service.get_timeline(story_id)
+    tracks_by_id = {t['id']: t for t in timeline['tracks']}
+    misplaced = [
+        c for c in timeline['clips']
+        if c['track_id'] in tracks_by_id
+        and tracks_by_id[c['track_id']]['kind'] != timeline_service.SOURCE_TYPE_TO_TRACK_KIND.get(c['source_type'])
+    ]
+    if not misplaced:
+        return jsonify({'moved': 0})
+
+    dest_track_by_kind = {}
+    moved = 0
+    for clip in misplaced:
+        needed_kind = timeline_service.SOURCE_TYPE_TO_TRACK_KIND.get(clip['source_type'])
+        if not needed_kind:
+            continue
+
+        dest_track = dest_track_by_kind.get(needed_kind)
+        if not dest_track:
+            existing = next((t for t in timeline['tracks'] if t['kind'] == needed_kind), None)
+            if existing:
+                dest_track = existing
+            else:
+                max_pos = execute_query(
+                    'SELECT COALESCE(MAX(position), -1) AS mp FROM training.content_tracks WHERE story_id = %s',
+                    (story_id,), fetch_one=True
+                )
+                position = max_pos['mp'] + 1
+                dest_track = execute_write(
+                    '''INSERT INTO training.content_tracks (story_id, kind, name, z_index, position)
+                       VALUES (%s, %s, %s, %s, %s) RETURNING *''',
+                    (story_id, needed_kind, f'{needed_kind.capitalize()} 1', position, position),
+                    returning=True
+                )
+            dest_track_by_kind[needed_kind] = dest_track
+
+        max_clip_pos = execute_query(
+            'SELECT COALESCE(MAX(position), -1) AS mp FROM training.content_clips WHERE track_id = %s',
+            (dest_track['id'],), fetch_one=True
+        )
+        execute_write(
+            'UPDATE training.content_clips SET track_id = %s, position = %s, updated_at = now() WHERE id = %s',
+            (dest_track['id'], max_clip_pos['mp'] + 1, clip['id'])
+        )
+        moved += 1
+
+    return jsonify({'moved': moved})
 
 
 # ─── Tracks ──────────────────────────────────────────────────────────────────

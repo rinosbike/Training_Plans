@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import api from '../../services/api'
 import toast from 'react-hot-toast'
@@ -12,11 +12,18 @@ const PANELS = { video: VideoPanel, image: ImagePanel, audio: AudioPanel, text: 
 export default function ClipInspector({ storyId, clip, track, playheadSec, onUpdate, onDelete, onTranscribed, onDuplicated, onSplit }) {
   const [startSec, setStartSec] = useState(clip.timeline_start_sec)
   const [endSec, setEndSec] = useState(clip.timeline_end_sec)
+  const containerRef = useRef(null)
 
   useEffect(() => {
     setStartSec(clip.timeline_start_sec)
     setEndSec(clip.timeline_end_sec)
   }, [clip.id, clip.timeline_start_sec, clip.timeline_end_sec])
+
+  // clicking a clip (especially a caption, which is easy to miss as "editable")
+  // should bring this panel into view rather than leave it below the fold
+  useEffect(() => {
+    containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [clip.id])
 
   const duplicateClip = useMutation({
     mutationFn: () => api.post(`/api/content/stories/${storyId}/tracks/${track.id}/clips/${clip.id}/duplicate`),
@@ -63,7 +70,7 @@ export default function ClipInspector({ storyId, clip, track, playheadSec, onUpd
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 space-y-3">
+    <div ref={containerRef} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
           {track.name} · {clip.source_type}

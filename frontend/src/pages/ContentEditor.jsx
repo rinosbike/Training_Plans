@@ -49,6 +49,13 @@ export default function ContentEditor() {
     () => clips.reduce((m, c) => Math.max(m, c.timeline_end_sec), 10),
     [clips]
   )
+  const misplacedClipCount = useMemo(() => {
+    const trackKindById = Object.fromEntries(tracks.map(t => [t.id, t.kind]))
+    return clips.filter(c => {
+      const kind = trackKindById[c.track_id]
+      return kind === 'video' && c.source_type !== 'video'
+    }).length
+  }, [clips, tracks])
 
   const { playing, playheadSec, play, pause, seek } = usePlaybackClock(durationSec)
 
@@ -111,6 +118,16 @@ export default function ContentEditor() {
 
   const updateStory = useMutation({
     mutationFn: (data) => api.put(`/api/content/stories/${id}`, data),
+  })
+
+  const repairTracks = useMutation({
+    mutationFn: () => api.post(`/api/content/stories/${id}/repair-tracks`),
+    onSuccess: (r) => {
+      invalidate()
+      const n = r.data?.moved || 0
+      toast.success(n > 0 ? `Moved ${n} clip${n === 1 ? '' : 's'} to the correct track` : 'Nothing to fix')
+    },
+    onError: (e) => toast.error(e.response?.data?.error || 'Repair failed'),
   })
 
   function handlePresetChange(newPreset) {
@@ -303,6 +320,21 @@ export default function ContentEditor() {
           onCommitClip={handleCommitClip}
         />
 
+        {misplacedClipCount > 0 && (
+          <div className="flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            <span className="text-xs text-amber-800">
+              {misplacedClipCount} clip{misplacedClipCount === 1 ? '' : 's'} {misplacedClipCount === 1 ? 'is' : 'are'} in the wrong track from an older import.
+            </span>
+            <button
+              onClick={() => repairTracks.mutate()}
+              disabled={repairTracks.isPending}
+              className="text-xs font-medium text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 px-2.5 py-1 rounded-lg disabled:opacity-50 shrink-0"
+            >
+              {repairTracks.isPending ? 'Fixing…' : 'Fix track assignment'}
+            </button>
+          </div>
+        )}
+
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs text-gray-500 mr-1">Add track:</span>
           {TRACK_KIND_OPTIONS.map(kind => (
@@ -325,7 +357,7 @@ export default function ContentEditor() {
           onChangeClip={handleChangeClip}
           onCommitClip={handleCommitClip}
           onDeleteTrack={(trackId) => deleteTrack.mutate(trackId)}
-          onUploadClip={(trackId, file) => uploadClip.mutate({ trackId, file })}
+          onUploadClip={(trackId, file) => uploadClip.mutateAsync({ trackId, file })}
           onAddCaption={(trackId, text) => addTextClip.mutate({
             trackId,
             data: { text_content: text, timeline_start_sec: playheadSec, timeline_end_sec: playheadSec + 3 },

@@ -40,6 +40,14 @@ export default function ClipBlock({ clip, pixelsPerSecond, selected, onSelect, o
       {clip.source_type === 'audio' && clip.source_url && (
         <AudioWaveform url={clip.source_url} />
       )}
+      {clip.source_type === 'text' && (
+        <span
+          className="absolute top-0.5 right-1 text-[10px] text-white/80 pointer-events-none drop-shadow"
+          title="Click to edit font, color, background, position, animation"
+        >
+          ✎
+        </span>
+      )}
       <div className="relative px-1.5 py-0.5 text-[10px] text-white font-medium truncate pointer-events-none drop-shadow">
         {clipLabel(clip)}
       </div>
