@@ -30,6 +30,10 @@ def create_app(config_name='default'):
     app.json = ISODateJSONProvider(app)
     app.config.from_object(config[config_name])
 
+    if not app.config.get('DEBUG'):
+        if app.config.get('JWT_SECRET_KEY') == 'change-me-in-production':
+            raise RuntimeError('Weak default JWT_SECRET_KEY detected — set the JWT_SECRET_KEY env var in production')
+
     CORS(app, origins=app.config['CORS_ORIGINS'], supports_credentials=True)
     jwt.init_app(app)
     limiter.init_app(app)
