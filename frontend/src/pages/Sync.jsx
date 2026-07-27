@@ -301,7 +301,14 @@ export default function Sync() {
                     <div className="flex gap-3 mt-1 text-xs text-gray-600">
                       <span>{fmt(a.actual_duration_min)}</span>
                       {a.actual_distance_km && <span>{a.actual_distance_km} km</span>}
-                      {a.avg_hr && <span>♥ {a.avg_hr} bpm</span>}
+                      {a.avg_hr && (
+                        <span>
+                          {a.hr_source === 'chest_strap' ? '❤️' : '♥'} {a.avg_hr} bpm
+                          {a.hr_source === 'chest_strap' && (
+                            <span className="text-gray-400"> · {t('chestStrap')}</span>
+                          )}
+                        </span>
+                      )}
                       {a.calories_burned && <span>{a.calories_burned} kcal</span>}
                     </div>
                   </div>

@@ -59,6 +59,20 @@ def _downsample(arr, max_pts=MAX_STREAM_POINTS):
     return arr[::step]
 
 
+def _detect_hr_source(fitfile, has_hr: bool) -> str | None:
+    """Chest straps (incl. Suunto Smart Sensor) pair as their own ANT+ peripheral and show
+    up as a device_info record with antplus_device_type='heart_rate'; the watch's built-in
+    optical wrist sensor is part of the main unit and never emits one, so its absence
+    means optical."""
+    if not has_hr:
+        return None
+    for dev_msg in fitfile.get_messages('device_info'):
+        d = {f.name: f.value for f in dev_msg}
+        if d.get('antplus_device_type') == 'heart_rate' and d.get('source_type') != 'local':
+            return 'chest_strap'
+    return 'optical'
+
+
 def _encode_number(num):
     out = []
     while num >= 0x20:
@@ -146,6 +160,7 @@ def parse_fit(file_bytes: bytes) -> dict:
     }.items() if v}
 
     alt_vals = [a for a in altitude if a is not None]
+    has_hr = bool(session.get('avg_heart_rate')) or any(v is not None for v in heartrate)
 
     return {
         'sport_raw':      str(session.get('sport') or '').lower(),
@@ -154,6 +169,7 @@ def parse_fit(file_bytes: bytes) -> dict:
         'distance_m':     session.get('total_distance') or (distance[-1] if distance and distance[-1] else None),
         'avg_hr':         session.get('avg_heart_rate'),
         'max_hr':         session.get('max_heart_rate'),
+        'hr_source':      _detect_hr_source(fitfile, has_hr),
         'avg_power':      session.get('avg_power'),
         'max_power':      session.get('max_power'),
         'calories':       session.get('total_calories'),
@@ -282,6 +298,7 @@ def map_summary(parsed: dict, file_bytes: bytes, filename: str,
         'actual_distance_km':  round(float(distance_m) / 1000, 2) if distance_m else None,
         'avg_hr':              int(parsed['avg_hr']) if parsed.get('avg_hr') else None,
         'max_hr':              int(parsed['max_hr']) if parsed.get('max_hr') else None,
+        'hr_source':           parsed.get('hr_source'),
         'avg_power_watts':     int(parsed['avg_power']) if parsed.get('avg_power') else None,
         'calories_burned':     int(parsed['calories']) if parsed.get('calories') else None,
         'perceived_effort':    None,

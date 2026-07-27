@@ -10,6 +10,7 @@
   "setupSteps": "Setup steps",
   "connectBtn": "Connect {{provider}}",
   "recentlyImported": "Recently Imported",
+  "chestStrap": "chest strap",
   "autoMatch": {
     "title": "How Auto-Match Works",
     "desc1": "When an activity is imported, we look for a planned workout on the same date with the same sport type and duration within ±40%.",

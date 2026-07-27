@@ -10,6 +10,7 @@
   "setupSteps": "Einrichtungsschritte",
   "connectBtn": "Verbinden",
   "recentlyImported": "Zuletzt importiert",
+  "chestStrap": "Brustgurt",
   "autoMatch": {
     "title": "Automatisches Matching",
     "desc1": "Importierte Aktivitäten werden automatisch mit deinem Plan abgeglichen",

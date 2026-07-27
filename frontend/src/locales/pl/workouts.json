@@ -23,6 +23,9 @@
     "notesPlaceholder": "Jak się czułeś/aś?"
   },
   "vsplan": "{{diff}} min vs. plan",
+  "hrSource": {
+    "chestStrap": "Zarejestrowano pasem na klatkę piersiową — dokładniejszy niż czujnik optyczny na nadgarstku"
+  },
   "zones": {
     "1": {
       "name": "Regeneracja",

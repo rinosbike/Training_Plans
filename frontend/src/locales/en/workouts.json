@@ -23,6 +23,9 @@
     "notesPlaceholder": "How did it feel?"
   },
   "vsplan": "{{diff}} min vs plan",
+  "hrSource": {
+    "chestStrap": "Recorded via chest strap — more accurate than wrist optical"
+  },
   "zones": {
     "title": "Heart Rate Zones (max {{bpm}} bpm)",
     "noHr": "Set your max HR in Settings to see heart rate zone targets.",

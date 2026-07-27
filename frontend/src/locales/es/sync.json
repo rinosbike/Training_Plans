@@ -10,6 +10,7 @@
   "setupSteps": "Pasos de configuración",
   "connectBtn": "Conectar",
   "recentlyImported": "Importado recientemente",
+  "chestStrap": "banda pectoral",
   "autoMatch": {
     "title": "Coincidencia automática",
     "desc1": "Las actividades importadas se emparejan automáticamente con tu plan",

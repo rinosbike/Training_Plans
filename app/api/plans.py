@@ -159,6 +159,7 @@ def get_plan_days():
                      'actual_distance_km', wl.actual_distance_km,
                      'avg_hr', wl.avg_hr,
                      'max_hr', wl.max_hr,
+                     'hr_source', wl.hr_source,
                      'avg_power_watts', wl.avg_power_watts,
                      'calories_burned', wl.calories_burned,
                      'perceived_effort', wl.perceived_effort,
@@ -193,7 +194,7 @@ def get_plan_days():
     # These appear when today is a rest day, sport/duration didn't match, or no plan covers the date.
     standalone_sql = '''
         SELECT id, log_date, source, sport,
-               actual_duration_min, actual_distance_km, avg_hr, max_hr,
+               actual_duration_min, actual_distance_km, avg_hr, max_hr, hr_source,
                avg_power_watts, calories_burned, perceived_effort, notes
         FROM training.workout_logs
         WHERE user_id = %s AND workout_id IS NULL
@@ -268,6 +269,7 @@ def _standalone_log_to_workout(log):
             'actual_distance_km': log.get('actual_distance_km'),
             'avg_hr': log.get('avg_hr'),
             'max_hr': log.get('max_hr'),
+            'hr_source': log.get('hr_source'),
             'avg_power_watts': log.get('avg_power_watts'),
             'calories_burned': log.get('calories_burned'),
             'perceived_effort': log.get('perceived_effort'),

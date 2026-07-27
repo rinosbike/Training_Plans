@@ -23,6 +23,9 @@
     "notesPlaceholder": "¿Cómo te has sentido?"
   },
   "vsplan": "{{diff}} min vs. plan",
+  "hrSource": {
+    "chestStrap": "Registrado con banda pectoral — más preciso que el sensor óptico de muñeca"
+  },
   "zones": {
     "1": {
       "name": "Recuperación",

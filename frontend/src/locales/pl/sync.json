@@ -10,6 +10,7 @@
   "setupSteps": "Kroki konfiguracji",
   "connectBtn": "Połącz",
   "recentlyImported": "Ostatnio zaimportowane",
+  "chestStrap": "pas na klatkę piersiową",
   "autoMatch": {
     "title": "Automatyczne dopasowanie",
     "desc1": "Zaimportowane aktywności są automatycznie dopasowywane do planu",

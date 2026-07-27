@@ -42,7 +42,15 @@ function ActivityLog({ log, plannedMin }) {
       <div className="grid grid-cols-3 gap-2">
         <StatPill label={t('fields.duration')} value={log.actual_duration_min ? `${Math.round(log.actual_duration_min)}` : null} unit="min" highlight />
         <StatPill label={t('fields.distance')} value={log.actual_distance_km ? `${log.actual_distance_km}` : null} unit="km" />
-        <StatPill label={t('fields.avgHr')} value={log.avg_hr} unit="bpm" />
+        <StatPill
+          label={
+            log.hr_source === 'chest_strap'
+              ? <span title={t('hrSource.chestStrap')}>{t('fields.avgHr')} ❤️</span>
+              : t('fields.avgHr')
+          }
+          value={log.avg_hr}
+          unit="bpm"
+        />
         <StatPill label={t('fields.maxHr')} value={log.max_hr} unit="bpm" />
         <StatPill label={t('fields.power')} value={log.avg_power_watts} unit="W" highlight={!!log.avg_power_watts} />
         <StatPill label={t('fields.calories')} value={log.calories_burned} unit="kcal" />

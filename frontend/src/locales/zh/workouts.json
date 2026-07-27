@@ -23,6 +23,9 @@
     "notesPlaceholder": "感觉如何？"
   },
   "vsplan": "{{diff}} min 对比计划",
+  "hrSource": {
+    "chestStrap": "通过胸带记录 — 比腕部光学传感器更准确"
+  },
   "zones": {
     "1": {
       "name": "恢复",

@@ -23,6 +23,9 @@
     "notesPlaceholder": "Wie hat es sich angefühlt?"
   },
   "vsplan": "{{diff}} min vs. Plan",
+  "hrSource": {
+    "chestStrap": "Über Brustgurt erfasst — genauer als optische Messung am Handgelenk"
+  },
   "zones": {
     "1": {
       "name": "Regeneration",

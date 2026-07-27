@@ -10,6 +10,7 @@
   "setupSteps": "设置步骤",
   "connectBtn": "连接",
   "recentlyImported": "最近导入",
+  "chestStrap": "胸带",
   "autoMatch": {
     "title": "自动匹配",
     "desc1": "导入的活动自动与您的计划匹配",
