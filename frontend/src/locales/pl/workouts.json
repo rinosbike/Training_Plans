@@ -98,6 +98,7 @@
     "powerZones": "Strefy mocy",
     "splits": "Kilometry",
     "laps": "Okrążenia ({{count}})",
+    "lengths": "{{count}} długości",
     "gapNote": "GAP = Tempo wyrównane do nachylenia · Tętno w bpm · Wzniesienie w metrach",
     "cols": {
       "km": "km",
@@ -116,7 +117,14 @@
       "relEffort": "Względny wysiłek",
       "avgTemp": "Śr. temp.",
       "segmentPrs": "Rekordy segmentów",
-      "kudos": "Kudos"
+      "kudos": "Kudos",
+      "vo2max": "Szac. VO2max",
+      "trainingEffect": "Efekt treningowy",
+      "recoveryTime": "Czas regeneracji",
+      "peakEpoc": "Szczytowe EPOC",
+      "tss": "TSS (urządzenie)",
+      "swolf": "Śr. SWOLF",
+      "batteryUsed": "Bateria zegarka"
     },
     "map": {
       "title": "Trasa",

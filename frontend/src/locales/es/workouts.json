@@ -98,6 +98,7 @@
     "powerZones": "Zonas de potencia",
     "splits": "Parciales por km",
     "laps": "Vueltas ({{count}})",
+    "lengths": "{{count}} Largos",
     "gapNote": "GAP = Ritmo ajustado por pendiente · FC en ppm · Desnivel en metros",
     "cols": {
       "km": "km",
@@ -116,7 +117,14 @@
       "relEffort": "Esfuerzo relativo",
       "avgTemp": "Temp. media",
       "segmentPrs": "Récords de segmento",
-      "kudos": "Kudos"
+      "kudos": "Kudos",
+      "vo2max": "VO2max est.",
+      "trainingEffect": "Efecto de entrenamiento",
+      "recoveryTime": "Tiempo de recuperación",
+      "peakEpoc": "EPOC máximo",
+      "tss": "TSS (dispositivo)",
+      "swolf": "SWOLF prom.",
+      "batteryUsed": "Batería del reloj"
     },
     "map": {
       "title": "Ruta",

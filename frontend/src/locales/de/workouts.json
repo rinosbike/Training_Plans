@@ -98,6 +98,7 @@
     "powerZones": "Leistungszonen",
     "splits": "Kilometer-Splits",
     "laps": "Runden ({{count}})",
+    "lengths": "{{count}} Bahnen",
     "gapNote": "GAP = Gefälleangepasstes Tempo · HF in bpm · Höhe in Metern",
     "cols": {
       "km": "km",
@@ -116,7 +117,14 @@
       "relEffort": "Relative Belastung",
       "avgTemp": "Ø Temperatur",
       "segmentPrs": "Segment-Bestleistungen",
-      "kudos": "Kudos"
+      "kudos": "Kudos",
+      "vo2max": "VO2max (geschätzt)",
+      "trainingEffect": "Trainingswirkung",
+      "recoveryTime": "Erholungszeit",
+      "peakEpoc": "Peak EPOC",
+      "tss": "TSS (Gerät)",
+      "swolf": "Ø SWOLF",
+      "batteryUsed": "Uhr-Akku"
     },
     "map": {
       "title": "Route",

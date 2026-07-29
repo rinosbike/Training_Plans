@@ -12,6 +12,7 @@ import api from '../services/api'
 import { SportBadge } from '../components/workout/SportIcon'
 import { MediaTimeline } from '../components/workout/MediaTimeline'
 import toast from 'react-hot-toast'
+import { hrZoneIndex, computeHrZoneBuckets, computeSplitsFromStreams } from '../utils/streamAnalytics'
 
 const ZONE_COLORS = ['bg-blue-300', 'bg-green-300', 'bg-yellow-300', 'bg-orange-400', 'bg-red-500']
 const ZONE_TEXT   = ['text-blue-800', 'text-green-800', 'text-yellow-800', 'text-orange-800', 'text-red-700']
@@ -73,16 +74,6 @@ function getBinSize(numSplits) {
   if (numSplits <= 50) return 2
   if (numSplits <= 100) return 5
   return 10
-}
-
-function hrZoneIndex(bpm, maxHr) {
-  if (!bpm || !maxHr) return -1
-  const pct = bpm / maxHr
-  if (pct >= 0.90) return 4
-  if (pct >= 0.80) return 3
-  if (pct >= 0.70) return 2
-  if (pct >= 0.60) return 1
-  return 0
 }
 
 // ---------------------------------------------------------------------------
@@ -1069,6 +1060,30 @@ function LapsTable({ laps, sportType }) {
   )
 }
 
+function LengthsTable({ lengths }) {
+  const { t } = useTranslation('workouts')
+  if (!lengths || lengths.length === 0) return null
+
+  return (
+    <div>
+      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+        {t('strava.lengths', { count: lengths.length, defaultValue: '{{count}} Lengths' })}
+      </p>
+      <div className="space-y-1.5 max-h-72 overflow-y-auto">
+        {lengths.map((l) => (
+          <div key={l.index} className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
+            <span className="text-xs font-bold text-gray-400 w-6 shrink-0">{l.index + 1}</span>
+            <span className="text-xs text-gray-500 w-14">{fmtDuration(l.duration_sec)}</span>
+            <span className="text-xs font-semibold text-gray-700 flex-1 capitalize">{l.stroke || '—'}</span>
+            {l.strokes != null && <span className="text-xs text-gray-500">{l.strokes} strokes</span>}
+            {l.swolf != null && <span className="text-xs text-blue-600">SWOLF {Math.round(l.swolf)}</span>}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function StravaLogo() {
   return (
     <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0" fill="none">
@@ -1106,10 +1121,23 @@ function StravaAnalysis({ workoutId, sport, maxHr, source }) {
 
   if (isError || !data) return null
 
-  const hrZone  = data.zones?.find(z => z.type === 'heartrate')
-  const pwrZone = data.zones?.find(z => z.type === 'power')
   const isRun   = isRunSport(data.sport_type || sport)
   const streams = data.streams || {}
+
+  // Fall back to our own stream-derived splits/zones when the source didn't
+  // supply them (manual FIT uploads always; Strava on non-Summit accounts for zones).
+  const hrZoneBuckets = data.zones?.find(z => z.type === 'heartrate')?.distribution_buckets
+    || computeHrZoneBuckets(streams, maxHr)
+  const pwrZoneBuckets = data.zones?.find(z => z.type === 'power')?.distribution_buckets || []
+  const splitsMetric = data.splits_metric?.length > 0
+    ? data.splits_metric
+    : computeSplitsFromStreams(streams, data.sport_type || sport)
+
+  const avgTempRange = data.average_temp != null
+    ? (data.min_temperature != null && data.max_temperature != null && data.min_temperature !== data.max_temperature
+        ? `${data.average_temp}°C (${data.min_temperature}–${data.max_temperature}°C)`
+        : `${data.average_temp}°C`)
+    : null
 
   const extras = [
     data.total_elevation_gain != null && { label: t('strava.extras.elevation'), value: `${Math.round(data.total_elevation_gain)} m ↑` },
@@ -1118,15 +1146,27 @@ function StravaAnalysis({ workoutId, sport, maxHr, source }) {
     data.max_watts            != null && data.device_watts && { label: t('strava.extras.maxPower'),  value: `${Math.round(data.max_watts)} W` },
     data.kilojoules           != null && { label: t('strava.extras.energy'),    value: `${Math.round(data.kilojoules)} kJ` },
     data.suffer_score         != null && { label: t('strava.extras.relEffort'), value: data.suffer_score },
-    data.average_temp         != null && { label: t('strava.extras.avgTemp'),   value: `${data.average_temp}°C` },
+    avgTempRange              != null && { label: t('strava.extras.avgTemp'),   value: avgTempRange },
     data.pr_count             > 0     && { label: t('strava.extras.segmentPrs'),value: `🏆 ${data.pr_count}` },
     data.kudos_count          > 0     && { label: t('strava.extras.kudos'),     value: `👍 ${data.kudos_count}` },
+    data.estimated_vo2_max     != null && { label: t('strava.extras.vo2max'),        value: data.estimated_vo2_max },
+    data.total_training_effect != null && { label: t('strava.extras.trainingEffect'), value: data.total_training_effect },
+    data.recovery_time_hours   != null && { label: t('strava.extras.recoveryTime'),   value: `${data.recovery_time_hours}h` },
+    data.peak_epoc             != null && { label: t('strava.extras.peakEpoc'),       value: data.peak_epoc.toFixed(1) },
+    data.training_stress_score_device != null && { label: t('strava.extras.tss'), value: data.training_stress_score_device },
+    data.avg_swolf              != null && { label: t('strava.extras.swolf'),        value: data.avg_swolf.toFixed(1) },
   ].filter(Boolean)
 
-  const hasSplits  = data.splits_metric?.length > 0
+  const hasSplits  = splitsMetric.length > 0
   const hasLaps    = data.laps?.length > 1
-  const hasZones   = hrZone?.distribution_buckets?.length > 0 || pwrZone?.distribution_buckets?.length > 0
+  const hasZones   = hrZoneBuckets.length > 0 || pwrZoneBuckets.length > 0
   const hasStreams  = Object.keys(streams).length > 0
+  const hasLengths = data.lengths?.length > 0
+  // Raw voltage, not a derived "% used" — Li-ion discharge isn't linear, so a
+  // ratio of readings would misstate actual capacity consumed.
+  const batteryDrop = data.battery_start != null && data.battery_end != null && data.battery_start > data.battery_end
+    ? `${data.battery_start.toFixed(2)}V → ${data.battery_end.toFixed(2)}V`
+    : null
 
   if (!hasSplits && !hasLaps && !hasZones && !hasStreams && extras.length === 0) return null
 
@@ -1177,8 +1217,8 @@ function StravaAnalysis({ workoutId, sport, maxHr, source }) {
                 streams={streams}
                 maxHr={maxHr}
                 avgHr={data.zones?.find(z => z.type === 'heartrate')?.average_heartrate
-                  ?? (data.splits_metric?.length
-                    ? Math.round(data.splits_metric.reduce((s, x) => s + (x.average_heartrate || 0), 0) / data.splits_metric.filter(x => x.average_heartrate).length)
+                  ?? (splitsMetric.length
+                    ? Math.round(splitsMetric.reduce((s, x) => s + (x.average_heartrate || 0), 0) / splitsMetric.filter(x => x.average_heartrate).length)
                     : null)}
               />
             )}
@@ -1201,7 +1241,7 @@ function StravaAnalysis({ workoutId, sport, maxHr, source }) {
           <div className={`grid gap-5 ${streams.cadence && hasSplits ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
             {hasSplits && (
               <PaceBarChart
-                splits={data.splits_metric}
+                splits={splitsMetric}
                 sportType={data.sport_type || sport}
                 showTableToggle
               />
@@ -1209,7 +1249,7 @@ function StravaAnalysis({ workoutId, sport, maxHr, source }) {
             {streams.cadence && (
               <CadenceChart
                 streams={streams}
-                splits={data.splits_metric}
+                splits={splitsMetric}
                 isRun={isRun}
               />
             )}
@@ -1222,16 +1262,28 @@ function StravaAnalysis({ workoutId, sport, maxHr, source }) {
         )}
 
         {/* Zone distribution summaries */}
-        {hrZone?.distribution_buckets?.length > 0 && (
-          <ZoneBar label={t('strava.hrZones')} buckets={hrZone.distribution_buckets} unit="bpm" />
+        {hrZoneBuckets.length > 0 && (
+          <ZoneBar label={t('strava.hrZones')} buckets={hrZoneBuckets} unit="bpm" />
         )}
-        {pwrZone?.distribution_buckets?.length > 0 && (
-          <ZoneBar label={t('strava.powerZones')} buckets={pwrZone.distribution_buckets} unit="W" />
+        {pwrZoneBuckets.length > 0 && (
+          <ZoneBar label={t('strava.powerZones')} buckets={pwrZoneBuckets} unit="W" />
         )}
 
         {/* Laps */}
         {hasLaps && (
           <LapsTable laps={data.laps} sportType={data.sport_type || sport} />
+        )}
+
+        {/* Swim per-length detail — stroke/SWOLF, richer than Strava's pool-swim view */}
+        {hasLengths && (
+          <LengthsTable lengths={data.lengths} />
+        )}
+
+        {/* Sensor footnote */}
+        {batteryDrop && (
+          <p className="text-[10px] text-gray-400 text-center">
+            🔋 {t('strava.extras.batteryUsed')}: {batteryDrop}
+          </p>
         )}
       </div>
     </div>

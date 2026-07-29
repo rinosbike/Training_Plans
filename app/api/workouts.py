@@ -192,6 +192,13 @@ def workout_analysis(workout_id):
         return jsonify({'error': 'No rich analysis available'}), 404
 
     raw = log_row['raw_data'] or {}
+    streams = raw.get('streams', {})
+    avg_cadence = None
+    cadence_stream = streams.get('cadence') or []
+    cadence_vals = [c for c in cadence_stream if c]
+    if cadence_vals:
+        avg_cadence = round(sum(cadence_vals) / len(cadence_vals), 1)
+
     return jsonify({
         'activity_id':            raw.get('activity_id'),
         'sport_type':             raw.get('sport_type'),
@@ -202,7 +209,7 @@ def workout_analysis(workout_id):
         'total_elevation_gain':   raw.get('total_elevation_gain'),
         'elev_high':              raw.get('elev_high'),
         'elev_low':               raw.get('elev_low'),
-        'average_cadence':        None,
+        'average_cadence':        raw.get('avg_running_cadence') or avg_cadence,
         'average_watts':          raw.get('average_watts'),
         'weighted_average_watts': None,
         'max_watts':              raw.get('max_watts'),
@@ -212,10 +219,24 @@ def workout_analysis(workout_id):
         'pr_count':               0,
         'achievement_count':      0,
         'kudos_count':            0,
-        'average_temp':           None,
+        'average_temp':           raw.get('avg_temperature'),
         'map_polyline':           raw.get('map_polyline'),
         'total_distance_m':       raw.get('total_distance_m'),
-        'streams':                raw.get('streams', {}),
+        'streams':                streams,
+        # Suunto-only richness Strava's schema has no slot for
+        'estimated_vo2_max':       raw.get('estimated_vo2_max'),
+        'total_training_effect':   raw.get('total_training_effect'),
+        'peak_epoc':               raw.get('peak_epoc'),
+        'recovery_time_hours':     raw.get('recovery_time_hours'),
+        'training_stress_score_device': raw.get('training_stress_score'),
+        'min_temperature':         raw.get('min_temperature'),
+        'max_temperature':         raw.get('max_temperature'),
+        'time_in_aerobic_zone':    raw.get('time_in_aerobic_zone'),
+        'time_in_anaerobic_zone':  raw.get('time_in_anaerobic_zone'),
+        'lengths':                 raw.get('lengths') or [],
+        'avg_swolf':               raw.get('avg_swolf'),
+        'battery_start':           raw.get('battery_start'),
+        'battery_end':             raw.get('battery_end'),
     })
 
 

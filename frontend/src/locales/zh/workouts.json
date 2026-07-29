@@ -98,6 +98,7 @@
     "powerZones": "功率区间",
     "splits": "每公里分段",
     "laps": "圈次（{{count}}）",
+    "lengths": "{{count}} 趟泳池长度",
     "gapNote": "GAP = 坡度调整配速 · 心率单位bpm · 高度单位米",
     "cols": {
       "km": "公里",
@@ -116,7 +117,14 @@
       "relEffort": "相对努力值",
       "avgTemp": "平均温度",
       "segmentPrs": "路段PR",
-      "kudos": "点赞"
+      "kudos": "点赞",
+      "vo2max": "预估最大摄氧量",
+      "trainingEffect": "训练效果",
+      "recoveryTime": "恢复时间",
+      "peakEpoc": "峰值EPOC",
+      "tss": "TSS（设备）",
+      "swolf": "平均SWOLF",
+      "batteryUsed": "手表电量"
     },
     "map": {
       "title": "路线",

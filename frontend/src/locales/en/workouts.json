@@ -98,6 +98,7 @@
     "powerZones": "Power Zones",
     "splits": "Per-km splits",
     "laps": "Laps ({{count}})",
+    "lengths": "{{count}} Lengths",
     "gapNote": "GAP = Grade Adjusted Pace · HR in bpm · Elev in metres",
     "cols": {
       "km": "km",
@@ -116,7 +117,14 @@
       "relEffort": "Relative Effort",
       "avgTemp": "Avg Temp",
       "segmentPrs": "Segment PRs",
-      "kudos": "Kudos"
+      "kudos": "Kudos",
+      "vo2max": "Est. VO2max",
+      "trainingEffect": "Training Effect",
+      "recoveryTime": "Recovery Time",
+      "peakEpoc": "Peak EPOC",
+      "tss": "TSS (device)",
+      "swolf": "Avg SWOLF",
+      "batteryUsed": "Watch battery"
     },
     "map": {
       "title": "Route",
