@@ -1438,6 +1438,17 @@ export default function WorkoutDetail() {
               <Metric label={t('fields.rpe')} value={workout.perceived_effort ? `${workout.perceived_effort}/10` : '—'} />
               <Metric label={t('fields.calories')} value={workout.calories_burned ? `${workout.calories_burned} kcal` : '—'} />
             </div>
+            {workout.logged_sets?.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-green-200 space-y-1.5">
+                <p className="text-xs font-medium text-gray-500">{t('exerciseLog.title')}</p>
+                {groupLoggedSets(workout.logged_sets).map(g => (
+                  <p key={g.exercise_id} className="text-sm text-gray-700">
+                    <span className="font-medium">{t(`exercises.${g.exercise_key}`)}:</span>{' '}
+                    {g.rows.map(r => r.unit === 'seconds' ? `${r.duration_sec}s` : r.reps).join(', ')}
+                  </p>
+                ))}
+              </div>
+            )}
             {workout.log_notes && <p className="mt-2 text-sm text-gray-600">{workout.log_notes}</p>}
             {!isStrava && (
               <button onClick={() => setLogging(true)} className="mt-3 text-sm text-primary-600 font-medium">
@@ -1513,6 +1524,22 @@ export default function WorkoutDetail() {
       </div>
     </div>
   )
+}
+
+// Groups flat logged_sets rows (as returned by the API) by exercise, in
+// first-seen order, for read-only display in the Completed summary card.
+function groupLoggedSets(sets) {
+  const groups = []
+  const byExercise = {}
+  for (const s of sets) {
+    if (!byExercise[s.exercise_id]) {
+      byExercise[s.exercise_id] = { exercise_id: s.exercise_id, exercise_key: s.exercise_key, unit: s.unit, rows: [] }
+      groups.push(byExercise[s.exercise_id])
+    }
+    byExercise[s.exercise_id].rows.push(s)
+  }
+  for (const g of groups) g.rows.sort((a, b) => a.set_number - b.set_number)
+  return groups
 }
 
 // Renumber every row's set_number to its 1-based position within its own
