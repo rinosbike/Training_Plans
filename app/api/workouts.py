@@ -9,6 +9,32 @@ from app.services.credential_service import get_credential
 workouts_bp = Blueprint('workouts', __name__)
 
 
+@workouts_bp.route('/api/exercises', methods=['GET'])
+@jwt_required()
+def list_exercises():
+    rows = execute_query(
+        '''SELECT id, key, category, unit, allow_weight, difficulty_coefficient
+           FROM training.exercise_library
+           ORDER BY sort_order'''
+    )
+    return jsonify([dict(r) for r in rows])
+
+
+def _get_logged_sets(workout_log_id):
+    if not workout_log_id:
+        return []
+    rows = execute_query(
+        '''SELECT wls.id, wls.exercise_id, el.key AS exercise_key, el.unit,
+             wls.set_number, wls.reps, wls.duration_sec, wls.weight_kg
+           FROM training.workout_log_sets wls
+           JOIN training.exercise_library el ON el.id = wls.exercise_id
+           WHERE wls.workout_log_id = %s
+           ORDER BY wls.exercise_id, wls.set_number''',
+        (workout_log_id,)
+    )
+    return [dict(r) for r in rows]
+
+
 @workouts_bp.route('/api/workouts/<workout_id>', methods=['GET'])
 @jwt_required()
 def get_workout(workout_id):
@@ -63,8 +89,11 @@ def get_workout(workout_id):
             'log_id': str(log['id']),
             'log_source': source,
             'strava_activity_id': log['external_id'],
+            'logged_sets': _get_logged_sets(log['id']),
         })
-    return jsonify(dict(row))
+    result = dict(row)
+    result['logged_sets'] = _get_logged_sets(row['log_id'])
+    return jsonify(result)
 
 
 @workouts_bp.route('/api/workouts/<workout_id>', methods=['PUT'])
@@ -149,8 +178,37 @@ def log_workout(workout_id):
             returning=True
         )
 
+    log_id = row['id']
+    if 'sets' in data:
+        _save_logged_sets(log_id, data.get('sets') or [])
+
     compute_load_for_user(user_id)
-    return jsonify(dict(row)), 201
+    result = dict(row)
+    result['logged_sets'] = _get_logged_sets(log_id)
+    return jsonify(result), 201
+
+
+def _save_logged_sets(workout_log_id, set_rows):
+    for s in set_rows:
+        if not s.get('exercise_id') or (s.get('reps') is None and s.get('duration_sec') is None):
+            raise ValidationError('Each set needs an exercise and reps or a held duration')
+
+    execute_write(
+        'DELETE FROM training.workout_log_sets WHERE workout_log_id = %s',
+        (str(workout_log_id),)
+    )
+    next_set_number = {}
+    for s in set_rows:
+        exercise_id = s['exercise_id']
+        next_set_number[exercise_id] = next_set_number.get(exercise_id, 0) + 1
+        set_number = s.get('set_number') or next_set_number[exercise_id]
+        execute_write(
+            '''INSERT INTO training.workout_log_sets
+                 (workout_log_id, exercise_id, set_number, reps, duration_sec, weight_kg)
+               VALUES (%s, %s, %s, %s, %s, %s)''',
+            (str(workout_log_id), exercise_id, set_number,
+             s.get('reps'), s.get('duration_sec'), s.get('weight_kg'))
+        )
 
 
 @workouts_bp.route('/api/workouts/<workout_id>/log', methods=['DELETE'])

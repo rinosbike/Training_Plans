@@ -1306,6 +1306,7 @@ export default function WorkoutDetail() {
     actual_duration_min: '', actual_distance_km: '',
     avg_hr: '', max_hr: '', perceived_effort: '', notes: '',
   })
+  const [exerciseSets, setExerciseSets] = useState([])
 
   const { data: workout, isLoading } = useQuery({
     queryKey: ['workout', id],
@@ -1316,6 +1317,26 @@ export default function WorkoutDetail() {
     queryKey: ['profile'],
     queryFn: () => api.get('/api/profile').then(r => r.data),
   })
+
+  const isSetsSport = workout && ['strength', 'core'].includes(workout.sport)
+
+  const { data: exerciseLibrary = [] } = useQuery({
+    queryKey: ['exercises'],
+    queryFn: () => api.get('/api/exercises').then(r => r.data),
+    enabled: !!isSetsSport,
+  })
+
+  useEffect(() => {
+    if (workout?.logged_sets) {
+      setExerciseSets(workout.logged_sets.map(s => ({
+        exercise_id: s.exercise_id,
+        set_number: s.set_number,
+        reps: s.reps ?? '',
+        duration_sec: s.duration_sec ?? '',
+        weight_kg: s.weight_kg ?? '',
+      })))
+    }
+  }, [workout?.log_id])
 
   const logMutation = useMutation({
     mutationFn: (d) => api.post(`/api/workouts/${id}/log`, d),
@@ -1337,6 +1358,22 @@ export default function WorkoutDetail() {
   const isStrava = workout.log_source === 'strava'
   const isManual = workout.log_source === 'manual'
   const hasRichAnalysis = isStrava || isManual
+
+  const submitLog = () => {
+    const payload = { ...logData }
+    if (isSetsSport) {
+      payload.sets = exerciseSets
+        .filter(s => s.exercise_id && (s.reps !== '' || s.duration_sec !== ''))
+        .map((s, i) => ({
+          exercise_id: s.exercise_id,
+          set_number: s.set_number || i + 1,
+          reps: s.reps === '' ? null : parseInt(s.reps, 10),
+          duration_sec: s.duration_sec === '' ? null : parseInt(s.duration_sec, 10),
+          weight_kg: s.weight_kg === '' ? null : parseFloat(s.weight_kg),
+        }))
+    }
+    logMutation.mutate(payload)
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-6">
@@ -1432,6 +1469,14 @@ export default function WorkoutDetail() {
             <div className="space-y-3">
               <LogField label={t('fields.durationMin')} type="number" value={logData.actual_duration_min} onChange={v => setLogData(p => ({...p, actual_duration_min: v}))} placeholder={workout.duration_min} />
               <LogField label={t('fields.distanceKm')} type="number" value={logData.actual_distance_km} onChange={v => setLogData(p => ({...p, actual_distance_km: v}))} placeholder={workout.distance_km} />
+              {isSetsSport && (
+                <ExerciseSetLogger
+                  t={t}
+                  exercises={exerciseLibrary}
+                  sets={exerciseSets}
+                  onChange={setExerciseSets}
+                />
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <LogField label={t('fields.avgHrBpm')} type="number" value={logData.avg_hr} onChange={v => setLogData(p => ({...p, avg_hr: v}))} placeholder="145" />
                 <LogField label={t('fields.maxHrBpm')} type="number" value={logData.max_hr} onChange={v => setLogData(p => ({...p, max_hr: v}))} placeholder="165" />
@@ -1456,7 +1501,7 @@ export default function WorkoutDetail() {
                 </button>
               )}
               <button
-                onClick={() => logMutation.mutate(logData)}
+                onClick={submitLog}
                 disabled={logMutation.isPending}
                 className="flex-1 py-2.5 rounded-xl bg-primary-600 text-white font-medium active:bg-primary-700 disabled:opacity-50"
               >
@@ -1466,6 +1511,113 @@ export default function WorkoutDetail() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// Renumber every row's set_number to its 1-based position within its own
+// exercise group, so "Set 2, Set 3" never has a gap after a removal.
+function renumberSets(list) {
+  const counts = {}
+  return list.map(s => {
+    counts[s.exercise_id] = (counts[s.exercise_id] || 0) + 1
+    return { ...s, set_number: counts[s.exercise_id] }
+  })
+}
+
+function ExerciseSetLogger({ t, exercises, sets, onChange }) {
+  const [picker, setPicker] = useState('')
+  const byId = Object.fromEntries(exercises.map(e => [e.id, e]))
+  const order = []
+  for (const s of sets) if (!order.includes(s.exercise_id)) order.push(s.exercise_id)
+
+  const addExercise = (exerciseId) => {
+    onChange(renumberSets([...sets, { exercise_id: exerciseId, set_number: 0, reps: '', duration_sec: '', weight_kg: '' }]))
+  }
+  const removeSet = (exerciseId, setNumber) => {
+    onChange(renumberSets(sets.filter(s => !(s.exercise_id === exerciseId && s.set_number === setNumber))))
+  }
+  const removeExercise = (exerciseId) => {
+    onChange(renumberSets(sets.filter(s => s.exercise_id !== exerciseId)))
+  }
+  const updateRow = (exerciseId, setNumber, field, value) => {
+    onChange(sets.map(s => (s.exercise_id === exerciseId && s.set_number === setNumber) ? { ...s, [field]: value } : s))
+  }
+
+  return (
+    <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+      <p className="text-sm font-medium text-gray-700">{t('exerciseLog.title')}</p>
+      <p className="text-xs text-gray-500 mt-0.5 mb-3">{t('exerciseLog.hint')}</p>
+
+      {order.length === 0 && (
+        <p className="text-xs text-gray-400 italic mb-3">{t('exerciseLog.noExercisesYet')}</p>
+      )}
+
+      <div className="space-y-3">
+        {order.map(exerciseId => {
+          const ex = byId[exerciseId]
+          const rows = sets.filter(s => s.exercise_id === exerciseId).sort((a, b) => a.set_number - b.set_number)
+          const isSeconds = ex?.unit === 'seconds'
+          return (
+            <div key={exerciseId} className="bg-white rounded-lg border border-gray-200 p-2.5">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-semibold text-gray-900">{ex ? t(`exercises.${ex.key}`) : '—'}</p>
+                <button type="button" onClick={() => removeExercise(exerciseId)}
+                  className="text-xs text-gray-400 px-2 py-1 -mr-1 active:text-red-500">
+                  {t('exerciseLog.removeExercise')}
+                </button>
+              </div>
+              <div className="space-y-2">
+                {rows.map(row => (
+                  <div key={row.set_number} className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-medium text-gray-500 w-14 shrink-0">
+                      {t('exerciseLog.setNumber', { n: row.set_number })}
+                    </span>
+                    <input
+                      type="number" inputMode="numeric" min="0"
+                      value={isSeconds ? row.duration_sec : row.reps}
+                      onChange={e => updateRow(exerciseId, row.set_number, isSeconds ? 'duration_sec' : 'reps', e.target.value)}
+                      placeholder={isSeconds ? t('exerciseLog.secondsPlaceholder') : t('exerciseLog.repsPlaceholder')}
+                      className="w-20 border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                    {ex?.allow_weight && (
+                      <input
+                        type="number" inputMode="decimal" min="0" step="0.5"
+                        value={row.weight_kg}
+                        onChange={e => updateRow(exerciseId, row.set_number, 'weight_kg', e.target.value)}
+                        placeholder={t('exerciseLog.weightOptional')}
+                        className="flex-1 min-w-[7rem] border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      />
+                    )}
+                    <button type="button" onClick={() => removeSet(exerciseId, row.set_number)}
+                      aria-label={t('exerciseLog.removeSet')}
+                      className="ml-auto w-9 h-9 shrink-0 rounded-lg text-gray-400 active:bg-gray-100 active:text-red-500 text-lg leading-none">
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button type="button" onClick={() => addExercise(exerciseId)}
+                className="mt-2 text-xs font-medium text-primary-600 py-1.5 px-2 -ml-2 active:bg-primary-50 rounded-lg">
+                {t('exerciseLog.addSet')}
+              </button>
+            </div>
+          )
+        })}
+      </div>
+
+      <select
+        value={picker}
+        onChange={e => {
+          if (e.target.value) { addExercise(Number(e.target.value)); setPicker('') }
+        }}
+        className="mt-3 w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+      >
+        <option value="">{t('exerciseLog.addExercise')}</option>
+        {exercises.map(ex => (
+          <option key={ex.id} value={ex.id}>{t(`exercises.${ex.key}`)}</option>
+        ))}
+      </select>
     </div>
   )
 }

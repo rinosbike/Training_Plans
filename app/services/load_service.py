@@ -8,13 +8,20 @@ TSB = CTL - ATL  (positive = fresh/recovered, negative = fatigued)
 Daily TSS is derived from actual activity data using this priority chain:
 
   1. wl.tss          — device-reported or manually entered TSS (most accurate)
-  2. Power-based     — (duration_h × (avg_watts / FTP)²) × 100
+  2. Set/rep volume  — sum(reps or seconds × exercise difficulty_coefficient) over
+                       all logged sets (training.workout_log_sets), divided by
+                       VOLUME_LOAD_TO_TSS. Lets a strength/calisthenics session that
+                       deviates from the plan (different exercises, more/fewer reps)
+                       still produce an objective load instead of a guessed RPE.
+                       Ranked above HR/power: average HR under-represents interval-
+                       style bodyweight work, so it shouldn't override actual reps.
+  3. Power-based     — (duration_h × (avg_watts / FTP)²) × 100
                        requires avg_power_watts in workout_logs AND ftp_watts in profile
-  3. HR-based        — (duration_h × (avg_hr / LTHR)²) × 100
+  4. HR-based        — (duration_h × (avg_hr / LTHR)²) × 100
                        LTHR is approximated as 90 % of max_hr (profile)
                        avg_hr capped at 1.20 × LTHR to guard against bad data
-  4. Perceived effort — maps RPE 1-10 to intensity factor then TSS formula
-  5. Planned zone    — uses the linked planned workout's intensity_zone as a last resort
+  5. Perceived effort — maps RPE 1-10 to intensity factor then TSS formula
+  6. Planned zone    — uses the linked planned workout's intensity_zone as a last resort
                        (least accurate — falls back when no actual data is available)
 
 Note: the planned workout's tss column (training.workouts.tss) is intentionally
@@ -23,6 +30,11 @@ NOT used here. It reflects the planned stimulus, not the actual physiological lo
 import math
 from datetime import date, timedelta
 from app.db import execute_query, execute_write
+
+# Calibrated so a hard ~45min bodyweight session (e.g. 4x15-18 push-ups,
+# 5 sets of pull-ups, 3x15-20 core work) lands close to what that same
+# session would score as an RPE-8 duration-based TSS. Tune per observed data.
+VOLUME_LOAD_TO_TSS = 1.5
 
 
 def compute_load_for_user(user_id: str, from_date: date = None):
@@ -36,7 +48,15 @@ def compute_load_for_user(user_id: str, from_date: date = None):
                  WHEN wl.tss IS NOT NULL
                    THEN wl.tss
 
-                 -- 2. Power-based TSS: IF = avg_watts / FTP
+                 -- 2. Set/rep volume load (logged strength/core sets), calibrated so a
+                 --    hard ~45min bodyweight session lands near an RPE-8 session. Ranked
+                 --    above HR/power: average HR is a poor proxy for interval-style
+                 --    bodyweight work (rest between sets suppresses it), so a device's
+                 --    auto-logged avg_hr should not override actual logged reps.
+                 WHEN vol.volume_load IS NOT NULL
+                   THEN vol.volume_load / {VOLUME_LOAD_TO_TSS}
+
+                 -- 3. Power-based TSS: IF = avg_watts / FTP
                  WHEN wl.avg_power_watts IS NOT NULL
                       AND p.ftp_watts    IS NOT NULL
                       AND p.ftp_watts    > 0
@@ -44,7 +64,7 @@ def compute_load_for_user(user_id: str, from_date: date = None):
                         * POWER(LEAST(wl.avg_power_watts::float / p.ftp_watts, 1.50), 2)
                         * 100
 
-                 -- 3. HR-based TSS: LTHR ≈ 90%% of max_hr
+                 -- 4. HR-based TSS: LTHR ≈ 90%% of max_hr
                  WHEN wl.avg_hr   IS NOT NULL
                       AND p.max_hr IS NOT NULL
                       AND p.max_hr > 0
@@ -52,7 +72,7 @@ def compute_load_for_user(user_id: str, from_date: date = None):
                         * POWER(LEAST(wl.avg_hr::float / (p.max_hr * 0.90), 1.20), 2)
                         * 100
 
-                 -- 4. Perceived effort (RPE 1-10 → intensity factor)
+                 -- 5. Perceived effort (RPE 1-10 → intensity factor)
                  WHEN wl.perceived_effort IS NOT NULL
                    THEN (COALESCE(wl.actual_duration_min, 0) / 60.0)
                         * POWER(CASE
@@ -64,7 +84,7 @@ def compute_load_for_user(user_id: str, from_date: date = None):
                           END, 2)
                         * 100
 
-                 -- 5. Planned zone (last resort — actual duration, planned intensity)
+                 -- 6. Planned zone (last resort — actual duration, planned intensity)
                  ELSE (COALESCE(wl.actual_duration_min, w.duration_min, 0) / 60.0) * 100.0
                       * POWER(CASE w.intensity_zone
                               WHEN 1 THEN 0.55 WHEN 2 THEN 0.75 WHEN 3 THEN 0.90
@@ -73,10 +93,19 @@ def compute_load_for_user(user_id: str, from_date: date = None):
            FROM training.workout_logs wl
            LEFT JOIN training.workouts  w ON w.id       = wl.workout_id
            LEFT JOIN training.profiles  p ON p.user_id  = wl.user_id
+           LEFT JOIN LATERAL (
+               SELECT SUM(
+                        (CASE WHEN el.unit = 'seconds' THEN wls.duration_sec ELSE wls.reps END)
+                        * el.difficulty_coefficient
+                      ) AS volume_load
+               FROM training.workout_log_sets wls
+               JOIN training.exercise_library el ON el.id = wls.exercise_id
+               WHERE wls.workout_log_id = wl.id
+           ) vol ON true
            WHERE wl.user_id  = %s
              AND wl.log_date >= %s
            GROUP BY wl.log_date
-           ORDER BY wl.log_date''',
+           ORDER BY wl.log_date'''.format(VOLUME_LOAD_TO_TSS=VOLUME_LOAD_TO_TSS),
         (user_id, from_date)
     )
 
