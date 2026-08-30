@@ -21,7 +21,7 @@ class Config:
     APPLE_PRIVATE_KEY = os.getenv('APPLE_PRIVATE_KEY', '')
     APPLE_REDIRECT_URI = os.getenv('APPLE_REDIRECT_URI', 'http://localhost:5002/api/auth/apple/callback')
 
-    GITHUB_COPILOT_TOKEN = os.getenv('GITHUB_COPILOT_TOKEN', '')
+    ZAI_API_KEY = os.getenv('ZAI_API_KEY', '')
     WHISPER_MODEL_SIZE = os.getenv('WHISPER_MODEL_SIZE', 'small')
     OPENVOICE_VENV_PYTHON = os.getenv('OPENVOICE_VENV_PYTHON', '')
     VOICEOVER_REFERENCE_PATH = os.getenv('VOICEOVER_REFERENCE_PATH', '')

@@ -43,7 +43,7 @@ const TECH_STACK = [
   { label: 'Frontend', value: 'React 18 · Vite · Tailwind CSS · Mobile-first' },
   { label: 'Database', value: 'PostgreSQL (NeonDB) · training schema · RLS per user' },
   { label: 'Auth', value: 'Google OAuth2 + Apple ID · JWT (8h access / 30d refresh)' },
-  { label: 'AI Coach', value: 'GitHub Copilot API · SSE streaming · claude-sonnet-4.6' },
+  { label: 'AI Coach', value: 'Z.ai API · SSE streaming · glm-4.6' },
   { label: 'Server', value: 'Hetzner 46.224.200.180 · SSH port 8022' },
   { label: 'Domain', value: 'training.rinosbike.com · Nginx · Let\'s Encrypt SSL' },
   { label: 'Deploy', value: 'git pull → systemctl restart training → npm run build' },

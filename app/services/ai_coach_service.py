@@ -1,14 +1,14 @@
 """
-GitHub Copilot API client for the AI coaching feature.
-Model is fixed to claude-sonnet-4.6 — never overridable by callers.
+Z.ai (GLM) API client for the AI coaching feature.
+Model is fixed to glm-4.6 — never overridable by callers.
 """
 import os
 import re
 import json
 import requests
 
-COPILOT_API_URL = 'https://api.githubcopilot.com/chat/completions'
-MODEL = 'claude-sonnet-4.6'
+ZAI_API_URL = 'https://api.z.ai/api/paas/v4/chat/completions'
+MODEL = 'glm-4.6'
 
 MAX_MESSAGE_LEN = 2000
 
@@ -109,7 +109,7 @@ User message: {user_msg}
 AI response: {ai_response}"""
 
 
-class CopilotAPIError(Exception):
+class ZaiAPIError(Exception):
     def __init__(self, status_code, message):
         self.status_code = status_code
         self.message = message
@@ -183,7 +183,7 @@ Today\'s nutrition so far:
     no_plan_notice = '' if goal_type else '\n⚠️ This athlete has NO active goal or training plan yet. Guide them through setup: collect stats → goal type → race date → confirm → generate plan.\n'
 
     return f"""You are an expert endurance sports coach and nutrition advisor for training.rinosbike.com.
-You are powered by claude-sonnet-4.6 and assist a single athlete — you have no access to other users.
+You are powered by {MODEL} and assist a single athlete — you have no access to other users.
 {today_line}
 When the athlete says "today", "yesterday", "this morning", "last night" — always resolve relative to the date above. Never guess the date from context or prior messages.
 {no_plan_notice}
@@ -283,15 +283,13 @@ def extract_actions(user_msg: str, ai_response: str, today: str) -> dict:
 
 def chat_stream(messages: list):
     """Generator yielding SSE lines. Model is fixed — not a parameter."""
-    token = os.getenv('GITHUB_COPILOT_TOKEN', '')
+    token = os.getenv('ZAI_API_KEY', '')
     if not token:
-        raise CopilotAPIError(0, 'GITHUB_COPILOT_TOKEN not set')
+        raise ZaiAPIError(0, 'ZAI_API_KEY not set')
 
     headers = {
         'Authorization': f'Bearer {token}',
         'Content-Type': 'application/json',
-        'Copilot-Integration-Id': 'vscode-chat',
-        'Editor-Version': 'training-app/1.0',
     }
     payload = {
         'model': MODEL,
@@ -300,9 +298,9 @@ def chat_stream(messages: list):
         'max_tokens': 1024,
         'temperature': 0.7,
     }
-    resp = requests.post(COPILOT_API_URL, headers=headers, json=payload, stream=True, timeout=60)
+    resp = requests.post(ZAI_API_URL, headers=headers, json=payload, stream=True, timeout=60)
     if resp.status_code != 200:
-        raise CopilotAPIError(resp.status_code, f'Copilot API error: {resp.status_code}')
+        raise ZaiAPIError(resp.status_code, f'Z.ai API error {resp.status_code}: {resp.text[:200]}')
     for line in resp.iter_lines():
         if line:
             yield line.decode('utf-8')
@@ -310,14 +308,13 @@ def chat_stream(messages: list):
 
 def chat_complete(messages: list, max_tokens: int = 1024) -> tuple[str, int]:
     """Blocking call. Model is fixed — not a parameter."""
-    token = os.getenv('GITHUB_COPILOT_TOKEN', '')
+    token = os.getenv('ZAI_API_KEY', '')
     if not token:
-        raise CopilotAPIError(0, 'GITHUB_COPILOT_TOKEN not set')
+        raise ZaiAPIError(0, 'ZAI_API_KEY not set')
 
     headers = {
         'Authorization': f'Bearer {token}',
         'Content-Type': 'application/json',
-        'Copilot-Integration-Id': 'vscode-chat',
     }
     payload = {
         'model': MODEL,
@@ -325,9 +322,9 @@ def chat_complete(messages: list, max_tokens: int = 1024) -> tuple[str, int]:
         'stream': False,
         'max_tokens': max_tokens,
     }
-    resp = requests.post(COPILOT_API_URL, headers=headers, json=payload, timeout=60)
+    resp = requests.post(ZAI_API_URL, headers=headers, json=payload, timeout=60)
     if resp.status_code != 200:
-        raise CopilotAPIError(resp.status_code, f'Copilot API error {resp.status_code}: {resp.text[:200]}')
+        raise ZaiAPIError(resp.status_code, f'Z.ai API error {resp.status_code}: {resp.text[:200]}')
     data = resp.json()
     content = data['choices'][0]['message']['content']
     tokens = data.get('usage', {}).get('total_tokens', 0)

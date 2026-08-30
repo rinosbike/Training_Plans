@@ -194,8 +194,8 @@ def chat(session_id):
                     full_response.append(token)
                     yield f'data: {json.dumps({"token": token})}\n\n'
             yield 'data: [DONE]\n\n'
-        except svc.CopilotAPIError as e:
-            log.error('Copilot API error for user %s: %s', user_id, e.message)
+        except svc.ZaiAPIError as e:
+            log.error('Z.ai API error for user %s: %s', user_id, e.message)
             yield f'data: {json.dumps({"error": e.message})}\n\n'
             return
         finally:
