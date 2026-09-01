@@ -156,7 +156,7 @@ def log_workout(workout_id):
         'tss': data.get('tss'),
         'notes': data.get('notes'),
     }
-    fields = {k: v for k, v in fields.items() if v is not None}
+    fields = {k: v for k, v in fields.items() if v is not None and v != ''}
 
     if existing_log:
         sets = ', '.join(f'{k}=%s' for k in fields)
