@@ -159,12 +159,18 @@ def log_workout(workout_id):
     fields = {k: v for k, v in fields.items() if v is not None and v != ''}
 
     if existing_log:
-        sets = ', '.join(f'{k}=%s' for k in fields)
-        vals = list(fields.values()) + [str(existing_log['id'])]
-        row = execute_write(
-            f'UPDATE training.workout_logs SET {sets} WHERE id=%s RETURNING *',
-            vals, returning=True
-        )
+        if fields:
+            sets = ', '.join(f'{k}=%s' for k in fields)
+            vals = list(fields.values()) + [str(existing_log['id'])]
+            row = execute_write(
+                f'UPDATE training.workout_logs SET {sets} WHERE id=%s RETURNING *',
+                vals, returning=True
+            )
+        else:
+            row = execute_query(
+                'SELECT * FROM training.workout_logs WHERE id=%s',
+                (str(existing_log['id']),), fetch_one=True
+            )
     else:
         log_date = data.get('log_date') or execute_query(
             'SELECT date FROM training.plan_days pd JOIN training.workouts w ON w.plan_day_id = pd.id WHERE w.id = %s',
