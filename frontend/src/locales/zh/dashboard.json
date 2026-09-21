@@ -41,5 +41,6 @@
     "protein": "蛋白质",
     "carbs": "碳水化合物",
     "fat": "脂肪"
-  }
+  },
+  "addWorkout": "添加训练"
 }

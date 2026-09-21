@@ -1,3 +1,4 @@
+from datetime import date
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.db import execute_query, execute_write
@@ -126,18 +127,81 @@ def update_workout(workout_id):
     return jsonify(dict(row))
 
 
+LOG_SPORTS = ('run', 'cycle', 'swim', 'strength', 'core', 'brick')
+LOG_INT_FIELDS = ('actual_duration_min', 'avg_hr', 'max_hr', 'avg_power_watts', 'calories_burned', 'perceived_effort')
+LOG_NUM_FIELDS = ('actual_distance_km', 'tss')
+
+
+def _clean_log_fields(data):
+    """Whitelist + validate the numeric/text fields shared by every manual log write."""
+    fields = {
+        k: data.get(k) for k in (*LOG_INT_FIELDS, *LOG_NUM_FIELDS, 'notes')
+        if data.get(k) is not None and data.get(k) != ''
+    }
+    for k in LOG_INT_FIELDS:
+        if k in fields:
+            try:
+                fields[k] = int(float(fields[k]))
+            except (TypeError, ValueError):
+                raise ValidationError(f'{k} must be a number')
+            if fields[k] < 0:
+                raise ValidationError(f'{k} must not be negative')
+    for k in LOG_NUM_FIELDS:
+        if k in fields:
+            try:
+                fields[k] = float(fields[k])
+            except (TypeError, ValueError):
+                raise ValidationError(f'{k} must be a number')
+            if fields[k] < 0:
+                raise ValidationError(f'{k} must not be negative')
+    if 'perceived_effort' in fields and not 1 <= fields['perceived_effort'] <= 10:
+        raise ValidationError('perceived_effort must be between 1 and 10')
+    return fields
+
+
+def _update_log(log_id, fields):
+    if not fields:
+        return execute_query('SELECT * FROM training.workout_logs WHERE id = %s', (str(log_id),), fetch_one=True)
+    sets = ', '.join(f'{k}=%s' for k in fields)
+    return execute_write(
+        f'UPDATE training.workout_logs SET {sets} WHERE id=%s RETURNING *',
+        list(fields.values()) + [str(log_id)], returning=True
+    )
+
+
+def _log_response(row, data, status):
+    log_id = row['id']
+    if 'sets' in data:
+        _save_logged_sets(log_id, data.get('sets') or [])
+    compute_load_for_user(row['user_id'])
+    result = dict(row)
+    result['logged_sets'] = _get_logged_sets(log_id)
+    return jsonify(result), status
+
+
 @workouts_bp.route('/api/workouts/<workout_id>/log', methods=['POST'])
 @jwt_required()
 def log_workout(workout_id):
     user_id = get_jwt_identity()
-    data = request.get_json()
+    data = request.get_json() or {}
 
     workout = execute_query(
         'SELECT id, user_id FROM training.workouts WHERE id = %s AND user_id = %s',
         (workout_id, user_id), fetch_one=True
     )
     if not workout:
-        raise NotFoundError('Workout not found')
+        # Not a planned workout — may be the id of a manually added standalone log being edited.
+        standalone = execute_query(
+            """SELECT id FROM training.workout_logs
+               WHERE id = %s AND user_id = %s AND workout_id IS NULL AND source = 'manual'""",
+            (workout_id, user_id), fetch_one=True
+        )
+        if not standalone:
+            raise NotFoundError('Workout not found')
+        row = _update_log(standalone['id'], _clean_log_fields(data))
+        return _log_response(row, data, 200)
+
+    fields = _clean_log_fields(data)
 
     # Upsert log
     existing_log = execute_query(
@@ -145,32 +209,8 @@ def log_workout(workout_id):
         (workout_id, user_id), fetch_one=True
     )
 
-    fields = {
-        'actual_duration_min': data.get('actual_duration_min'),
-        'actual_distance_km': data.get('actual_distance_km'),
-        'avg_hr': data.get('avg_hr'),
-        'max_hr': data.get('max_hr'),
-        'avg_power_watts': data.get('avg_power_watts'),
-        'calories_burned': data.get('calories_burned'),
-        'perceived_effort': data.get('perceived_effort'),
-        'tss': data.get('tss'),
-        'notes': data.get('notes'),
-    }
-    fields = {k: v for k, v in fields.items() if v is not None and v != ''}
-
     if existing_log:
-        if fields:
-            sets = ', '.join(f'{k}=%s' for k in fields)
-            vals = list(fields.values()) + [str(existing_log['id'])]
-            row = execute_write(
-                f'UPDATE training.workout_logs SET {sets} WHERE id=%s RETURNING *',
-                vals, returning=True
-            )
-        else:
-            row = execute_query(
-                'SELECT * FROM training.workout_logs WHERE id=%s',
-                (str(existing_log['id']),), fetch_one=True
-            )
+        row = _update_log(existing_log['id'], fields)
     else:
         log_date = data.get('log_date') or execute_query(
             'SELECT date FROM training.plan_days pd JOIN training.workouts w ON w.plan_day_id = pd.id WHERE w.id = %s',
@@ -184,14 +224,33 @@ def log_workout(workout_id):
             returning=True
         )
 
-    log_id = row['id']
-    if 'sets' in data:
-        _save_logged_sets(log_id, data.get('sets') or [])
+    return _log_response(row, data, 201)
 
-    compute_load_for_user(user_id)
-    result = dict(row)
-    result['logged_sets'] = _get_logged_sets(log_id)
-    return jsonify(result), 201
+
+@workouts_bp.route('/api/workout-logs', methods=['POST'])
+@jwt_required()
+def create_standalone_log():
+    """Log a workout that isn't in the plan (rest day, extra session, day outside any plan)."""
+    user_id = get_jwt_identity()
+    data = request.get_json() or {}
+
+    try:
+        log_date = date.fromisoformat(str(data.get('log_date') or ''))
+    except ValueError:
+        raise ValidationError('log_date must be YYYY-MM-DD')
+    sport = data.get('sport')
+    if sport not in LOG_SPORTS:
+        raise ValidationError(f'sport must be one of: {", ".join(LOG_SPORTS)}')
+
+    fields = _clean_log_fields(data)
+    cols = ', '.join(['user_id', 'log_date', 'sport', 'source'] + list(fields.keys()))
+    placeholders = ', '.join(['%s'] * (4 + len(fields)))
+    row = execute_write(
+        f'INSERT INTO training.workout_logs ({cols}) VALUES ({placeholders}) RETURNING *',
+        [user_id, log_date, sport, 'manual'] + list(fields.values()),
+        returning=True
+    )
+    return _log_response(row, data, 201)
 
 
 def _save_logged_sets(workout_log_id, set_rows):
@@ -222,9 +281,12 @@ def _save_logged_sets(workout_log_id, set_rows):
 def delete_log(workout_id):
     user_id = get_jwt_identity()
     execute_write(
-        'DELETE FROM training.workout_logs WHERE workout_id = %s AND user_id = %s',
-        (workout_id, user_id)
+        """DELETE FROM training.workout_logs
+           WHERE user_id = %s
+             AND (workout_id = %s OR (id = %s AND workout_id IS NULL AND source = 'manual'))""",
+        (user_id, workout_id, workout_id)
     )
+    compute_load_for_user(user_id)
     return jsonify({'message': 'Log deleted'})
 
 

@@ -41,5 +41,6 @@
     "protein": "Protein",
     "carbs": "Carbs",
     "fat": "Fat"
-  }
+  },
+  "addWorkout": "Add workout"
 }

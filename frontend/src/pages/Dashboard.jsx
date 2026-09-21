@@ -220,6 +220,13 @@ export default function Dashboard() {
               <p className="text-sm">{t('restDay')}</p>
             </div>
           )}
+
+          <button
+            onClick={() => navigate(`/workout/new?date=${selectedDate}`)}
+            className="mt-3 w-full py-2.5 rounded-xl border border-dashed border-primary-300 text-primary-600 text-sm font-medium active:bg-primary-50"
+          >
+            + {t('addWorkout')}
+          </button>
         </div>
 
         {/* Nutrition summary */}

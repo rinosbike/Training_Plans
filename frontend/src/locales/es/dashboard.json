@@ -41,5 +41,6 @@
     "protein": "Proteína",
     "carbs": "Carbohidratos",
     "fat": "Grasa"
-  }
+  },
+  "addWorkout": "Añadir entreno"
 }

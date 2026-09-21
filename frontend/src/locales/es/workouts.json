@@ -57,7 +57,9 @@
     "avgHrBpm": "FC media (bpm)",
     "maxHrBpm": "FC máx (bpm)",
     "perceivedEffort": "Esfuerzo percibido (1–10)",
-    "notesPlaceholder": "¿Cómo te has sentido?"
+    "notesPlaceholder": "¿Cómo te has sentido?",
+    "sport": "Deporte",
+    "date": "Fecha"
   },
   "vsplan": "{{diff}} min vs. plan",
   "hrSource": {
@@ -199,5 +201,12 @@
       "resynced": "Sincronización actualizada",
       "resyncFailed": "Error al resincronizar"
     }
-  }
+  },
+  "addWorkout": "Añadir entreno",
+  "addWorkoutHint": "Registra una sesión que no está en tu plan, p. ej. fuerza en un día de descanso.",
+  "addWorkoutNeedsData": "Introduce una duración o al menos una serie",
+  "unplanned": "No planificado",
+  "deleteLog": "Eliminar registro",
+  "deleteConfirm": "¿Eliminar este registro de entreno?",
+  "logDeleted": "Registro eliminado"
 }

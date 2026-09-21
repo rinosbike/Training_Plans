@@ -57,7 +57,9 @@
     "avgHrBpm": "Avg HR (bpm)",
     "maxHrBpm": "Max HR (bpm)",
     "perceivedEffort": "Perceived Effort (1-10)",
-    "notesPlaceholder": "How did it feel?"
+    "notesPlaceholder": "How did it feel?",
+    "sport": "Sport",
+    "date": "Date"
   },
   "vsplan": "{{diff}} min vs plan",
   "hrSource": {
@@ -199,5 +201,12 @@
       "resynced": "Sync updated",
       "resyncFailed": "Resync failed"
     }
-  }
+  },
+  "addWorkout": "Add workout",
+  "addWorkoutHint": "Log a session that isn't in your plan — e.g. strength on a rest day.",
+  "addWorkoutNeedsData": "Enter a duration or at least one set",
+  "unplanned": "Unplanned",
+  "deleteLog": "Delete log",
+  "deleteConfirm": "Delete this workout log?",
+  "logDeleted": "Log deleted"
 }

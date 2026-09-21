@@ -57,7 +57,9 @@
     "avgHrBpm": "Śr. tętno (bpm)",
     "maxHrBpm": "Maks. tętno (bpm)",
     "perceivedEffort": "Odczuwany wysiłek (1–10)",
-    "notesPlaceholder": "Jak się czułeś/aś?"
+    "notesPlaceholder": "Jak się czułeś/aś?",
+    "sport": "Dyscyplina",
+    "date": "Data"
   },
   "vsplan": "{{diff}} min vs. plan",
   "hrSource": {
@@ -199,5 +201,12 @@
       "resynced": "Synchronizacja zaktualizowana",
       "resyncFailed": "Synchronizacja nie powiodła się"
     }
-  }
+  },
+  "addWorkout": "Dodaj trening",
+  "addWorkoutHint": "Zapisz trening spoza planu — np. siłownię w dzień odpoczynku.",
+  "addWorkoutNeedsData": "Podaj czas trwania lub co najmniej jedną serię",
+  "unplanned": "Poza planem",
+  "deleteLog": "Usuń wpis",
+  "deleteConfirm": "Usunąć ten wpis treningowy?",
+  "logDeleted": "Wpis usunięty"
 }

@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import Onboarding from './pages/Onboarding'
 import Dashboard from './pages/Dashboard'
 import WorkoutDetail from './pages/WorkoutDetail'
+import AddWorkout from './pages/AddWorkout'
 import Nutrition from './pages/Nutrition'
 import Progress from './pages/Progress'
 import AICoach from './pages/AICoach'
@@ -34,6 +35,7 @@ function AppRoutes() {
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/onboarding" element={<Protected><Onboarding /></Protected>} />
       <Route path="/" element={<Protected><Dashboard /></Protected>} />
+      <Route path="/workout/new" element={<Protected><AddWorkout /></Protected>} />
       <Route path="/workout/:id" element={<Protected><WorkoutDetail /></Protected>} />
       <Route path="/nutrition" element={<Protected><Nutrition /></Protected>} />
       <Route path="/progress" element={<Protected><Progress /></Protected>} />

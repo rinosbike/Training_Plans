@@ -57,7 +57,9 @@
     "avgHrBpm": "平均心率（次/分）",
     "maxHrBpm": "最大心率（次/分）",
     "perceivedEffort": "主观努力程度（1–10）",
-    "notesPlaceholder": "感觉如何？"
+    "notesPlaceholder": "感觉如何？",
+    "sport": "运动类型",
+    "date": "日期"
   },
   "vsplan": "{{diff}} min 对比计划",
   "hrSource": {
@@ -199,5 +201,12 @@
       "resynced": "同步已更新",
       "resyncFailed": "重新同步失败"
     }
-  }
+  },
+  "addWorkout": "添加训练",
+  "addWorkoutHint": "记录计划之外的训练——例如休息日的力量训练。",
+  "addWorkoutNeedsData": "请输入时长或至少一组动作",
+  "unplanned": "计划外",
+  "deleteLog": "删除记录",
+  "deleteConfirm": "删除这条训练记录？",
+  "logDeleted": "记录已删除"
 }

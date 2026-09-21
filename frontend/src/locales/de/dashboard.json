@@ -41,5 +41,6 @@
     "protein": "Protein",
     "carbs": "Kohlenhydrate",
     "fat": "Fett"
-  }
+  },
+  "addWorkout": "Einheit hinzufügen"
 }

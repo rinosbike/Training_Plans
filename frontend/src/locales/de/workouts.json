@@ -57,7 +57,9 @@
     "avgHrBpm": "Ø Puls (bpm)",
     "maxHrBpm": "Max. Puls (bpm)",
     "perceivedEffort": "Wahrgenommene Anstrengung (1–10)",
-    "notesPlaceholder": "Wie hat es sich angefühlt?"
+    "notesPlaceholder": "Wie hat es sich angefühlt?",
+    "sport": "Sportart",
+    "date": "Datum"
   },
   "vsplan": "{{diff}} min vs. Plan",
   "hrSource": {
@@ -199,5 +201,12 @@
       "resynced": "Synchronisierung aktualisiert",
       "resyncFailed": "Synchronisierung fehlgeschlagen"
     }
-  }
+  },
+  "addWorkout": "Einheit hinzufügen",
+  "addWorkoutHint": "Erfasse eine Einheit, die nicht in deinem Plan steht – z. B. Krafttraining an einem Ruhetag.",
+  "addWorkoutNeedsData": "Gib eine Dauer oder mindestens einen Satz ein",
+  "unplanned": "Ungeplant",
+  "deleteLog": "Eintrag löschen",
+  "deleteConfirm": "Diesen Trainingseintrag löschen?",
+  "logDeleted": "Eintrag gelöscht"
 }
