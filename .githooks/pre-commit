@@ -1,0 +1,5 @@
+#!/bin/sh
+# Blocks any mention of the banned (AGPL) PDF library. See scripts/lint_no_banned_libs.py.
+python3 scripts/lint_no_banned_libs.py || exit 1
+# Licence policy: no dependency that obliges us to publish our source. See scripts/lint_licenses.py.
+python3 scripts/lint_licenses.py || exit 1
