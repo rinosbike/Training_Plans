@@ -67,6 +67,9 @@
     "f_content_script": "Reel-Skript",
     "f_content_media_prompts": "Medien-Prompts",
     "f_ai_coach": "KI-Coach",
-    "f_ai_coach_actions": "KI-Coach-Aktionen"
+    "f_ai_coach_actions": "KI-Coach-Aktionen",
+    "f_plan_translation": "Plan-Übersetzung",
+    "f_ui_translation": "UI-Übersetzung",
+    "f_description_backfill": "Beschreibungen nachtragen"
   }
 }

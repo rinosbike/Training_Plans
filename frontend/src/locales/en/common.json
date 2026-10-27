@@ -67,6 +67,9 @@
     "f_content_script": "Reel script",
     "f_content_media_prompts": "Media prompts",
     "f_ai_coach": "AI coach",
-    "f_ai_coach_actions": "AI coach actions"
+    "f_ai_coach_actions": "AI coach actions",
+    "f_plan_translation": "Plan translation",
+    "f_ui_translation": "UI translation",
+    "f_description_backfill": "Description backfill"
   }
 }

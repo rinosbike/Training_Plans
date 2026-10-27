@@ -1,6 +1,6 @@
 """
 Admin-only translations endpoint.
-Auto-translates missing locale keys using the Copilot API, one namespace at a time.
+Auto-translates missing locale keys using Z.ai (Coding Plan), one namespace at a time.
 """
 import re
 import json
@@ -63,7 +63,7 @@ def _flatten(obj: dict, prefix: str = '') -> dict:
     return out
 
 
-def _translate_namespace(ns: str, keys: dict, lang_name: str) -> dict:
+def _translate_namespace(ns: str, keys: dict, lang_name: str, user_id=None) -> dict:
     """Translate one namespace's flat key→value dict. Returns translated flat dict."""
     if not keys:
         return {}
@@ -85,7 +85,7 @@ def _translate_namespace(ns: str, keys: dict, lang_name: str) -> dict:
         },
     ]
     # Allow up to 4096 tokens for larger namespaces
-    result_text, _ = svc.chat_complete(messages, max_tokens=4096)
+    result_text, _ = svc.chat_complete(messages, max_tokens=4096, user_id=user_id, feature='ui_translation')
     return _extract_json(result_text)
 
 
@@ -113,13 +113,13 @@ def auto_translate():
         if not keys:
             continue
         try:
-            translated = _translate_namespace(ns, keys, lang_name)
+            translated = _translate_namespace(ns, keys, lang_name, user_id)
             results[ns] = translated
         except json.JSONDecodeError as e:
             log.error('Translation JSON parse error for ns=%s: %s', ns, e)
             errors[ns] = f'Model returned invalid JSON: {e}'
-        except svc.CopilotAPIError as e:
-            log.error('Copilot API error for ns=%s: %s', ns, e.message)
+        except svc.ZaiAPIError as e:
+            log.error('Z.ai API error for ns=%s: %s', ns, e.message)
             errors[ns] = e.message
         except Exception as e:
             log.error('Translation error for ns=%s: %s', ns, e)

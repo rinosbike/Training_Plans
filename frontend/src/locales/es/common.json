@@ -67,6 +67,9 @@
     "f_content_script": "Guion del Reel",
     "f_content_media_prompts": "Prompts de medios",
     "f_ai_coach": "Entrenador IA",
-    "f_ai_coach_actions": "Acciones del entrenador IA"
+    "f_ai_coach_actions": "Acciones del entrenador IA",
+    "f_plan_translation": "Traducción del plan",
+    "f_ui_translation": "Traducción de la interfaz",
+    "f_description_backfill": "Relleno de descripciones"
   }
 }

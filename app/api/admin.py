@@ -166,7 +166,7 @@ def get_ai_session_messages(session_id):
 @admin_bp.route('/api/admin/translate-descriptions', methods=['POST'])
 @jwt_required()
 def translate_descriptions():
-    """Translate all workout descriptions to DE/ZH/PL/ES using Copilot API."""
+    """Translate all workout descriptions to DE/ZH/PL/ES using Z.ai (Coding Plan)."""
     caller_role = _get_role(get_jwt_identity())
     if caller_role != 'super_admin':
         abort(403)
@@ -207,7 +207,9 @@ def translate_descriptions():
         try:
             content, _ = chat_complete(
                 [{'role': 'user', 'content': prompt}],
-                max_tokens=4000
+                max_tokens=4000,
+                user_id=get_jwt_identity(),
+                feature='description_backfill',
             )
             # Strip markdown code fences if present
             content = content.strip()

@@ -67,6 +67,9 @@
     "f_content_script": "Skrypt Reela",
     "f_content_media_prompts": "Prompty medialne",
     "f_ai_coach": "Trener AI",
-    "f_ai_coach_actions": "Akcje trenera AI"
+    "f_ai_coach_actions": "Akcje trenera AI",
+    "f_plan_translation": "Tłumaczenie planu",
+    "f_ui_translation": "Tłumaczenie interfejsu",
+    "f_description_backfill": "Uzupełnianie opisów"
   }
 }

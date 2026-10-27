@@ -9,16 +9,15 @@ import logging
 import threading
 import psycopg2
 import psycopg2.extras
-import requests
+
+from app.services import zai_plan_service
 
 log = logging.getLogger(__name__)
 
-COPILOT_API_URL = 'https://api.githubcopilot.com/chat/completions'
-MODEL = 'claude-sonnet-4.6'
 BATCH = 6
 
 
-def _translate_batch(descs: dict, token: str) -> dict:
+def _translate_batch(descs: dict, app, user_id: str) -> dict:
     prompt = (
         'You are a sports training translator. Translate each numbered description to '
         'German (de), Chinese Simplified (zh), Polish (pl), and Spanish (es). '
@@ -29,24 +28,18 @@ def _translate_batch(descs: dict, token: str) -> dict:
         'Descriptions:\n' +
         '\n'.join(f'{j}: {json.dumps(d)}' for j, d in descs.items())
     )
-    resp = requests.post(COPILOT_API_URL, headers={
-        'Authorization': f'Bearer {token}',
-        'Content-Type': 'application/json',
-        'Copilot-Integration-Id': 'vscode-chat',
-    }, json={
-        'model': MODEL,
-        'messages': [{'role': 'user', 'content': prompt}],
-        'stream': False,
-        'max_tokens': 6000,
-    }, timeout=120)
-    resp.raise_for_status()
-    content = resp.json()['choices'][0]['message']['content'].strip()
+    # Runs in a background thread: the usage log needs an app context (and its connection is closed again on exit).
+    with app.app_context():
+        content, _ = zai_plan_service.complete_messages(
+            [{'role': 'user', 'content': prompt}], max_tokens=6000, temperature=0.2,
+            feature='plan_translation', user_id=user_id, thinking=False)
+    content = content.strip()
     if content.startswith('```'):
         content = content.split('\n', 1)[1].rsplit('```', 1)[0]
     return json.loads(content)
 
 
-def _run(user_id: str, plan_id: str, db_url: str, token: str):
+def _run(user_id: str, plan_id: str, db_url: str, app):
     """Translate all descriptions for a newly generated plan. Runs in a background thread."""
     try:
         conn = psycopg2.connect(db_url)
@@ -79,7 +72,7 @@ def _run(user_id: str, plan_id: str, db_url: str, token: str):
             chunk = rows[i:i + BATCH]
             desc_map = {str(j): row['description'] for j, row in enumerate(chunk)}
             try:
-                translations = _translate_batch(desc_map, token)
+                translations = _translate_batch(desc_map, app, user_id)
                 for j, row in enumerate(chunk):
                     t = translations.get(str(j), {})
                     if t:
@@ -104,11 +97,11 @@ def _run(user_id: str, plan_id: str, db_url: str, token: str):
 
 def translate_plan_async(user_id: str, plan_id: str):
     """Kick off background translation for a newly created plan."""
-    token = os.getenv('GITHUB_COPILOT_TOKEN', '')
+    from flask import current_app
     db_url = os.getenv('DATABASE_URL', '')
-    if not token or not db_url:
+    if not os.getenv('ZAI_API_KEY', '') or not db_url:
         return
     t = threading.Thread(
-        target=_run, args=(user_id, plan_id, db_url, token), daemon=True
+        target=_run, args=(user_id, plan_id, db_url, current_app._get_current_object()), daemon=True
     )
     t.start()

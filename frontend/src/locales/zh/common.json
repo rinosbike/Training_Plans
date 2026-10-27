@@ -67,6 +67,9 @@
     "f_content_script": "Reel 脚本",
     "f_content_media_prompts": "媒体提示词",
     "f_ai_coach": "AI 教练",
-    "f_ai_coach_actions": "AI 教练操作"
+    "f_ai_coach_actions": "AI 教练操作",
+    "f_plan_translation": "计划翻译",
+    "f_ui_translation": "界面翻译",
+    "f_description_backfill": "描述补全"
   }
 }
