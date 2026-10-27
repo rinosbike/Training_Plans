@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import Markdown from '../components/Markdown'
 import api from '../services/api'
 import BottomNav from '../components/BottomNav'
 import toast from 'react-hot-toast'
@@ -257,8 +258,17 @@ export default function AICoach() {
   }
 
   async function handleNewChat() {
-    const newId = await createNewSession()
+    // Clear the current session first: until the new one exists, sending would still go to the old chat.
+    const previous = sessionId
+    setSessionId(null)
+    setMessages([])
     setShowHistory(false)
+    try {
+      await createNewSession()
+    } catch (err) {
+      setSessionId(previous)
+      toast.error(err.response?.data?.error || 'Could not start a new chat')
+    }
   }
 
   async function applyAction(action, key) {
@@ -465,14 +475,16 @@ export default function AICoach() {
             <div className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} mb-1`}>
               {m.role === 'assistant' && <span className="text-xl mr-2 self-end">🤖</span>}
               <div className="flex flex-col items-end max-w-[85%]">
-                <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+                <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${m.role === 'user' ? 'whitespace-pre-wrap' : ''} ${
                   m.role === 'user'
                     ? 'bg-primary-600 text-white rounded-br-sm'
                     : 'bg-white text-gray-900 border border-gray-200 rounded-bl-sm'
                 }`}>
-                  {m.content || (streaming && i === messages.length - 1
-                    ? <span className="animate-pulse">▊</span>
-                    : '')}
+                  {m.content
+                    ? (m.role === 'assistant' ? <Markdown text={m.content} /> : m.content)
+                    : (streaming && i === messages.length - 1
+                      ? <span className="animate-pulse">▊</span>
+                      : '')}
                 </div>
                 {m.ts && (
                   <span className="text-xs text-gray-400 mt-0.5 px-1">
