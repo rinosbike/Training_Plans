@@ -359,8 +359,8 @@ Produce:
 
 Format clearly with numbered scenes. Tone: raw, passionate, data-meets-grit. Audience: serious triathletes and endurance athletes."""
 
-    from app.services.ai_coach_service import chat_complete
-    content, _ = chat_complete([{'role': 'user', 'content': prompt}], max_tokens=2000)
+    from app.services.zai_plan_service import complete
+    content = complete(prompt, max_tokens=6000)
 
     execute_write(
         'UPDATE training.content_stories SET generated_script = %s, updated_at = now() WHERE id = %s',
