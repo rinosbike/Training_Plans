@@ -369,6 +369,23 @@ Format clearly with numbered scenes. Tone: raw, passionate, data-meets-grit. Aud
     return jsonify({'script': content})
 
 
+def _parse_prompt_array(raw: str, valid_ids: set) -> list:
+    """First JSON array in the reply whose items carry a known scene id; [] when there is none."""
+    decoder = json.JSONDecoder()
+    pos = raw.find('[')
+    while pos != -1:
+        try:
+            arr, _ = decoder.raw_decode(raw[pos:])
+        except ValueError:
+            arr = None
+        if isinstance(arr, list):
+            good = [i for i in arr if isinstance(i, dict) and str(i.get('id')) in valid_ids]
+            if good:
+                return good
+        pos = raw.find('[', pos + 1)
+    return []
+
+
 @content_bp.route('/api/content/stories/<story_id>/media-prompts', methods=['POST'])
 @jwt_required()
 def generate_media_prompts(story_id):
@@ -403,14 +420,16 @@ Write the prompts in English. Keep each under 60 words. Keep the look consistent
 Reply with ONLY a JSON array, no commentary: [{{"id": "<scene id>", "image_prompt": "...", "video_prompt": "..."}}]"""
 
     from app.services.zai_plan_service import complete
-    raw = complete(prompt, max_tokens=8000, temperature=0.6, feature='content_media_prompts', user_id=user_id)
-    start, end = raw.find('['), raw.rfind(']')
-    try:
-        items = json.loads(raw[start:end + 1])
-    except ValueError:
+    valid_ids = {str(s['id']) for s in scenes}
+    items = []
+    for _attempt in range(2):  # the model occasionally wraps the JSON in prose or code fences; one retry is cheap
+        raw = complete(prompt, max_tokens=8000, temperature=0.6, feature='content_media_prompts', user_id=user_id)
+        items = _parse_prompt_array(raw, valid_ids)
+        if items:
+            break
+    if not items:
         raise APIError('Z.ai did not return valid prompts; try again.', 502)
 
-    valid_ids = {str(s['id']) for s in scenes}
     saved = 0
     for it in items:
         if not isinstance(it, dict) or str(it.get('id')) not in valid_ids:
