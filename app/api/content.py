@@ -27,7 +27,7 @@ import zipfile
 from flask import Blueprint, request, jsonify, abort, Response
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.db import execute_query, execute_write
-from app.exceptions import NotFoundError, ValidationError
+from app.exceptions import APIError, NotFoundError, ValidationError
 from app.services.storage_service import (
     upload_file, download_file, delete_file, ALLOWED_CONTENT_MIME_TYPES
 )
@@ -224,7 +224,7 @@ def update_scene(story_id, scene_id):
     _get_story(story_id, user_id, role)
     _get_scene(scene_id, story_id)
     data = request.get_json() or {}
-    allowed = ('description', 'overlay_text', 'duration_sec', 'position')
+    allowed = ('description', 'overlay_text', 'duration_sec', 'position', 'image_prompt', 'video_prompt')
     updates = {k: data[k] for k in allowed if k in data}
     if not updates:
         raise ValidationError('No updatable fields provided')
@@ -367,6 +367,62 @@ Format clearly with numbered scenes. Tone: raw, passionate, data-meets-grit. Aud
         (content, story_id)
     )
     return jsonify({'script': content})
+
+
+@content_bp.route('/api/content/stories/<story_id>/media-prompts', methods=['POST'])
+@jwt_required()
+def generate_media_prompts(story_id):
+    """Write an image prompt and a video prompt for every scene, from the story's generated script."""
+    user_id, role = _require_user()
+    story = _get_story(story_id, user_id, role)
+    if not (story.get('generated_script') or '').strip():
+        raise ValidationError('Generate the script first')
+    scenes = execute_query(
+        'SELECT id, position, description, overlay_text, duration_sec FROM training.content_scenes '
+        'WHERE story_id = %s ORDER BY position', (story_id,))
+    if not scenes:
+        raise ValidationError('Add at least one scene first')
+
+    scene_lines = '\n'.join(
+        f'- id={s["id"]} | Scene {s["position"]} | {s["duration_sec"] or "?"}s | '
+        f'note: {s.get("description") or "-"} | on-screen text: {s.get("overlay_text") or "-"}'
+        for s in scenes)
+    prompt = f"""You write prompts for AI image and video generators for a triathlon / endurance-sport Instagram Reel.
+
+Reel script:
+{story['generated_script']}
+
+Scenes:
+{scene_lines}
+
+For EVERY scene write:
+- "image_prompt": one vivid still-image prompt (subject, setting, light, camera angle, mood), vertical 9:16 composition, no text or logos in the image.
+- "video_prompt": one prompt for a 5-10 second clip (subject, camera movement, action), vertical 9:16, no text or logos.
+Write the prompts in English. Keep each under 60 words. Keep the look consistent across scenes (same athlete, same grade).
+
+Reply with ONLY a JSON array, no commentary: [{{"id": "<scene id>", "image_prompt": "...", "video_prompt": "..."}}]"""
+
+    from app.services.zai_plan_service import complete
+    raw = complete(prompt, max_tokens=8000, temperature=0.6)
+    start, end = raw.find('['), raw.rfind(']')
+    try:
+        items = json.loads(raw[start:end + 1])
+    except ValueError:
+        raise APIError('Z.ai did not return valid prompts; try again.', 502)
+
+    valid_ids = {str(s['id']) for s in scenes}
+    saved = 0
+    for it in items:
+        if not isinstance(it, dict) or str(it.get('id')) not in valid_ids:
+            continue
+        execute_write(
+            'UPDATE training.content_scenes SET image_prompt = %s, video_prompt = %s WHERE id = %s AND story_id = %s',
+            ((it.get('image_prompt') or '').strip() or None, (it.get('video_prompt') or '').strip() or None,
+             it['id'], story_id))
+        saved += 1
+    if not saved:
+        raise APIError('Z.ai did not return valid prompts; try again.', 502)
+    return jsonify({'updated': saved})
 
 
 # ─── Export ──────────────────────────────────────────────────────────────────

@@ -139,6 +139,30 @@ export default function SceneCard({ scene, storyId, isFirst, isLast, onUpdated }
           />
         </div>
 
+        {/* AI media prompts (written by "Generate media prompts", editable) */}
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1">{t('scene.imagePrompt')}</label>
+          <textarea
+            key={`ip-${scene.image_prompt || ''}`}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-500"
+            rows={2}
+            placeholder={t('scene.promptPlaceholder')}
+            defaultValue={scene.image_prompt || ''}
+            onBlur={e => handleBlur('image_prompt', e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1">{t('scene.videoPrompt')}</label>
+          <textarea
+            key={`vp-${scene.video_prompt || ''}`}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-500"
+            rows={2}
+            placeholder={t('scene.promptPlaceholder')}
+            defaultValue={scene.video_prompt || ''}
+            onBlur={e => handleBlur('video_prompt', e.target.value)}
+          />
+        </div>
+
         {/* Clips */}
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-2">{t('scene.clips')}</label>

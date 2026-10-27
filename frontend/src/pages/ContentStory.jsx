@@ -55,6 +55,15 @@ export default function ContentStory() {
     onError: (e) => toast.error(e.response?.data?.error || t('generate.generateFailed', { defaultValue: t('errors.generateFailed') })),
   })
 
+  const generatePrompts = useMutation({
+    mutationFn: () => api.post(`/api/content/stories/${id}/media-prompts`),
+    onSuccess: () => {
+      qc.invalidateQueries(['content-story', id])
+      toast.success(t('generate.promptsDone'))
+    },
+    onError: (e) => toast.error(e.response?.data?.error || t('errors.promptsFailed')),
+  })
+
   async function handleExport() {
     setExporting(true)
     toast('Composing video… this takes 30–60 s', { icon: '🎬', duration: 55000, id: 'export-progress' })
@@ -169,6 +178,15 @@ export default function ContentStory() {
         >
           {generateScript.isPending ? t('generate.generating') : t('generate.button')}
         </button>
+        {story.generated_script && (
+          <button
+            onClick={() => generatePrompts.mutate()}
+            disabled={generatePrompts.isPending}
+            className="px-3 bg-white border border-gray-200 text-sm font-medium rounded-xl hover:bg-gray-50 disabled:opacity-50 transition-colors"
+          >
+            {generatePrompts.isPending ? t('generate.promptsGenerating') : t('generate.promptsButton')}
+          </button>
+        )}
         {story.generated_script && (
           <button
             onClick={() => setShowScript(true)}

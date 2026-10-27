@@ -40,7 +40,10 @@
     "uploading": "Uploading…",
     "deleteClip": "Remove clip",
     "moveUp": "Move up",
-    "moveDown": "Move down"
+    "moveDown": "Move down",
+    "imagePrompt": "Image prompt",
+    "videoPrompt": "Video prompt",
+    "promptPlaceholder": "Click “Generate media prompts” or write your own"
   },
   "generate": {
     "button": "Generate Script",
@@ -48,7 +51,10 @@
     "title": "Generated Reel Script",
     "copy": "Copy Script",
     "copied": "Copied!",
-    "noScenes": "Add at least one scene before generating."
+    "noScenes": "Add at least one scene before generating.",
+    "promptsButton": "Media prompts",
+    "promptsGenerating": "Generating prompts…",
+    "promptsDone": "Media prompts written for all scenes"
   },
   "export": {
     "button": "Export ZIP",
@@ -59,6 +65,7 @@
     "unsupportedType": "Unsupported file type. Use MP4, MOV, WEBM, JPG, or PNG.",
     "fileTooLarge": "File exceeds 150 MB limit",
     "generateFailed": "Script generation failed. Try again.",
-    "uploadFailed": "Upload failed. Try again."
+    "uploadFailed": "Upload failed. Try again.",
+    "promptsFailed": "Prompt generation failed. Try again."
   }
 }
