@@ -5,6 +5,8 @@ import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import BottomNav from '../components/BottomNav'
 import toast from 'react-hot-toast'
+import { useTranslation } from 'react-i18next'
+import ZaiUsageBar from '../components/ZaiUsageBar'
 
 const ROLE_LABELS = { super_admin: 'Super Admin', admin: 'Admin', user: 'User' }
 const ROLE_STYLE = {
@@ -15,6 +17,7 @@ const ROLE_STYLE = {
 
 export default function Admin() {
   const { user } = useAuth()
+  const { t } = useTranslation('common')
   const qc = useQueryClient()
   const [tab, setTab] = useState('users')
   const [logsUserId, setLogsUserId] = useState(null)
@@ -42,21 +45,19 @@ export default function Admin() {
         <p className="text-primary-200 text-sm">{users.length} registered user{users.length !== 1 ? 's' : ''}</p>
       </div>
 
-      {isSuperAdmin && (
-        <div className="flex border-b border-gray-200 bg-white">
-          {['users', 'logs'].map(t => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                tab === t ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'
-              }`}
-            >
-              {t === 'users' ? 'Users' : 'AI Coach Logs'}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="flex border-b border-gray-200 bg-white">
+        {(isSuperAdmin ? ['users', 'usage', 'logs'] : ['users', 'usage']).map(tb => (
+          <button
+            key={tb}
+            onClick={() => setTab(tb)}
+            className={`flex-1 py-3 text-sm font-medium transition-colors ${
+              tab === tb ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500'
+            }`}
+          >
+            {tb === 'users' ? 'Users' : tb === 'usage' ? t('zai.usageTab') : 'AI Coach Logs'}
+          </button>
+        ))}
+      </div>
 
       <div className="px-4 mt-4">
         {tab === 'users' && (
@@ -77,6 +78,8 @@ export default function Admin() {
             </div>
           </>
         )}
+
+        {tab === 'usage' && <UsagePanel />}
 
         {tab === 'logs' && isSuperAdmin && (
           <LogsPanel
@@ -272,6 +275,48 @@ function LogsPanel({ users, selectedUserId, selectedSessionId, onSelectUser, onS
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+function UsagePanel() {
+  const { t } = useTranslation('common')
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin-zai-usage'],
+    queryFn: () => api.get('/api/admin/zai-usage').then(r => r.data),
+  })
+  if (isLoading) return <p className="text-sm text-gray-400">…</p>
+  const featureLabel = (f) => t(`zai.f_${f}`, { defaultValue: f })
+  const Table = ({ title, rows, nameKey, label }) => (
+    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+      <p className="px-3 py-2 text-xs font-semibold text-gray-600 bg-gray-50">{title} · {t('zai.last30')}</p>
+      {rows.length === 0 ? <p className="px-3 py-3 text-xs text-gray-400">{t('zai.none')}</p> : (
+        <table className="w-full text-xs">
+          <thead><tr className="text-gray-400 text-left">
+            <th className="px-3 py-1.5 font-medium"></th>
+            <th className="px-2 py-1.5 font-medium text-right">{t('zai.calls')}</th>
+            {rows[0].problems !== undefined && <th className="px-2 py-1.5 font-medium text-right">{t('zai.problems')}</th>}
+            <th className="px-3 py-1.5 font-medium text-right">{t('zai.tokens')}</th>
+          </tr></thead>
+          <tbody>
+            {rows.map(r => (
+              <tr key={r[nameKey]} className="border-t border-gray-50">
+                <td className="px-3 py-1.5 text-gray-700 truncate max-w-[10rem]">{label(r[nameKey])}</td>
+                <td className="px-2 py-1.5 text-right">{r.calls}</td>
+                {r.problems !== undefined && <td className="px-2 py-1.5 text-right">{r.problems}</td>}
+                <td className="px-3 py-1.5 text-right">{Number(r.tokens).toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  )
+  return (
+    <div className="space-y-3">
+      <ZaiUsageBar />
+      <Table title={t('zai.byFeature')} rows={data?.by_feature || []} nameKey="feature" label={featureLabel} />
+      <Table title={t('zai.byUser')} rows={data?.by_user || []} nameKey="user" label={(u) => u} />
     </div>
   )
 }

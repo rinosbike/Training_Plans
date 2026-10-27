@@ -360,7 +360,7 @@ Produce:
 Format clearly with numbered scenes. Tone: raw, passionate, data-meets-grit. Audience: serious triathletes and endurance athletes."""
 
     from app.services.zai_plan_service import complete
-    content = complete(prompt, max_tokens=6000)
+    content = complete(prompt, max_tokens=6000, feature='content_script', user_id=user_id)
 
     execute_write(
         'UPDATE training.content_stories SET generated_script = %s, updated_at = now() WHERE id = %s',
@@ -403,7 +403,7 @@ Write the prompts in English. Keep each under 60 words. Keep the look consistent
 Reply with ONLY a JSON array, no commentary: [{{"id": "<scene id>", "image_prompt": "...", "video_prompt": "..."}}]"""
 
     from app.services.zai_plan_service import complete
-    raw = complete(prompt, max_tokens=8000, temperature=0.6)
+    raw = complete(prompt, max_tokens=8000, temperature=0.6, feature='content_media_prompts', user_id=user_id)
     start, end = raw.find('['), raw.rfind(']')
     try:
         items = json.loads(raw[start:end + 1])

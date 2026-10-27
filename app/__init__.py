@@ -80,6 +80,7 @@ def _register_blueprints(app):
     from app.api.content_tracks import content_tracks_bp
     from app.api.content_voiceover import content_voiceover_bp
     from app.api.media import media_bp
+    from app.api.zai_usage import zai_usage_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(goals_bp)
@@ -98,6 +99,7 @@ def _register_blueprints(app):
     app.register_blueprint(content_tracks_bp)
     app.register_blueprint(content_voiceover_bp)
     app.register_blueprint(media_bp)
+    app.register_blueprint(zai_usage_bp)
 
 
 def _register_jwt_callbacks(app):

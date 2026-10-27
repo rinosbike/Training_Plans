@@ -50,5 +50,23 @@
     "ml": "ml",
     "h": "h",
     "m": "m"
+  },
+  "zai": {
+    "title": "KI-Kontingent",
+    "fiveHour": "5-Stunden-Fenster (übrig)",
+    "weekly": "Wochenfenster (übrig)",
+    "left": "Verbleibender Anteil des gemeinsamen KI-Kontingents. Es wird zur angezeigten Zeit zurückgesetzt.",
+    "usageTab": "KI-Nutzung",
+    "calls": "Aufrufe",
+    "problems": "Probleme",
+    "tokens": "Tokens",
+    "byFeature": "Nach Funktion",
+    "byUser": "Nach Nutzer",
+    "last30": "Letzte 30 Tage",
+    "none": "Noch keine Nutzung erfasst",
+    "f_content_script": "Reel-Skript",
+    "f_content_media_prompts": "Medien-Prompts",
+    "f_ai_coach": "KI-Coach",
+    "f_ai_coach_actions": "KI-Coach-Aktionen"
   }
 }

@@ -50,5 +50,23 @@
     "ml": "ml",
     "h": "h",
     "m": "m"
+  },
+  "zai": {
+    "title": "AI plan quota",
+    "fiveHour": "5-hour window (left)",
+    "weekly": "Weekly window (left)",
+    "left": "Remaining share of the shared AI quota. It resets at the time shown.",
+    "usageTab": "AI usage",
+    "calls": "Calls",
+    "problems": "Problems",
+    "tokens": "Tokens",
+    "byFeature": "By feature",
+    "byUser": "By user",
+    "last30": "Last 30 days",
+    "none": "No usage recorded yet",
+    "f_content_script": "Reel script",
+    "f_content_media_prompts": "Media prompts",
+    "f_ai_coach": "AI coach",
+    "f_ai_coach_actions": "AI coach actions"
   }
 }

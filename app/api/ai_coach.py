@@ -188,7 +188,7 @@ def chat(session_id):
     def generate():
         full_response = []
         try:
-            for line in svc.chat_stream(messages):
+            for line in svc.chat_stream(messages, user_id=user_id):
                 token = svc.parse_sse_chunk(line)
                 if token:
                     full_response.append(token)
@@ -216,7 +216,7 @@ def chat(session_id):
                 # Post-stream action extraction
                 if svc.might_have_actions(message, ai_text):
                     try:
-                        actions = svc.extract_actions(message, ai_text, today_str)
+                        actions = svc.extract_actions(message, ai_text, today_str, user_id=user_id)
                         food_logged = []
                         if actions.get('food_items'):
                             food_logged += _log_food_items(user_id, actions['food_items'], today_str)

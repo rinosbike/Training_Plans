@@ -50,5 +50,23 @@
     "ml": "毫升",
     "h": "小时",
     "m": "米"
+  },
+  "zai": {
+    "title": "AI 套餐额度",
+    "fiveHour": "5 小时窗口（剩余）",
+    "weekly": "每周窗口（剩余）",
+    "left": "共享 AI 额度的剩余比例，将在所示时间重置。",
+    "usageTab": "AI 用量",
+    "calls": "调用次数",
+    "problems": "问题",
+    "tokens": "Token",
+    "byFeature": "按功能",
+    "byUser": "按用户",
+    "last30": "最近 30 天",
+    "none": "暂无用量记录",
+    "f_content_script": "Reel 脚本",
+    "f_content_media_prompts": "媒体提示词",
+    "f_ai_coach": "AI 教练",
+    "f_ai_coach_actions": "AI 教练操作"
   }
 }

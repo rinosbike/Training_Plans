@@ -1,14 +1,16 @@
 """
-Z.ai (GLM) API client for the AI coaching feature.
-Model is fixed to glm-4.6 — never overridable by callers.
+Z.ai (GLM) client for the AI coaching feature, on the Coding Plan quota (see zai_plan_service).
+Model is fixed — never overridable by callers.
 """
 import os
 import re
 import json
 import requests
 
-ZAI_API_URL = 'https://api.z.ai/api/paas/v4/chat/completions'
-MODEL = 'glm-4.6'
+from app.exceptions import APIError
+from app.services import zai_plan_service
+
+MODEL = zai_plan_service.MODEL
 
 MAX_MESSAGE_LEN = 2000
 
@@ -247,7 +249,7 @@ def might_have_actions(user_msg: str, ai_response: str) -> bool:
     return bool(_ACTION_KEYWORDS.search(combined))
 
 
-def extract_actions(user_msg: str, ai_response: str, today: str) -> dict:
+def extract_actions(user_msg: str, ai_response: str, today: str, user_id=None) -> dict:
     """
     Post-stream extraction: runs a second non-streaming call to pull out
     food_items, food_edits, and plan_changes from the conversation turn.
@@ -262,6 +264,8 @@ def extract_actions(user_msg: str, ai_response: str, today: str) -> dict:
         content, _ = chat_complete(
             [{'role': 'user', 'content': prompt}],
             max_tokens=900,
+            user_id=user_id,
+            feature='ai_coach_actions',
         )
         content = content.strip()
         if content.startswith('```'):
@@ -281,66 +285,32 @@ def extract_actions(user_msg: str, ai_response: str, today: str) -> dict:
                 'plan_changes': [], 'workout_logs': [], 'setup_actions': []}
 
 
-def chat_stream(messages: list):
-    """Generator yielding SSE lines. Model is fixed — not a parameter."""
-    token = os.getenv('ZAI_API_KEY', '')
-    if not token:
-        raise ZaiAPIError(0, 'ZAI_API_KEY not set')
-
-    headers = {
-        'Authorization': f'Bearer {token}',
-        'Content-Type': 'application/json',
-    }
-    payload = {
-        'model': MODEL,
-        'messages': messages,
-        'stream': True,
-        'max_tokens': 1024,
-        'temperature': 0.7,
-    }
-    resp = requests.post(ZAI_API_URL, headers=headers, json=payload, stream=True, timeout=60)
-    if resp.status_code != 200:
-        raise ZaiAPIError(resp.status_code, f'Z.ai API error {resp.status_code}: {resp.text[:200]}')
-    for line in resp.iter_lines():
-        if line:
-            yield line.decode('utf-8')
+def chat_stream(messages: list, user_id=None):
+    """Generator yielding raw SSE lines. Model is fixed — not a parameter."""
+    try:
+        yield from zai_plan_service.stream_lines(messages, max_tokens=1024, feature='ai_coach', user_id=user_id)
+    except APIError as e:
+        raise ZaiAPIError(e.status_code, e.message)
 
 
-def chat_complete(messages: list, max_tokens: int = 1024) -> tuple[str, int]:
+def chat_complete(messages: list, max_tokens: int = 1024, user_id=None, feature: str = 'ai_coach') -> tuple[str, int]:
     """Blocking call. Model is fixed — not a parameter."""
-    token = os.getenv('ZAI_API_KEY', '')
-    if not token:
-        raise ZaiAPIError(0, 'ZAI_API_KEY not set')
-
-    headers = {
-        'Authorization': f'Bearer {token}',
-        'Content-Type': 'application/json',
-    }
-    payload = {
-        'model': MODEL,
-        'messages': messages,
-        'stream': False,
-        'max_tokens': max_tokens,
-    }
-    resp = requests.post(ZAI_API_URL, headers=headers, json=payload, timeout=60)
-    if resp.status_code != 200:
-        raise ZaiAPIError(resp.status_code, f'Z.ai API error {resp.status_code}: {resp.text[:200]}')
-    data = resp.json()
-    content = data['choices'][0]['message']['content']
-    tokens = data.get('usage', {}).get('total_tokens', 0)
-    return content, tokens
+    try:
+        text, usage = zai_plan_service.complete_messages(messages, max_tokens=max_tokens, temperature=0.3,
+                                                         feature=feature, user_id=user_id, thinking=False)
+    except APIError as e:
+        raise ZaiAPIError(e.status_code, e.message)
+    return text, int(usage.get('input_tokens') or 0) + int(usage.get('output_tokens') or 0)
 
 
 def parse_sse_chunk(line: str) -> str | None:
-    """Extract text token from SSE data line."""
+    """Extract the text delta from an Anthropic-format SSE data line."""
     if not line.startswith('data: '):
         return None
-    data = line[6:]
-    if data == '[DONE]':
-        return None
     try:
-        chunk = json.loads(data)
-        delta = chunk['choices'][0].get('delta', {})
-        return delta.get('content')
+        ev = json.loads(line[6:])
     except Exception:
         return None
+    if ev.get('type') == 'content_block_delta' and ev.get('delta', {}).get('type') == 'text_delta':
+        return ev['delta'].get('text')
+    return None

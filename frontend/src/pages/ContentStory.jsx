@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import ZaiUsageBar from '../components/ZaiUsageBar'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import BottomNav from '../components/BottomNav'
@@ -203,6 +204,7 @@ export default function ContentStory() {
           {exporting ? t('export.exporting') : t('export.button')}
         </button>
       </div>
+      <div className="max-w-lg mx-auto px-4"><ZaiUsageBar /></div>
 
       {/* Scenes */}
       <div className="max-w-lg mx-auto px-4 space-y-3 pb-4">

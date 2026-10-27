@@ -50,5 +50,23 @@
     "ml": "ml",
     "h": "h",
     "m": "m"
+  },
+  "zai": {
+    "title": "Cuota del plan de IA",
+    "fiveHour": "Ventana de 5 horas (restante)",
+    "weekly": "Ventana semanal (restante)",
+    "left": "Parte restante de la cuota de IA compartida. Se restablece a la hora indicada.",
+    "usageTab": "Uso de IA",
+    "calls": "Llamadas",
+    "problems": "Problemas",
+    "tokens": "Tokens",
+    "byFeature": "Por función",
+    "byUser": "Por usuario",
+    "last30": "Últimos 30 días",
+    "none": "Aún no hay uso registrado",
+    "f_content_script": "Guion del Reel",
+    "f_content_media_prompts": "Prompts de medios",
+    "f_ai_coach": "Entrenador IA",
+    "f_ai_coach_actions": "Acciones del entrenador IA"
   }
 }

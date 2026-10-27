@@ -50,5 +50,23 @@
     "ml": "ml",
     "h": "h",
     "m": "m"
+  },
+  "zai": {
+    "title": "Limit planu AI",
+    "fiveHour": "Okno 5-godzinne (pozostało)",
+    "weekly": "Okno tygodniowe (pozostało)",
+    "left": "Pozostała część wspólnego limitu AI. Odnawia się o wskazanej porze.",
+    "usageTab": "Użycie AI",
+    "calls": "Wywołania",
+    "problems": "Problemy",
+    "tokens": "Tokeny",
+    "byFeature": "Według funkcji",
+    "byUser": "Według użytkownika",
+    "last30": "Ostatnie 30 dni",
+    "none": "Brak zarejestrowanego użycia",
+    "f_content_script": "Skrypt Reela",
+    "f_content_media_prompts": "Prompty medialne",
+    "f_ai_coach": "Trener AI",
+    "f_ai_coach_actions": "Akcje trenera AI"
   }
 }
